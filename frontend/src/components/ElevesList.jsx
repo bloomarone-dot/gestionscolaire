@@ -11,8 +11,10 @@ export default function ElevesList() {
   const [filterClasse, setFilterClasse] = useState('');
   const [filterSection, setFilterSection] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingEleve, setEditingEleve] = useState(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -64,12 +66,18 @@ export default function ElevesList() {
           <h2>Gestion des Élèves</h2>
           <span className="eleves-count">{eleves.length} élève{eleves.length !== 1 ? 's' : ''}</span>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditingEleve(null); setShowModal(true); }}>
-          + Ajouter un élève
-        </button>
+        <div className="eleves-header-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => { setShowImport(true); setSuccess(''); setError(''); }}>
+            Importer une liste
+          </button>
+          <button className="btn btn-primary" onClick={() => { setEditingEleve(null); setShowModal(true); }}>
+            + Ajouter un élève
+          </button>
+        </div>
       </div>
 
       {error && <div className="form-error">{error}</div>}
+      {success && <div className="form-success">{success}</div>}
 
       <div className="eleves-toolbar">
         <input
@@ -179,6 +187,105 @@ export default function ElevesList() {
           onSaved={() => { setShowModal(false); loadAll(); }}
         />
       )}
+
+      {showImport && (
+        <EleveImportModal
+          classes={classes}
+          defaultClasseId={filterClasse ? Number(filterClasse) : null}
+          onClose={() => setShowImport(false)}
+          onImported={(result) => {
+            setShowImport(false);
+            setSuccess(`${result.total} élève(s) importé(s) (${result.created} nouveau(x), ${result.updated} mis à jour)`);
+            if (result.errors?.length) {
+              setError(`${result.errors.length} ligne(s) ignorée(s) — ${result.errors.slice(0, 3).join(' · ')}`);
+            }
+            loadAll();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function EleveImportModal({ classes, defaultClasseId, onClose, onImported }) {
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const defaultClasse = classes.find((c) => c.id === defaultClasseId);
+
+  const handleDownloadTemplate = async () => {
+    try {
+      setLoading(true);
+      await api.downloadElevesImportTemplate();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file) {
+      setError('Choisissez un fichier Excel (.xlsx) ou CSV (.csv)');
+      return;
+    }
+    try {
+      setLoading(true);
+      setError('');
+      const result = await api.importElevesFile(file, defaultClasseId);
+      onImported(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal eleves-import-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Importer une liste d&apos;élèves</h2>
+          <button className="close-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="eleves-import-body">
+          {error && <div className="form-error">{error}</div>}
+          <p className="eleves-import-intro">
+            Au lieu d&apos;ajouter élève par élève, téléchargez le modèle Excel, remplissez la liste
+            (matricule, nom, prénom, classe…) puis importez le fichier. Les élèves existants sont mis à jour
+            par matricule.
+          </p>
+          {defaultClasse && (
+            <p className="eleves-import-hint">
+              Classe par défaut : <strong>{defaultClasse.nom}</strong> (si la colonne Classe est vide)
+            </p>
+          )}
+          <div className="eleves-import-actions">
+            <button type="button" className="btn btn-secondary" onClick={handleDownloadTemplate} disabled={loading}>
+              Télécharger le modèle Excel
+            </button>
+            <label className="btn btn-secondary eleves-import-file-btn">
+              {file ? file.name : 'Choisir un fichier'}
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                hidden
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+            </label>
+          </div>
+          <small className="form-section-hint">
+            Formats acceptés : .xlsx, .csv. Si vous avez une fiche PDF, exportez-la d&apos;abord en Excel ou CSV.
+          </small>
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Annuler</button>
+            <button type="button" className="btn btn-primary" onClick={handleImport} disabled={loading || !file}>
+              {loading ? 'Import en cours...' : 'Importer la liste'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

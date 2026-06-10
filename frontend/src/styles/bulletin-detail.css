@@ -34,6 +34,87 @@
   font-size: 0.78rem;
 }
 
+.bulletin-cameroon-wrap {
+  padding: 0 1rem 1rem;
+}
+
+.bulletin-cameroon-grid {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  border: 1px solid #222;
+}
+
+.bulletin-cameroon-grid th,
+.bulletin-cameroon-grid td {
+  border: 1px solid #222;
+  padding: 0.35rem 0.4rem;
+  text-align: center;
+  vertical-align: middle;
+  word-wrap: break-word;
+}
+
+.bulletin-cameroon-grid .matiere-cell,
+.bulletin-cameroon-grid .bulletin-info-row td {
+  text-align: left;
+}
+
+.bulletin-title-row td {
+  background: #e8e8e8;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.bulletin-info-row td {
+  background: #cce5ff;
+}
+
+.bulletin-info-row .cell-label {
+  font-weight: 700;
+}
+
+.bulletin-grades-header th {
+  background: #cce5ff;
+  font-weight: 800;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.bulletin-grades-header th:first-child {
+  text-align: left;
+}
+
+.bulletin-grade-row .matiere-cell {
+  text-align: left;
+  font-weight: 600;
+}
+
+.bulletin-summary-row td {
+  background: #ffe5cc;
+  font-weight: 600;
+}
+
+.bulletin-summary-row .cell-label {
+  font-weight: 800;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+.bulletin-sig-row td {
+  background: #d4edda;
+  font-weight: 800;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.bulletin-sig-space td {
+  background: #d4edda;
+  height: 2.5rem;
+}
+
 .bulletin-cameroon-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -72,6 +153,7 @@
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  text-align: center;
 }
 
 .bulletin-cameroon-table .prof-cell {

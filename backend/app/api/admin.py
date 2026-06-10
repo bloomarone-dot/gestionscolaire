@@ -1,7 +1,12 @@
 """
 Endpoints pour gestion Professeurs, Classes, Matières (Admin établissement)
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+import csv
+import io
+import re
+
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import List, Optional
@@ -113,6 +118,82 @@ class EleveResponse(BaseModel):
     section: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EleveImportResult(BaseModel):
+    created: int
+    updated: int
+    total: int
+    errors: List[str]
+
+
+ELEVE_HEADER_ALIASES = {
+    "nom": ["nom", "name", "lastname", "last name", "nom de famille", "surname"],
+    "prenom": ["prenom", "prénom", "firstname", "first name", "given name"],
+    "matricule": ["matricule", "id", "unique id", "unique_id", "matricule unique", "code"],
+    "classe": ["classe", "class"],
+    "section": ["section"],
+    "sexe": ["sexe", "sex", "gender"],
+    "redoublant": ["redoublant", "repeater", "redouble"],
+}
+
+
+def _normalize_header_cell(value) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", str(value).strip().lower())
+
+
+def _parse_eleve_header_row(row) -> dict:
+    mapping = {}
+    for idx, cell in enumerate(row):
+        key = _normalize_header_cell(cell)
+        if not key:
+            continue
+        for field, aliases in ELEVE_HEADER_ALIASES.items():
+            if key in aliases and field not in mapping:
+                mapping[field] = idx
+                break
+    return mapping
+
+
+def _parse_repeater(value) -> bool:
+    if value is None or str(value).strip() == "":
+        return False
+    return str(value).strip().upper() in ("OUI", "YES", "Y", "TRUE", "1", "O")
+
+
+def _parse_sexe(value) -> Optional[str]:
+    if value is None or str(value).strip() == "":
+        return None
+    s = str(value).strip().upper()
+    if s in ("M", "H", "MALE", "GARCON", "BOY"):
+        return "M"
+    if s in ("F", "FEMALE", "FILLE", "GIRL"):
+        return "F"
+    return None
+
+
+def _read_eleve_import_rows(content: bytes, filename: str) -> list:
+    lower = (filename or "").lower()
+    if lower.endswith(".csv"):
+        text = content.decode("utf-8-sig", errors="replace")
+        return [list(row) for row in csv.reader(io.StringIO(text))]
+    if lower.endswith((".xlsx", ".xls")):
+        try:
+            from openpyxl import load_workbook
+        except ImportError as exc:
+            raise HTTPException(
+                status_code=501,
+                detail="Import Excel indisponible (openpyxl non installé). Utilisez un fichier CSV.",
+            ) from exc
+        try:
+            wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Fichier Excel invalide : {exc}") from exc
+        ws = wb.active
+        return [list(row) for row in ws.iter_rows(values_only=True)]
+    raise HTTPException(status_code=400, detail="Fichier Excel (.xlsx) ou CSV (.csv) requis")
 
 
 class ClasseCreate(BaseModel):
@@ -997,6 +1078,184 @@ def delete_eleve(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Impossible de supprimer l'élève : {e}") from e
+
+
+@router.get("/eleves/import/template.xlsx")
+def download_eleves_import_template(
+    current_user: dict = Depends(get_current_user),
+):
+    """Télécharge un modèle Excel pour l'import groupé des élèves."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Non autorisé")
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=501,
+            detail="Modèle Excel indisponible (openpyxl non installé).",
+        ) from exc
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Eleves"
+    headers = ["Matricule", "Nom", "Prénom", "Classe", "Section", "Sexe", "Redoublant"]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+    ws.append(["DT12345", "DOUANLA", "Linda", "Form 1A", "anglophone", "F", "NON"])
+    ws.append(["DT12346", "KAMGA", "Paul", "Form 1A", "anglophone", "M", "NON"])
+    ws.append([])
+    ws.append(["Section : francophone ou anglophone"])
+    ws.append(["Sexe : M ou F — Redoublant : OUI ou NON"])
+    ws.append(["La colonne Classe est optionnelle si vous importez pour une classe déjà choisie"])
+
+    for col in ws.columns:
+        max_len = max((len(str(c.value or "")) for c in col), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 36)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="modele_import_eleves.xlsx"'},
+    )
+
+
+@router.post("/eleves/import", response_model=EleveImportResult)
+async def import_eleves(
+    file: UploadFile = File(...),
+    default_classe_id: Optional[int] = None,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_tenant_session),
+):
+    """Importe une liste d'élèves depuis Excel ou CSV."""
+    from app.models.school import Eleve, Classe
+
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Non autorisé")
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Fichier requis")
+
+    default_classe = None
+    if default_classe_id:
+        default_classe = db.query(Classe).filter(Classe.id == default_classe_id).first()
+        if not default_classe:
+            raise HTTPException(status_code=404, detail="Classe par défaut introuvable")
+
+    content = await file.read()
+    rows = _read_eleve_import_rows(content, file.filename)
+    if not rows:
+        raise HTTPException(status_code=400, detail="Fichier vide")
+
+    header_idx = None
+    col_map = {}
+    for i, row in enumerate(rows[:15]):
+        candidate = _parse_eleve_header_row(list(row))
+        if "matricule" in candidate and "nom" in candidate and "prenom" in candidate:
+            header_idx = i
+            col_map = candidate
+            break
+
+    if header_idx is None:
+        raise HTTPException(
+            status_code=400,
+            detail="En-têtes requis : Matricule, Nom, Prénom (Classe, Section, Sexe, Redoublant optionnels)",
+        )
+
+    classes_by_name = {
+        c.nom.strip().lower(): c
+        for c in db.query(Classe).all()
+    }
+    existing_by_matricule = {
+        e.matricule.strip().upper(): e
+        for e in db.query(Eleve).all()
+    }
+
+    created = 0
+    updated = 0
+    errors: List[str] = []
+
+    for line_no, row in enumerate(rows[header_idx + 1:], start=header_idx + 2):
+        if not row or all(c is None or str(c).strip() == "" for c in row):
+            continue
+
+        try:
+            matricule = str(row[col_map["matricule"]]).strip().upper()
+            nom = str(row[col_map["nom"]]).strip()
+            prenom = str(row[col_map["prenom"]]).strip()
+            if not matricule or not nom or not prenom:
+                errors.append(f"Ligne {line_no} : matricule, nom et prénom obligatoires")
+                continue
+
+            classe = default_classe
+            section_hint = None
+            if "section" in col_map and row[col_map["section"]] is not None:
+                section_hint = str(row[col_map["section"]]).strip().lower()
+                if section_hint in ("en", "anglais", "english"):
+                    section_hint = "anglophone"
+                elif section_hint in ("fr", "français", "francais", "french"):
+                    section_hint = "francophone"
+
+            if "classe" in col_map and row[col_map["classe"]] is not None:
+                classe_name = str(row[col_map["classe"]]).strip().lower()
+                if classe_name:
+                    classe = classes_by_name.get(classe_name)
+                    if not classe:
+                        errors.append(f"Ligne {line_no} : classe « {row[col_map['classe']]} » introuvable")
+                        continue
+
+            sexe = _parse_sexe(row[col_map["sexe"]]) if "sexe" in col_map else None
+            redoublant = _parse_repeater(row[col_map["redoublant"]]) if "redoublant" in col_map else False
+
+            if classe and section_hint:
+                classe_section = getattr(classe, "section", None) or "francophone"
+                if section_hint != classe_section:
+                    errors.append(
+                        f"Ligne {line_no} : section {section_hint} incompatible avec la classe {classe.nom}"
+                    )
+                    continue
+
+            existing = existing_by_matricule.get(matricule)
+            if existing:
+                existing.nom = nom
+                existing.prenom = prenom
+                if classe:
+                    existing.classe_id = classe.id
+                if sexe:
+                    existing.sexe = sexe
+                existing.redoublant = redoublant
+                updated += 1
+            else:
+                eleve = Eleve(
+                    nom=nom,
+                    prenom=prenom,
+                    matricule=matricule,
+                    classe_id=classe.id if classe else None,
+                    sexe=sexe,
+                    redoublant=redoublant,
+                )
+                db.add(eleve)
+                existing_by_matricule[matricule] = eleve
+                created += 1
+        except Exception as exc:
+            errors.append(f"Ligne {line_no} : {exc}")
+
+    try:
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'enregistrement : {exc}") from exc
+
+    return EleveImportResult(
+        created=created,
+        updated=updated,
+        total=created + updated,
+        errors=errors[:50],
+    )
 
 
 # ════════════════════════════════════════════════════════════

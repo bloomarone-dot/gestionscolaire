@@ -605,6 +605,28 @@ export async function deleteEleve_admin(eleveId) {
   return deleteResource(`/admin/eleves/${eleveId}`);
 }
 
+export async function downloadElevesImportTemplate() {
+  const res = await fetch('/admin/eleves/import/template.xlsx', { headers: getHeaders() });
+  return downloadFileResponse(res, 'modele_import_eleves.xlsx');
+}
+
+export async function importElevesFile(file, defaultClasseId = null) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const headers = {};
+  const token = localStorage.getItem('access_token');
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const selectedSchool = JSON.parse(localStorage.getItem('selectedSchool') || 'null');
+  if (user?.role === 'superadmin' && selectedSchool?.id) {
+    headers['X-School-Id'] = String(selectedSchool.id);
+  }
+  let url = '/admin/eleves/import';
+  if (defaultClasseId) url += `?default_classe_id=${defaultClasseId}`;
+  const res = await fetch(url, { method: 'POST', headers, body: formData });
+  return handleResponse(res);
+}
+
 // ── Admin Années scolaires ────────────────────────────────
 export async function fetchAnneesScolaires() {
   const res = await fetch('/admin/annees-scolaires/', { headers: getHeaders() });

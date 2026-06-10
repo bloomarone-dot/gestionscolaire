@@ -9,8 +9,23 @@ function getMentionClass(moyenne) {
   return 'insuffisant';
 }
 
+const BULLETIN_COL_PCTS = [28.18, 7.73, 7.73, 7.73, 6.36, 7.73, 6.36, 6.36, 17.27];
+
+function BulletinColGroup() {
+  return (
+    <colgroup>
+      {BULLETIN_COL_PCTS.map((pct, i) => (
+        <col key={i} style={{ width: `${pct}%` }} />
+      ))}
+    </colgroup>
+  );
+}
+
 function CameroonBulletinView({ bulletin }) {
   const isEn = bulletin.lang === 'en';
+  const eleveName = (
+    <strong>{bulletin.eleve_nom} {bulletin.eleve_prenom}</strong>
+  );
 
   return (
     <>
@@ -22,50 +37,62 @@ function CameroonBulletinView({ bulletin }) {
         {bulletin.classe_serie && bulletin.classe_serie !== '—' && (
           <span>{isEn ? 'Series' : 'Série'} : {bulletin.classe_serie}</span>
         )}
-        <span>{isEn ? 'Enrollment' : 'Effectif'} : {bulletin.effectif}</span>
       </div>
 
-      <div className="bulletin-cameroon-summary">
-        <div className="bulletin-summary-item">
-          <label>{isEn ? 'Term Average' : 'Moyenne'}</label>
-          <strong>{bulletin.moyenne_generale}</strong>
-        </div>
-        <div className="bulletin-summary-item">
-          <label>{isEn ? 'Class Average' : 'Moy. classe'}</label>
-          <strong>{bulletin.moyenne_classe}</strong>
-        </div>
-        <div className="bulletin-summary-item">
-          <label>{isEn ? 'Position' : 'Rang'}</label>
-          <strong>{bulletin.rang_label || bulletin.rang || '—'}</strong>
-        </div>
-        <div className="bulletin-summary-item">
-          <label>{isEn ? 'Remark' : 'Décision'}</label>
-          <strong className={bulletin.decision?.includes('ADM') || bulletin.decision === 'PASSED' ? 'decision-pass' : 'decision-fail'}>
-            {bulletin.decision}
-          </strong>
-        </div>
-        <div className="bulletin-summary-item">
-          <label>{isEn ? 'Total coef / marks' : 'Total coef / notes'}</label>
-          <strong>{bulletin.total_coef} / {bulletin.total_points}</strong>
-        </div>
-      </div>
+      <div className="bulletin-detail-table-wrap bulletin-cameroon-wrap">
+        <table className="bulletin-cameroon-grid">
+          <BulletinColGroup />
+          <tbody>
+            <tr className="bulletin-title-row">
+              <td colSpan={9}>
+                {isEn ? "STUDENT'S PROGRESS REPORT CARD" : 'BULLETIN'}
+              </td>
+            </tr>
 
-      <div className="bulletin-detail-table-wrap">
-        <table className="bulletin-detail-table bulletin-cameroon-table">
-          <thead>
-            <tr>
+            {isEn ? (
+              <>
+                <tr className="bulletin-info-row">
+                  <td colSpan={3}><span className="cell-label">Name:</span> {eleveName}</td>
+                  <td colSpan={2}><span className="cell-label">Class:</span> {bulletin.classe || '—'}</td>
+                  <td colSpan={2}><span className="cell-label">Sex:</span> {bulletin.eleve_sexe || '—'}</td>
+                  <td colSpan={2}><span className="cell-label">Class Enrollment:</span> {bulletin.effectif || '—'}</td>
+                </tr>
+                <tr className="bulletin-info-row">
+                  <td colSpan={2}><span className="cell-label">Repeater:</span> {bulletin.redoublant || 'NO'}</td>
+                  <td colSpan={3}><span className="cell-label">Unique ID:</span> {bulletin.matricule || '—'}</td>
+                  <td colSpan={2}><span className="cell-label">Term:</span> <strong>{bulletin.term_label}</strong></td>
+                  <td colSpan={2}><span className="cell-label">Year:</span> <strong>{bulletin.annee_scolaire || '—'}</strong></td>
+                </tr>
+              </>
+            ) : (
+              <>
+                <tr className="bulletin-info-row">
+                  <td colSpan={3}><span className="cell-label">NOM:</span> {eleveName}</td>
+                  <td colSpan={2}><span className="cell-label">Classe:</span> {bulletin.classe || '—'}</td>
+                  <td colSpan={2}><span className="cell-label">Effectif:</span> {bulletin.effectif || '—'}</td>
+                  <td colSpan={2}><span className="cell-label">Redoublant:</span> {bulletin.redoublant || 'NON'}</td>
+                </tr>
+                <tr className="bulletin-info-row">
+                  <td colSpan={2}><span className="cell-label">Serie:</span> {bulletin.classe_serie || '—'}</td>
+                  <td colSpan={3}><span className="cell-label">Matricule:</span> {bulletin.matricule || '—'}</td>
+                  <td colSpan={2}><strong>{bulletin.term_label}</strong></td>
+                  <td colSpan={2}><span className="cell-label">Annee</span> <strong>{bulletin.annee_scolaire || '—'}</strong></td>
+                </tr>
+              </>
+            )}
+
+            <tr className="bulletin-grades-header">
               <th>{isEn ? 'SUBJECTS' : 'MATIERE'}</th>
               <th>{bulletin.seq1_label}</th>
               <th>{bulletin.seq2_label}</th>
               <th>{isEn ? 'Average' : 'Moyenne'}</th>
               <th>Coef</th>
-              <th>{isEn ? 'Total' : 'Notes'}</th>
+              <th>{isEn ? 'Total marks' : 'Notes'}</th>
               <th>{isEn ? 'Rank' : 'Rang'}</th>
               <th>Appre.</th>
-              <th>{isEn ? 'Teacher' : 'Professeur'}</th>
+              <th>{isEn ? "Teacher's sign." : 'Professeur'}</th>
             </tr>
-          </thead>
-          <tbody>
+
             {!bulletin.groupes_matieres?.length ? (
               <tr><td colSpan={9} className="bulletin-empty">Aucune note pour ce trimestre</td></tr>
             ) : (
@@ -75,7 +102,7 @@ function CameroonBulletinView({ bulletin }) {
                     <td colSpan={9}>{group.label}</td>
                   </tr>
                   {group.matieres.map((row) => (
-                    <tr key={row.matiere_id || row.matiere}>
+                    <tr key={row.matiere_id || row.matiere} className="bulletin-grade-row">
                       <td className="matiere-cell">{row.matiere}</td>
                       <td>{row.seq1 ?? '—'}</td>
                       <td>{row.seq2 ?? '—'}</td>
@@ -83,12 +110,67 @@ function CameroonBulletinView({ bulletin }) {
                       <td>{row.coef ?? '—'}</td>
                       <td>{row.points ?? '—'}</td>
                       <td>{row.rang_matiere ?? '—'}</td>
-                      <td><span className={`appreciation-badge ${row.appreciation === 'A' ? 'app-a' : row.appreciation === 'ECA' || row.appreciation === 'IPA' ? 'app-eca' : 'app-na'}`}>{row.appreciation}</span></td>
+                      <td>
+                        <span className={`appreciation-badge ${row.appreciation === 'A' ? 'app-a' : row.appreciation === 'ECA' || row.appreciation === 'IPA' ? 'app-eca' : 'app-na'}`}>
+                          {row.appreciation}
+                        </span>
+                      </td>
                       <td className="prof-cell">{row.professeur}</td>
                     </tr>
                   ))}
                 </Fragment>
               ))
+            )}
+
+            {isEn ? (
+              <>
+                <tr className="bulletin-summary-row">
+                  <td colSpan={2}><span className="cell-label">TOTAL</span><br />{bulletin.total_coef}</td>
+                  <td colSpan={2}><span className="cell-label">Total marks</span><br />{bulletin.total_points}</td>
+                  <td colSpan={2}><span className="cell-label">Class Average</span><br />{bulletin.moyenne_classe}</td>
+                  <td><span className="cell-label">Term Average</span><br />{bulletin.moyenne_generale}</td>
+                  <td><span className="cell-label">Position</span><br />{bulletin.rang_label || bulletin.rang || '—'}</td>
+                  <td><span className="cell-label">Remark</span><br />{bulletin.decision}</td>
+                </tr>
+                <tr className="bulletin-summary-row">
+                  <td colSpan={2}><span className="cell-label">Absences (hours)</span></td>
+                  <td>{bulletin.absences ?? 0}</td>
+                  <td />
+                  <td colSpan={2}><span className="cell-label">Sanctions</span><br />{bulletin.sanctions || ''}</td>
+                  <td colSpan={2}><span className="cell-label">Observation</span><br />{bulletin.observation || ''}</td>
+                  <td />
+                </tr>
+                <tr className="bulletin-sig-row">
+                  <td colSpan={3}>PARENTS/GUARDIANS</td>
+                  <td colSpan={2}>S.D.M</td>
+                  <td colSpan={2}>PRINCIPAL</td>
+                  <td colSpan={2}>DATE</td>
+                </tr>
+                <tr className="bulletin-sig-space"><td colSpan={9}>&nbsp;</td></tr>
+              </>
+            ) : (
+              <>
+                <tr className="bulletin-summary-row">
+                  <td colSpan={2}><span className="cell-label">TOTAL</span><br />Coef: {bulletin.total_coef}</td>
+                  <td colSpan={2}>Notes: {bulletin.total_points}</td>
+                  <td colSpan={2}><span className="cell-label">Moyenne de la classe</span><br />{bulletin.moyenne_classe}</td>
+                  <td><span className="cell-label">Moyenne</span><br />{bulletin.moyenne_generale}</td>
+                  <td><span className="cell-label">Absences</span><br />{bulletin.absences ?? 0}</td>
+                  <td><span className="cell-label">Rang</span><br />{bulletin.rang_label || bulletin.rang || '—'}</td>
+                </tr>
+                <tr className="bulletin-summary-row">
+                  <td colSpan={2}><span className="cell-label">Decision</span><br />{bulletin.decision}</td>
+                  <td colSpan={4}><span className="cell-label">OBSERVATION</span><br />{bulletin.observation || ''}</td>
+                  <td colSpan={3} />
+                </tr>
+                <tr className="bulletin-sig-row">
+                  <td colSpan={3}>PARENTS/TUTEURS</td>
+                  <td colSpan={2}>PROF PRINCIPAL</td>
+                  <td colSpan={2}>PRINCIPAL</td>
+                  <td colSpan={2}>DATE</td>
+                </tr>
+                <tr className="bulletin-sig-space"><td colSpan={9}>&nbsp;</td></tr>
+              </>
             )}
           </tbody>
         </table>
