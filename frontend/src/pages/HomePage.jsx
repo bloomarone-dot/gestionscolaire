@@ -1,7 +1,10 @@
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import Footer from '../components/Footer';
+import '../styles/navbar.css';
+import '../styles/hero.css';
 import '../styles/home-page.css';
+import '../styles/footer.css';
 
 export default function HomePage() {
   return (

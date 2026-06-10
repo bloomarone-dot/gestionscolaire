@@ -1,15 +1,15 @@
 /* ======================================================
-   Navbar Styles
+   Navbar — thème blanc / violet
    ====================================================== */
 
 .navbar {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: linear-gradient(135deg, rgba(15, 17, 23, 0.95), rgba(22, 27, 39, 0.95));
+  background: #ffffff;
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .navbar-container {
@@ -30,12 +30,12 @@
   font-weight: 700;
   color: var(--text-primary);
   text-decoration: none;
-  transition: transform 0.3s ease, color 0.3s ease;
+  transition: transform var(--transition), color var(--transition);
 }
 
 .navbar-logo:hover {
   transform: translateY(-2px);
-  color: var(--accent-400);
+  color: var(--primary-600);
 }
 
 .logo-icon {
@@ -49,7 +49,7 @@
 }
 
 .logo-text {
-  background: linear-gradient(135deg, var(--primary-400), var(--accent-400));
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -67,7 +67,7 @@
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.3s ease;
+  transition: color var(--transition);
   position: relative;
 }
 
@@ -79,11 +79,11 @@
   width: 0;
   height: 2px;
   background: linear-gradient(90deg, var(--primary-500), var(--accent-400));
-  transition: width 0.3s ease;
+  transition: width var(--transition);
 }
 
 .nav-menu a:hover {
-  color: var(--text-primary);
+  color: var(--primary-600);
 }
 
 .nav-menu a:hover::after {

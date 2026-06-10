@@ -1,20 +1,22 @@
 /* ======================================================
-   Home Page Styles
+   Home Page — thème blanc / violet (aligné dashboards)
    ====================================================== */
 
 .home-page {
   min-height: 100vh;
-  background: var(--bg-900);
+  color-scheme: light;
+  background: #f8fafc;
+  color: var(--text-primary);
 }
 
 .home-main {
-  background: var(--bg-900);
+  background: #f8fafc;
 }
 
 /* Features Section */
 .features-section {
   padding: 4rem 2rem;
-  background: linear-gradient(135deg, #0f1117 0%, #1a202d 100%);
+  background: #ffffff;
   border-top: 1px solid var(--border);
 }
 
@@ -39,19 +41,20 @@
 }
 
 .feature-card {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(6, 182, 212, 0.05));
+  background: linear-gradient(135deg, var(--primary-50), rgba(167, 139, 250, 0.06));
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 2rem;
-  transition: all 0.3s ease;
+  transition: all var(--transition);
   text-align: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .feature-card:hover {
-  transform: translateY(-8px);
-  border-color: var(--primary-400);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(6, 182, 212, 0.1));
-  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
+  transform: translateY(-6px);
+  border-color: var(--primary-200);
+  background: linear-gradient(135deg, var(--primary-50), rgba(167, 139, 250, 0.12));
+  box-shadow: var(--shadow-md), var(--shadow-glow);
 }
 
 .feature-icon-large {
@@ -76,7 +79,7 @@
 /* About Section */
 .about-section {
   padding: 4rem 2rem;
-  background: linear-gradient(135deg, #1e2535 0%, #252d3d 100%);
+  background: linear-gradient(135deg, var(--primary-50), rgba(167, 139, 250, 0.08));
   border-top: 1px solid var(--border);
 }
 
@@ -122,23 +125,25 @@
 }
 
 .stat-box {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(6, 182, 212, 0.05));
+  background: #ffffff;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 2rem;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-box:hover {
-  transform: scale(1.05);
-  border-color: var(--accent-400);
+  transform: scale(1.03);
+  border-color: var(--primary-200);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-number {
   font-size: 2.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--primary-400), var(--accent-400));
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

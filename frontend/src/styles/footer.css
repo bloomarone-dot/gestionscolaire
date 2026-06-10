@@ -1,13 +1,13 @@
 /* ======================================================
-   Footer Styles
+   Footer — thème blanc / violet
    ====================================================== */
 
 .footer {
-  background: linear-gradient(135deg, #0f1117 0%, #161b27 100%);
+  background: #ffffff;
   border-top: 1px solid var(--border);
   padding: 3rem 2rem 1rem;
   color: var(--text-secondary);
-  margin-top: 4rem;
+  margin-top: 0;
 }
 
 .footer-container {
@@ -52,12 +52,12 @@
 .footer-section a {
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all var(--transition);
   display: inline-block;
 }
 
 .footer-section a:hover {
-  color: var(--accent-400);
+  color: var(--primary-600);
   transform: translateX(4px);
 }
 
