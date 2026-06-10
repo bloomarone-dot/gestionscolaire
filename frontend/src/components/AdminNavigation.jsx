@@ -37,7 +37,7 @@ const NAV_SECTIONS = [
   },
 ];
 
-export default function AdminNavigation({ activeTab, onTabChange, schoolName }) {
+export default function AdminNavigation({ activeTab, onTabChange, schoolName, schoolLogo }) {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -56,7 +56,11 @@ export default function AdminNavigation({ activeTab, onTabChange, schoolName }) 
   return (
     <nav className="admin-navigation">
       <div className="admin-nav-header">
-        <span className="admin-nav-brand-icon">🏛️</span>
+        {schoolLogo ? (
+          <img src={schoolLogo} alt="" className="school-logo-thumb" />
+        ) : (
+          <span className="admin-nav-brand-icon">🏛️</span>
+        )}
         <div className="admin-nav-brand-text">
           <span className="admin-nav-title">Admin Panel</span>
           {schoolName && <span className="admin-nav-subtitle">{schoolName}</span>}

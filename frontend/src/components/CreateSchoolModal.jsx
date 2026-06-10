@@ -2,6 +2,8 @@ import { useState } from 'react';
 import * as api from '../api/api';
 import '../styles/create-school-modal.css';
 
+const MAX_LOGO_SIZE = 500 * 1024;
+
 export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -14,11 +16,14 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
     directeur_last_name: '',
     directeur_email: '',
     directeur_phone: '',
+    logo_url: '',
+    primary_color: '#10b981',
+    secondary_color: '#f59e0b',
     admin_username: '',
     admin_email: '',
     admin_password: '',
     admin_first_name: '',
-    admin_last_name: ''
+    admin_last_name: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -26,7 +31,28 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Veuillez sélectionner une image (PNG, JPG, SVG…).');
+      return;
+    }
+    if (file.size > MAX_LOGO_SIZE) {
+      setError('Le logo ne doit pas dépasser 500 Ko.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData((prev) => ({ ...prev, logo_url: reader.result }));
+      setError('');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
@@ -35,7 +61,9 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
     setLoading(true);
 
     try {
-      const result = await api.createSchool(formData);
+      const payload = { ...formData };
+      if (!payload.logo_url) delete payload.logo_url;
+      const result = await api.createSchool(payload);
       onSchoolCreated(result);
     } catch (err) {
       setError(err.message);
@@ -49,17 +77,17 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
       <div className="modal modal-lg">
         <div className="modal-header">
           <h2>Créer un nouvel établissement</h2>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button type="button" className="close-btn" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="school-form">
           {error && <div className="form-error">{error}</div>}
 
           <div className="form-section">
-            <h3>Informations de l'établissement</h3>
+            <h3>Informations de l&apos;établissement</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Nom de l'établissement *</label>
+                <label>Nom de l&apos;établissement *</label>
                 <input
                   type="text"
                   name="name"
@@ -91,7 +119,7 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="+237 6XX XXX XXX"
                 />
               </div>
               <div className="form-group">
@@ -102,7 +130,7 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
                   value={formData.city}
                   onChange={handleChange}
                   required
-                  placeholder="Paris"
+                  placeholder="Yaoundé"
                 />
               </div>
             </div>
@@ -127,14 +155,82 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
                   value={formData.postal_code}
                   onChange={handleChange}
                   required
-                  placeholder="75001"
+                  placeholder="00237"
                 />
               </div>
             </div>
           </div>
 
           <div className="form-section">
-            <h3>Directeur de l'établissement</h3>
+            <h3>Identité visuelle</h3>
+            <p className="form-section-hint">Logo et couleurs affichés dans l&apos;interface admin et professeur</p>
+
+            <div className="form-group">
+              <label>Logo de l&apos;établissement</label>
+              <input type="file" accept="image/*" onChange={handleLogoChange} />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Couleur principale</label>
+                <div className="color-input-row">
+                  <input
+                    type="color"
+                    name="primary_color"
+                    value={formData.primary_color}
+                    onChange={handleChange}
+                  />
+                  <input
+                    type="text"
+                    name="primary_color"
+                    value={formData.primary_color}
+                    onChange={handleChange}
+                    pattern="^#[0-9A-Fa-f]{6}$"
+                    placeholder="#10b981"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Couleur secondaire</label>
+                <div className="color-input-row">
+                  <input
+                    type="color"
+                    name="secondary_color"
+                    value={formData.secondary_color}
+                    onChange={handleChange}
+                  />
+                  <input
+                    type="text"
+                    name="secondary_color"
+                    value={formData.secondary_color}
+                    onChange={handleChange}
+                    pattern="^#[0-9A-Fa-f]{6}$"
+                    placeholder="#f59e0b"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="branding-preview">
+              {formData.logo_url ? (
+                <img src={formData.logo_url} alt="Aperçu logo" className="branding-preview-logo" />
+              ) : (
+                <div className="branding-preview-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
+                  🏫
+                </div>
+              )}
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>{formData.name || 'Nom établissement'}</div>
+                <div className="branding-preview-swatches">
+                  <div className="branding-swatch" style={{ background: formData.primary_color }} title="Principale" />
+                  <div className="branding-swatch" style={{ background: formData.secondary_color }} title="Secondaire" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h3>Directeur de l&apos;établissement</h3>
             <p className="form-section-hint">Identité du directeur (distincte du compte administrateur IT)</p>
             <div className="form-row">
               <div className="form-group">
@@ -178,14 +274,14 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
                   name="directeur_phone"
                   value={formData.directeur_phone}
                   onChange={handleChange}
-                  placeholder="+33 1 23 45 67 89"
+                  placeholder="+237 6XX XXX XXX"
                 />
               </div>
             </div>
           </div>
 
           <div className="form-section">
-            <h3>Administrateur IT de l'établissement</h3>
+            <h3>Administrateur IT de l&apos;établissement</h3>
             <p className="form-section-hint">Compte de connexion pour la gestion de la plateforme</p>
             <div className="form-row">
               <div className="form-group">
@@ -214,7 +310,7 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Nom d'utilisateur *</label>
+                <label>Nom d&apos;utilisateur *</label>
                 <input
                   type="text"
                   name="admin_username"

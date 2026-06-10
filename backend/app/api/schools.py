@@ -32,6 +32,9 @@ class SchoolCreate(BaseModel):
     directeur_last_name: str
     directeur_email: Optional[EmailStr] = None
     directeur_phone: Optional[str] = None
+    logo_url: Optional[str] = None
+    primary_color: Optional[str] = "#10b981"
+    secondary_color: Optional[str] = "#f59e0b"
     admin_username: str
     admin_email: EmailStr
     admin_password: str
@@ -50,6 +53,9 @@ class SchoolUpdate(BaseModel):
     directeur_last_name: Optional[str] = None
     directeur_email: Optional[EmailStr] = None
     directeur_phone: Optional[str] = None
+    logo_url: Optional[str] = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
 
 
 class SchoolDBConfig(BaseModel):
@@ -69,6 +75,9 @@ class SchoolResponse(BaseModel):
     postal_code: str
     db_name: str
     admin_id: Optional[int]
+    logo_url: Optional[str] = None
+    primary_color: Optional[str] = "#10b981"
+    secondary_color: Optional[str] = "#f59e0b"
     is_active: bool
     created_at: datetime
     
@@ -164,6 +173,9 @@ def create_school(
             directeur_last_name=school_data.directeur_last_name,
             directeur_email=school_data.directeur_email,
             directeur_phone=school_data.directeur_phone,
+            logo_url=school_data.logo_url,
+            primary_color=school_data.primary_color or "#10b981",
+            secondary_color=school_data.secondary_color or "#f59e0b",
             db_host=os.getenv("TENANT_DB_HOST", "localhost"),
             db_port=int(os.getenv("TENANT_DB_PORT", "1433")),
             db_username=os.getenv("TENANT_DB_USERNAME", "sa"),
@@ -243,6 +255,9 @@ def list_schools(
             "postal_code": school.postal_code,
             "db_name": school.db_name,
             "admin_id": school.admin_id,
+            "logo_url": school.logo_url,
+            "primary_color": school.primary_color,
+            "secondary_color": school.secondary_color,
             "is_active": school.is_active,
             "created_at": school.created_at,
             "db_status": None,

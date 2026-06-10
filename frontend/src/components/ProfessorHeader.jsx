@@ -1,6 +1,6 @@
 import DashboardUserBar from './DashboardUserBar';
 
-export default function AdminHeader({ schoolName }) {
+export default function ProfessorHeader({ schoolName }) {
   const contextLabel = schoolName ? (
     <>Établissement : <strong>{schoolName}</strong></>
   ) : null;
@@ -8,7 +8,7 @@ export default function AdminHeader({ schoolName }) {
   return (
     <DashboardUserBar
       contextLabel={contextLabel}
-      roleLabel="Administrateur"
+      roleLabel="Professeur"
     />
   );
 }

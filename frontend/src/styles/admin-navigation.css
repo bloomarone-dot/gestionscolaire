@@ -244,6 +244,12 @@
   }
 
   .admin-sidebar-footer {
+    display: block;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .admin-user-card {
     display: none;
   }
 

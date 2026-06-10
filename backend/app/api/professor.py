@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 
 from app.auth.security import get_current_user
+from app.db.connection import get_db_session
 from app.db.multi_tenant import get_tenant_session
 from app.models.school import (
     Professeur, Classe, Matiere, AttributionProfesseur,
@@ -343,9 +344,12 @@ async def generate_bulletin(
 async def get_professor_stats(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
+    master_db: Session = Depends(get_db_session),
 ):
     if current_user.get("role") != "professeur":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
+
+    from app.models.school import School
 
     professeur_id = current_user.get("id")
 
@@ -365,10 +369,28 @@ async def get_professor_stats(
 
     recent_notes = db.query(Note).filter(Note.professeur_id == professeur_id).count()
 
+    school_name = None
+    logo_url = None
+    primary_color = "#10b981"
+    secondary_color = "#f59e0b"
+    school_id = current_user.get("school_id")
+    if school_id:
+        school = master_db.query(School).filter(School.id == school_id).first()
+        if school:
+            school_name = school.name
+            logo_url = school.logo_url
+            primary_color = school.primary_color or primary_color
+            secondary_color = school.secondary_color or secondary_color
+
     return {
         "total_classes": total_classes,
         "total_eleves": total_eleves,
         "recent_notes": recent_notes,
+        "school_name": school_name,
+        "school_id": school_id,
+        "logo_url": logo_url,
+        "primary_color": primary_color,
+        "secondary_color": secondary_color,
     }
 
 

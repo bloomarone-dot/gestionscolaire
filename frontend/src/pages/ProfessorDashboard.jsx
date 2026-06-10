@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api/api';
 import ProfessorNavigation from '../components/ProfessorNavigation';
+import ProfessorHeader from '../components/ProfessorHeader';
+import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import DashboardHero from '../components/DashboardHero';
 import ClassesGrid from '../components/ClassesGrid';
 import NotesEntry from '../components/NotesEntry';
@@ -25,7 +27,13 @@ export default function ProfessorDashboard() {
     total_classes: 0,
     total_eleves: 0,
     recent_notes: 0,
+    school_name: null,
+    logo_url: null,
+    primary_color: '#10b981',
+    secondary_color: '#f59e0b',
   });
+
+  useSchoolBranding(stats);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'professeur') {
@@ -57,9 +65,17 @@ export default function ProfessorDashboard() {
 
   return (
     <div className="professor-dashboard">
-      <ProfessorNavigation activeTab={activeTab} onTabChange={handleTabChange} />
+      <ProfessorNavigation
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        schoolName={stats.school_name}
+        schoolLogo={stats.logo_url}
+      />
 
-      <div className="professor-content">
+      <div className="professor-content-area">
+        <ProfessorHeader schoolName={stats.school_name} />
+
+        <div className="professor-content">
         {activeTab === 'accueil' && (
           <div className="dashboard-accueil">
             <DashboardHero
@@ -164,6 +180,7 @@ export default function ProfessorDashboard() {
             </header>
           </section>
         )}
+        </div>
       </div>
     </div>
   );

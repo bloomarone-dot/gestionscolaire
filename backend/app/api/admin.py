@@ -827,11 +827,17 @@ def get_admin_stats(
     annee_active = db.query(AnneeScolaire).filter(AnneeScolaire.is_active == True).first()
 
     school_name = None
+    logo_url = None
+    primary_color = "#10b981"
+    secondary_color = "#f59e0b"
     school_id = current_user.get("school_id")
     if school_id:
         school = master_db.query(School).filter(School.id == school_id).first()
         if school:
             school_name = school.name
+            logo_url = school.logo_url
+            primary_color = school.primary_color or primary_color
+            secondary_color = school.secondary_color or secondary_color
 
     return {
         "total_professeurs": total_professeurs,
@@ -841,4 +847,8 @@ def get_admin_stats(
         "total_notes": total_notes,
         "annee_scolaire": annee_active.annee if annee_active else None,
         "school_name": school_name,
+        "school_id": school_id,
+        "logo_url": logo_url,
+        "primary_color": primary_color,
+        "secondary_color": secondary_color,
     }

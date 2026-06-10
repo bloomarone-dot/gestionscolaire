@@ -11,6 +11,7 @@ import AdminStatsCards from '../components/AdminStatsCards';
 import AdminNotesPage from './AdminNotesPage';
 import AdminPeriodeSaisiePage from './AdminPeriodeSaisiePage';
 import * as api from '../api/api';
+import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import '../styles/admin-dashboard.css';
 import '../styles/dashboard-shared.css';
 
@@ -49,11 +50,14 @@ export default function AdminDashboard() {
     loadStats();
   }, [loadStats]);
 
+  useSchoolBranding(stats);
+
   if (!user || user.role !== 'admin') {
     return <div className="unauthorized">Accès non autorisé</div>;
   }
 
   const schoolName = stats?.school_name || 'Mon établissement';
+  const schoolLogo = stats?.logo_url || null;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
 
@@ -63,6 +67,7 @@ export default function AdminDashboard() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         schoolName={schoolName}
+        schoolLogo={schoolLogo}
       />
 
       <div className="admin-content-area">

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Date
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Date, Text
 from sqlalchemy.orm import relationship
 from app.db.connection import Base
 from datetime import datetime
@@ -32,6 +32,11 @@ class School(Base):
     directeur_last_name = Column(String(100), nullable=True)
     directeur_email = Column(String(100), nullable=True)
     directeur_phone = Column(String(20), nullable=True)
+
+    # Identité visuelle
+    logo_url = Column(Text, nullable=True)
+    primary_color = Column(String(7), default="#10b981")
+    secondary_color = Column(String(7), default="#f59e0b")
 
     # Métadonnées
     admin_id = Column(Integer, ForeignKey("admins.id"), nullable=True)

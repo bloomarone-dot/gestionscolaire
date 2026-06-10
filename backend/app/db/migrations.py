@@ -11,6 +11,9 @@ SCHOOL_COLUMN_MIGRATIONS = [
     ("directeur_last_name", "VARCHAR(100)"),
     ("directeur_email", "VARCHAR(100)"),
     ("directeur_phone", "VARCHAR(20)"),
+    ("logo_url", "TEXT"),
+    ("primary_color", "VARCHAR(7) DEFAULT '#10b981'"),
+    ("secondary_color", "VARCHAR(7) DEFAULT '#f59e0b'"),
 ]
 
 PERIODE_NOTE_COLUMNS = [
