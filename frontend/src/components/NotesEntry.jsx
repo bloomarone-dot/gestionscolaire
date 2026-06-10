@@ -3,12 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import * as api from '../api/api';
 import {
   TRIMESTRES,
-  EVAL_TYPES,
   evalTypeLabel,
   calcMoyenneTrimestre,
   getSeqNotesForEleve,
   getAppreciation,
   formatSessionCountdown,
+  getTrimestreForEvalType,
 } from '../utils/notes';
 import {
   getEvalTypes,
@@ -186,12 +186,16 @@ export default function NotesEntry({
   };
 
   const handleTypeChange = async (typeEval) => {
+    const trimestre = getTrimestreForEvalType(typeEval) || selectedTrimestre;
     setSelectedType(typeEval);
+    if (typeEval.startsWith('sequence_')) {
+      setSelectedTrimestre(trimestre);
+    }
     setSuccess('');
     setError('');
     setEditingId(null);
     if (selectedMatiere) {
-      await loadNotesForMatiere(selectedMatiere, selectedTrimestre, typeEval);
+      await loadNotesForMatiere(selectedMatiere, trimestre, typeEval);
     }
   };
 
@@ -208,7 +212,7 @@ export default function NotesEntry({
     valeur: parseFloat(note.valeur),
     coefficient: note.coefficient ?? 1.0,
     commentaire: note.commentaire || '',
-    trimestre: selectedTrimestre,
+    trimestre: getTrimestreForEvalType(selectedType) || selectedTrimestre,
     type_evaluation: selectedType,
   });
 

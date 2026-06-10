@@ -20,7 +20,13 @@ SCHOOL_COLUMN_MIGRATIONS = [
     ("bulletin_delegation_fr", "TEXT"),
     ("bulletin_next_term_note", "VARCHAR(255)"),
     ("bulletin_template", "VARCHAR(40) DEFAULT 'cameroon_bilingual'"),
+    ("bulletin_scope", "VARCHAR(20) DEFAULT 'trimestre'"),
 ]
+
+BULLETIN_SCOPES = {
+    "trimestre": "Par trimestre (2 séquences affichées)",
+    "annual": "Annuel (6 séquences sur le bulletin)",
+}
 
 BULLETIN_TEMPLATES = {
     "cameroon_bilingual": "Cameroun bilingue (FR + EN)",

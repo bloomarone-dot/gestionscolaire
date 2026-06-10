@@ -10,11 +10,22 @@ function getMentionClass(moyenne) {
 }
 
 const BULLETIN_COL_PCTS = [28.18, 7.73, 7.73, 7.73, 6.36, 7.73, 6.36, 6.36, 17.27];
+const BULLETIN_ANNUAL_COL_PCTS = [
+  12, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5,
+  6.5, 5.5, 6.5, 5.5, 5.5, 5.5, 14.5,
+];
 
-function BulletinColGroup() {
+function distributeSpans(nCols, parts) {
+  const base = Math.floor(nCols / parts);
+  const rem = nCols % parts;
+  return Array.from({ length: parts }, (_, i) => base + (i < rem ? 1 : 0));
+}
+
+function BulletinColGroup({ annual = false }) {
+  const pcts = annual ? BULLETIN_ANNUAL_COL_PCTS : BULLETIN_COL_PCTS;
   return (
     <colgroup>
-      {BULLETIN_COL_PCTS.map((pct, i) => (
+      {pcts.map((pct, i) => (
         <col key={i} style={{ width: `${pct}%` }} />
       ))}
     </colgroup>
@@ -23,6 +34,18 @@ function BulletinColGroup() {
 
 function CameroonBulletinView({ bulletin }) {
   const isEn = bulletin.lang === 'en';
+  const isAnnual = bulletin.bulletin_scope === 'annual';
+  const nCols = isAnnual ? 14 : 9;
+  const infoSpans = distributeSpans(nCols, 4);
+  const summarySpans = distributeSpans(nCols, 6);
+  const sigSpans = distributeSpans(nCols, 4);
+  const infoRow2 = [
+    infoSpans[0],
+    infoSpans[1] + infoSpans[2],
+    Math.max(1, Math.floor(infoSpans[3] / 2)),
+    infoSpans[3] - Math.max(1, Math.floor(infoSpans[3] / 2)),
+  ];
+  const seqLabels = bulletin.sequence_labels || [bulletin.seq1_label, bulletin.seq2_label];
   const eleveName = (
     <strong>{bulletin.eleve_nom} {bulletin.eleve_prenom}</strong>
   );
@@ -40,11 +63,11 @@ function CameroonBulletinView({ bulletin }) {
       </div>
 
       <div className="bulletin-detail-table-wrap bulletin-cameroon-wrap">
-        <table className="bulletin-cameroon-grid">
-          <BulletinColGroup />
+        <table className={`bulletin-cameroon-grid${isAnnual ? ' bulletin-cameroon-annual' : ''}`}>
+          <BulletinColGroup annual={isAnnual} />
           <tbody>
             <tr className="bulletin-title-row">
-              <td colSpan={9}>
+              <td colSpan={nCols}>
                 {isEn ? "STUDENT'S PROGRESS REPORT CARD" : 'BULLETIN'}
               </td>
             </tr>
@@ -52,39 +75,45 @@ function CameroonBulletinView({ bulletin }) {
             {isEn ? (
               <>
                 <tr className="bulletin-info-row">
-                  <td colSpan={3}><span className="cell-label">Name:</span> {eleveName}</td>
-                  <td colSpan={2}><span className="cell-label">Class:</span> {bulletin.classe || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">Sex:</span> {bulletin.eleve_sexe || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">Class Enrollment:</span> {bulletin.effectif || '—'}</td>
+                  <td colSpan={infoSpans[0]}><span className="cell-label">Name:</span> {eleveName}</td>
+                  <td colSpan={infoSpans[1]}><span className="cell-label">Class:</span> {bulletin.classe || '—'}</td>
+                  <td colSpan={infoSpans[2]}><span className="cell-label">Sex:</span> {bulletin.eleve_sexe || '—'}</td>
+                  <td colSpan={infoSpans[3]}><span className="cell-label">Class Enrollment:</span> {bulletin.effectif || '—'}</td>
                 </tr>
                 <tr className="bulletin-info-row">
-                  <td colSpan={2}><span className="cell-label">Repeater:</span> {bulletin.redoublant || 'NO'}</td>
-                  <td colSpan={3}><span className="cell-label">Unique ID:</span> {bulletin.matricule || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">Term:</span> <strong>{bulletin.term_label}</strong></td>
-                  <td colSpan={2}><span className="cell-label">Year:</span> <strong>{bulletin.annee_scolaire || '—'}</strong></td>
+                  <td colSpan={infoRow2[0]}><span className="cell-label">Repeater:</span> {bulletin.redoublant || 'NO'}</td>
+                  <td colSpan={infoRow2[1]}><span className="cell-label">Unique ID:</span> {bulletin.matricule || '—'}</td>
+                  <td colSpan={infoRow2[2]}><span className="cell-label">Term:</span> <strong>{bulletin.term_label}</strong></td>
+                  <td colSpan={infoRow2[3]}><span className="cell-label">Year:</span> <strong>{bulletin.annee_scolaire || '—'}</strong></td>
                 </tr>
               </>
             ) : (
               <>
                 <tr className="bulletin-info-row">
-                  <td colSpan={3}><span className="cell-label">NOM:</span> {eleveName}</td>
-                  <td colSpan={2}><span className="cell-label">Classe:</span> {bulletin.classe || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">Effectif:</span> {bulletin.effectif || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">Redoublant:</span> {bulletin.redoublant || 'NON'}</td>
+                  <td colSpan={infoSpans[0]}><span className="cell-label">NOM:</span> {eleveName}</td>
+                  <td colSpan={infoSpans[1]}><span className="cell-label">Classe:</span> {bulletin.classe || '—'}</td>
+                  <td colSpan={infoSpans[2]}><span className="cell-label">Effectif:</span> {bulletin.effectif || '—'}</td>
+                  <td colSpan={infoSpans[3]}><span className="cell-label">Redoublant:</span> {bulletin.redoublant || 'NON'}</td>
                 </tr>
                 <tr className="bulletin-info-row">
-                  <td colSpan={2}><span className="cell-label">Serie:</span> {bulletin.classe_serie || '—'}</td>
-                  <td colSpan={3}><span className="cell-label">Matricule:</span> {bulletin.matricule || '—'}</td>
-                  <td colSpan={2}><strong>{bulletin.term_label}</strong></td>
-                  <td colSpan={2}><span className="cell-label">Annee</span> <strong>{bulletin.annee_scolaire || '—'}</strong></td>
+                  <td colSpan={infoRow2[0]}><span className="cell-label">Serie:</span> {bulletin.classe_serie || '—'}</td>
+                  <td colSpan={infoRow2[1]}><span className="cell-label">Matricule:</span> {bulletin.matricule || '—'}</td>
+                  <td colSpan={infoRow2[2]}><strong>{bulletin.term_label}</strong></td>
+                  <td colSpan={infoRow2[3]}><span className="cell-label">Annee</span> <strong>{bulletin.annee_scolaire || '—'}</strong></td>
                 </tr>
               </>
             )}
 
             <tr className="bulletin-grades-header">
               <th>{isEn ? 'SUBJECTS' : 'MATIERE'}</th>
-              <th>{bulletin.seq1_label}</th>
-              <th>{bulletin.seq2_label}</th>
+              {isAnnual
+                ? seqLabels.map((label, idx) => <th key={label || idx}>{label}</th>)
+                : (
+                  <>
+                    <th>{bulletin.seq1_label}</th>
+                    <th>{bulletin.seq2_label}</th>
+                  </>
+                )}
               <th>{isEn ? 'Average' : 'Moyenne'}</th>
               <th>Coef</th>
               <th>{isEn ? 'Total marks' : 'Notes'}</th>
@@ -94,18 +123,24 @@ function CameroonBulletinView({ bulletin }) {
             </tr>
 
             {!bulletin.groupes_matieres?.length ? (
-              <tr><td colSpan={9} className="bulletin-empty">Aucune note pour ce trimestre</td></tr>
+              <tr><td colSpan={nCols} className="bulletin-empty">Aucune note pour ce trimestre</td></tr>
             ) : (
               bulletin.groupes_matieres.map((group) => (
                 <Fragment key={`g-${group.groupe}`}>
                   <tr className="bulletin-group-row">
-                    <td colSpan={9}>{group.label}</td>
+                    <td colSpan={nCols}>{group.label}</td>
                   </tr>
                   {group.matieres.map((row) => (
                     <tr key={row.matiere_id || row.matiere} className="bulletin-grade-row">
                       <td className="matiere-cell">{row.matiere}</td>
-                      <td>{row.seq1 ?? '—'}</td>
-                      <td>{row.seq2 ?? '—'}</td>
+                      {isAnnual
+                        ? [1, 2, 3, 4, 5, 6].map((i) => <td key={i}>{row[`seq${i}`] ?? '—'}</td>)
+                        : (
+                          <>
+                            <td>{row.seq1 ?? '—'}</td>
+                            <td>{row.seq2 ?? '—'}</td>
+                          </>
+                        )}
                       <td>{row.moyenne ?? '—'}</td>
                       <td>{row.coef ?? '—'}</td>
                       <td>{row.points ?? '—'}</td>
@@ -125,51 +160,50 @@ function CameroonBulletinView({ bulletin }) {
             {isEn ? (
               <>
                 <tr className="bulletin-summary-row">
-                  <td colSpan={2}><span className="cell-label">TOTAL</span><br />{bulletin.total_coef}</td>
-                  <td colSpan={2}><span className="cell-label">Total marks</span><br />{bulletin.total_points}</td>
-                  <td colSpan={2}><span className="cell-label">Class Average</span><br />{bulletin.moyenne_classe}</td>
-                  <td><span className="cell-label">Term Average</span><br />{bulletin.moyenne_generale}</td>
-                  <td><span className="cell-label">Position</span><br />{bulletin.rang_label || bulletin.rang || '—'}</td>
-                  <td><span className="cell-label">Remark</span><br />{bulletin.decision}</td>
+                  <td colSpan={summarySpans[0]}><span className="cell-label">TOTAL</span><br />{bulletin.total_coef}</td>
+                  <td colSpan={summarySpans[1]}><span className="cell-label">Total marks</span><br />{bulletin.total_points}</td>
+                  <td colSpan={summarySpans[2]}><span className="cell-label">Class Average</span><br />{bulletin.moyenne_classe}</td>
+                  <td colSpan={summarySpans[3]}><span className="cell-label">Term Average</span><br />{bulletin.moyenne_generale}</td>
+                  <td colSpan={summarySpans[4]}><span className="cell-label">Position</span><br />{bulletin.rang_label || bulletin.rang || '—'}</td>
+                  <td colSpan={summarySpans[5]}><span className="cell-label">Remark</span><br />{bulletin.decision}</td>
                 </tr>
                 <tr className="bulletin-summary-row">
-                  <td colSpan={2}><span className="cell-label">Absences (hours)</span></td>
-                  <td>{bulletin.absences ?? 0}</td>
-                  <td />
-                  <td colSpan={2}><span className="cell-label">Sanctions</span><br />{bulletin.sanctions || ''}</td>
-                  <td colSpan={2}><span className="cell-label">Observation</span><br />{bulletin.observation || ''}</td>
-                  <td />
+                  <td colSpan={summarySpans[0] + summarySpans[1]}><span className="cell-label">Absences (hours)</span></td>
+                  <td colSpan={summarySpans[2]}>{bulletin.absences ?? 0}</td>
+                  <td colSpan={summarySpans[3]} />
+                  <td colSpan={summarySpans[4]}><span className="cell-label">Sanctions</span><br />{bulletin.sanctions || ''}</td>
+                  <td colSpan={summarySpans[5]}><span className="cell-label">Observation</span><br />{bulletin.observation || ''}</td>
                 </tr>
                 <tr className="bulletin-sig-row">
-                  <td colSpan={3}>PARENTS/GUARDIANS</td>
-                  <td colSpan={2}>S.D.M</td>
-                  <td colSpan={2}>PRINCIPAL</td>
-                  <td colSpan={2}>DATE</td>
+                  <td colSpan={sigSpans[0]}>PARENTS/GUARDIANS</td>
+                  <td colSpan={sigSpans[1]}>S.D.M</td>
+                  <td colSpan={sigSpans[2]}>PRINCIPAL</td>
+                  <td colSpan={sigSpans[3]}>DATE</td>
                 </tr>
-                <tr className="bulletin-sig-space"><td colSpan={9}>&nbsp;</td></tr>
+                <tr className="bulletin-sig-space"><td colSpan={nCols}>&nbsp;</td></tr>
               </>
             ) : (
               <>
                 <tr className="bulletin-summary-row">
-                  <td colSpan={2}><span className="cell-label">TOTAL</span><br />Coef: {bulletin.total_coef}</td>
-                  <td colSpan={2}>Notes: {bulletin.total_points}</td>
-                  <td colSpan={2}><span className="cell-label">Moyenne de la classe</span><br />{bulletin.moyenne_classe}</td>
-                  <td><span className="cell-label">Moyenne</span><br />{bulletin.moyenne_generale}</td>
-                  <td><span className="cell-label">Absences</span><br />{bulletin.absences ?? 0}</td>
-                  <td><span className="cell-label">Rang</span><br />{bulletin.rang_label || bulletin.rang || '—'}</td>
+                  <td colSpan={summarySpans[0]}><span className="cell-label">TOTAL</span><br />Coef: {bulletin.total_coef}</td>
+                  <td colSpan={summarySpans[1]}>Notes: {bulletin.total_points}</td>
+                  <td colSpan={summarySpans[2]}><span className="cell-label">Moyenne de la classe</span><br />{bulletin.moyenne_classe}</td>
+                  <td colSpan={summarySpans[3]}><span className="cell-label">Moyenne</span><br />{bulletin.moyenne_generale}</td>
+                  <td colSpan={summarySpans[4]}><span className="cell-label">Absences</span><br />{bulletin.absences ?? 0}</td>
+                  <td colSpan={summarySpans[5]}><span className="cell-label">Rang</span><br />{bulletin.rang_label || bulletin.rang || '—'}</td>
                 </tr>
                 <tr className="bulletin-summary-row">
-                  <td colSpan={2}><span className="cell-label">Decision</span><br />{bulletin.decision}</td>
-                  <td colSpan={4}><span className="cell-label">OBSERVATION</span><br />{bulletin.observation || ''}</td>
-                  <td colSpan={3} />
+                  <td colSpan={summarySpans[0] + summarySpans[1]}><span className="cell-label">Decision</span><br />{bulletin.decision}</td>
+                  <td colSpan={summarySpans[2] + summarySpans[3] + summarySpans[4]}><span className="cell-label">OBSERVATION</span><br />{bulletin.observation || ''}</td>
+                  <td colSpan={summarySpans[5]} />
                 </tr>
                 <tr className="bulletin-sig-row">
-                  <td colSpan={3}>PARENTS/TUTEURS</td>
-                  <td colSpan={2}>PROF PRINCIPAL</td>
-                  <td colSpan={2}>PRINCIPAL</td>
-                  <td colSpan={2}>DATE</td>
+                  <td colSpan={sigSpans[0]}>PARENTS/TUTEURS</td>
+                  <td colSpan={sigSpans[1]}>PROF PRINCIPAL</td>
+                  <td colSpan={sigSpans[2]}>PRINCIPAL</td>
+                  <td colSpan={sigSpans[3]}>DATE</td>
                 </tr>
-                <tr className="bulletin-sig-space"><td colSpan={9}>&nbsp;</td></tr>
+                <tr className="bulletin-sig-space"><td colSpan={nCols}>&nbsp;</td></tr>
               </>
             )}
           </tbody>

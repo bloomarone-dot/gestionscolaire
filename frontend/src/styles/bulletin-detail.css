@@ -36,6 +36,11 @@
 
 .bulletin-cameroon-wrap {
   padding: 0 1rem 1rem;
+  overflow-x: auto;
+}
+
+.bulletin-cameroon-annual {
+  min-width: 960px;
 }
 
 .bulletin-cameroon-grid {

@@ -3,6 +3,11 @@ Registre des modèles de bulletins par établissement.
 """
 from typing import Callable
 
+BULLETIN_SCOPES = {
+    "trimestre": "Par trimestre — 2 séquences du trimestre choisi",
+    "annual": "Annuel — les 6 séquences de l'année",
+}
+
 AVAILABLE_TEMPLATES = {
     "cameroon_bilingual": {
         "id": "cameroon_bilingual",

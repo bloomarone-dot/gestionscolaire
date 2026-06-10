@@ -32,6 +32,7 @@ export default function AdminBulletinSettingsPage() {
     bulletin_delegation_fr: DEFAULT_DELEGATION_FR,
     bulletin_next_term_note: '',
     bulletin_template: 'cameroon_bilingual',
+    bulletin_scope: 'trimestre',
   });
 
   const load = useCallback(async () => {
@@ -52,6 +53,7 @@ export default function AdminBulletinSettingsPage() {
         bulletin_delegation_fr: settingsData.bulletin_delegation_fr || DEFAULT_DELEGATION_FR,
         bulletin_next_term_note: settingsData.bulletin_next_term_note || '',
         bulletin_template: settingsData.bulletin_template || 'cameroon_bilingual',
+        bulletin_scope: settingsData.bulletin_scope || 'trimestre',
       });
     } catch (err) {
       setError(err.message || 'Erreur de chargement');
@@ -215,7 +217,7 @@ export default function AdminBulletinSettingsPage() {
           </div>
 
           <div className="form-group full">
-            <label htmlFor="bulletin_template">Modèle de bulletin</label>
+            <label htmlFor="bulletin_template">Format / modèle PDF</label>
             <select
               id="bulletin_template"
               name="bulletin_template"
@@ -228,7 +230,25 @@ export default function AdminBulletinSettingsPage() {
                 ))}
             </select>
             <small className="field-hint">
-              « Cameroun auto » : langue selon la section de la classe (francophone / anglophone).
+              Choisissez le modèle officiel Cameroun (bilingue ou auto selon section) ou le format standard simplifié.
+            </small>
+          </div>
+
+          <div className="form-group full">
+            <label htmlFor="bulletin_scope">Portée des séquences sur le bulletin</label>
+            <select
+              id="bulletin_scope"
+              name="bulletin_scope"
+              value={form.bulletin_scope}
+              onChange={handleChange}
+            >
+              {settings?.available_scopes &&
+                Object.entries(settings.available_scopes).map(([id, label]) => (
+                  <option key={id} value={id}>{label}</option>
+                ))}
+            </select>
+            <small className="field-hint">
+              « Par trimestre » : 2 séquences du trimestre affichées. « Annuel » : les 6 séquences de l&apos;année sur un seul bulletin.
             </small>
           </div>
         </div>

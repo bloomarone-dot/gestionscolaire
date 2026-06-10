@@ -225,9 +225,11 @@ async function downloadFileResponse(res, fallbackName) {
   URL.revokeObjectURL(url);
 }
 
-export async function fetchEleveBulletin(eleveId, trimestre = 1, format = 'cameroon') {
+export async function fetchEleveBulletin(eleveId, trimestre = 1, format = 'cameroon', scope = null) {
+  let url = `/bulletins/eleve/${eleveId}?trimestre=${trimestre}&format=${format}`;
+  if (scope) url += `&scope=${encodeURIComponent(scope)}`;
   const res = await fetch(
-    `/bulletins/eleve/${eleveId}?trimestre=${trimestre}&format=${format}`,
+    url,
     { headers: getHeaders() },
   );
   return handleResponse(res);

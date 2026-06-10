@@ -26,17 +26,17 @@ export function classMatchesProfSection(profSection, classSection) {
 
 export function getEvalTypes(section) {
   const lang = getSectionLang(section);
-  if (lang === 'en') {
-    return [
-      { value: 'sequence_1', label: '1st sequence' },
-      { value: 'sequence_2', label: '2nd sequence' },
-      { value: 'trimestre', label: 'Term grade' },
-    ];
-  }
+  const sequences = Array.from({ length: 6 }, (_, i) => {
+    const num = i + 1;
+    if (lang === 'en') {
+      const suffix = { 1: 'st', 2: 'nd', 3: 'rd' }[num] || 'th';
+      return { value: `sequence_${num}`, label: `${num}${suffix} sequence`, trimestre: Math.ceil(num / 2) };
+    }
+    return { value: `sequence_${num}`, label: `${num}${num === 1 ? 'ère' : 'ème'} séquence`, trimestre: Math.ceil(num / 2) };
+  });
   return [
-    { value: 'sequence_1', label: '1ère séquence' },
-    { value: 'sequence_2', label: '2ème séquence' },
-    { value: 'trimestre', label: 'Note trimestrielle' },
+    ...sequences,
+    { value: 'trimestre', label: lang === 'en' ? 'Term grade' : 'Note trimestrielle' },
   ];
 }
 

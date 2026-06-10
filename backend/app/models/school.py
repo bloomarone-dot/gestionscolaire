@@ -45,6 +45,7 @@ class School(Base):
     bulletin_delegation_fr = Column(Text, nullable=True)
     bulletin_next_term_note = Column(String(255), nullable=True)
     bulletin_template = Column(String(40), default="cameroon_bilingual")
+    bulletin_scope = Column(String(20), default="trimestre")
 
     # Métadonnées
     admin_id = Column(Integer, ForeignKey("admins.id"), nullable=True)

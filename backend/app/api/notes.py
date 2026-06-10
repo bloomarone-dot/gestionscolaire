@@ -8,7 +8,7 @@ from typing import List, Optional, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
@@ -21,12 +21,11 @@ from app.models.school import (
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
-VALID_TYPES = {"sequence_1", "sequence_2", "trimestre"}
-TYPE_LABELS = {
-    "sequence_1": "1ère séquence",
-    "sequence_2": "2ème séquence",
-    "trimestre": "Note trimestrielle",
-}
+from app.services.evaluation_types import (
+    VALID_TYPES,
+    TYPE_LABELS_FR as TYPE_LABELS,
+    normalize_trimestre_for_type,
+)
 
 
 # ──────────────────────────────────────────────────────────
@@ -53,8 +52,13 @@ class NoteCreate(BaseModel):
     @classmethod
     def validate_type(cls, v: str) -> str:
         if v not in VALID_TYPES:
-            raise ValueError("type_evaluation invalide")
+            raise ValueError("type_evaluation invalide (sequence_1 à sequence_6 ou trimestre)")
         return v
+
+    @model_validator(mode="after")
+    def align_trimestre_with_sequence(self):
+        self.trimestre = normalize_trimestre_for_type(self.type_evaluation, self.trimestre)
+        return self
 
 
 class NoteUpdate(BaseModel):

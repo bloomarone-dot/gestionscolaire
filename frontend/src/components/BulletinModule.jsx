@@ -30,6 +30,20 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
   const [importResult, setImportResult] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [bulletinSettings, setBulletinSettings] = useState(null);
+  const [exportTemplate, setExportTemplate] = useState('auto');
+
+  useEffect(() => {
+    if (!allowExports) return;
+    api.fetchBulletinSettings()
+      .then((data) => {
+        setBulletinSettings(data);
+        if (data?.bulletin_template) setExportTemplate(data.bulletin_template === 'standard' ? 'standard' : 'auto');
+      })
+      .catch(() => {});
+  }, [allowExports]);
+
+  const bulletinScope = bulletinSettings?.bulletin_scope || 'trimestre';
 
   const loadClassList = useCallback(async () => {
     try {
@@ -86,7 +100,7 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
       const bulletinsData = await api.fetchClasseBulletins(selectedClasse.id, trimestre);
       setClasseBulletins(bulletinsData);
       if (selectedEleve) {
-        const b = await api.fetchEleveBulletin(selectedEleve.id, trimestre);
+        const b = await api.fetchEleveBulletin(selectedEleve.id, trimestre, 'cameroon', bulletinScope);
         setBulletin(b);
       }
     } catch (err) {
@@ -102,7 +116,7 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
     try {
       setLoadingBulletin(true);
       setError('');
-      const data = await api.fetchEleveBulletin(eleve.id, selectedTrimestre);
+      const data = await api.fetchEleveBulletin(eleve.id, selectedTrimestre, 'cameroon', bulletinScope);
       setBulletin(data);
     } catch (err) {
       setError(err.message || 'Erreur lors du chargement du bulletin');
@@ -129,7 +143,7 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
     if (!selectedEleve) return;
     try {
       setExporting(true);
-      await api.exportEleveBulletinPdf(selectedEleve.id, selectedTrimestre);
+      await api.exportEleveBulletinPdf(selectedEleve.id, selectedTrimestre, exportTemplate);
       setSuccess('Bulletin PDF téléchargé');
     } catch (err) {
       setError(err.message);
@@ -203,13 +217,32 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
     <div className={`prof-bulletins ${isProfessor ? 'prof-bulletins-readonly' : ''}`}>
       <div className="prof-bulletins-toolbar">
         <div className="matiere-selector">
-          <label>Trimestre</label>
-          <select value={selectedTrimestre} onChange={(e) => handleTrimestreChange(parseInt(e.target.value, 10))}>
-            {TRIMESTRES.map((t) => (
-              <option key={t} value={t}>{t}er trimestre</option>
-            ))}
+          <label>{bulletinScope === 'annual' ? 'Année' : 'Trimestre'}</label>
+          <select
+            value={selectedTrimestre}
+            disabled={bulletinScope === 'annual'}
+            onChange={(e) => handleTrimestreChange(parseInt(e.target.value, 10))}
+          >
+            {bulletinScope === 'annual' ? (
+              <option value={1}>Bulletin annuel (6 séquences)</option>
+            ) : (
+              TRIMESTRES.map((t) => (
+                <option key={t} value={t}>{t}er trimestre</option>
+              ))
+            )}
           </select>
         </div>
+        {allowExports && bulletinSettings?.available_templates && (
+          <div className="matiere-selector">
+            <label>Format PDF</label>
+            <select value={exportTemplate} onChange={(e) => setExportTemplate(e.target.value)}>
+              <option value="auto">Modèle établissement (auto)</option>
+              {Object.entries(bulletinSettings.available_templates).map(([id, label]) => (
+                <option key={id} value={id}>{label}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {selectedClasse && allowExports && (
           <div className="bulletin-view-toggle">
             <button type="button" className={viewMode === 'eleve' ? 'active' : ''} onClick={() => setViewMode('eleve')}>

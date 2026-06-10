@@ -43,6 +43,7 @@ def get_bulletin_eleve(
     eleve_id: int,
     trimestre: int = 1,
     format: str = "cameroon",
+    scope: Optional[str] = None,
     lang: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
@@ -58,6 +59,7 @@ def get_bulletin_eleve(
             lang=lang,
             master_db=master_db,
             school_id=current_user.get("school_id"),
+            scope=scope,
         )
     else:
         data = build_eleve_bulletin(db, eleve_id, trimestre)
@@ -378,6 +380,18 @@ TYPE_ALIASES = {
     "2ème séquence": "sequence_2",
     "2eme séquence": "sequence_2",
     "deuxieme sequence": "sequence_2",
+    "sequence_3": "sequence_3",
+    "sequence_4": "sequence_4",
+    "sequence_5": "sequence_5",
+    "sequence_6": "sequence_6",
+    "3eme sequence": "sequence_3",
+    "3ème séquence": "sequence_3",
+    "4eme sequence": "sequence_4",
+    "4ème séquence": "sequence_4",
+    "5eme sequence": "sequence_5",
+    "5ème séquence": "sequence_5",
+    "6eme sequence": "sequence_6",
+    "6ème séquence": "sequence_6",
     "trimestre": "trimestre",
     "note trimestrielle": "trimestre",
     "note trim": "trimestre",
@@ -437,7 +451,7 @@ def download_import_template(
     ws.append(["ELEVE001", "Mathématiques", "sequence_2", 12, 1])
     ws.append(["ELEVE001", "Français", "trimestre", 15, 2])
     ws.append([])
-    ws.append(["Types acceptés : sequence_1, sequence_2, trimestre"])
+    ws.append(["Types acceptés : sequence_1 à sequence_6, trimestre"])
     ws.append(["Note entre 0 et 20 — Trimestre choisi à l'import"])
 
     for col in ws.columns:
@@ -640,7 +654,8 @@ async def import_bulletins_xlsx(
 def export_bulletin_eleve_pdf(
     eleve_id: int,
     trimestre: int = 1,
-    template: str = "cameroon",
+    template: str = "auto",
+    scope: Optional[str] = None,
     lang: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
@@ -672,6 +687,7 @@ def export_bulletin_eleve_pdf(
             lang=lang,
             master_db=master_db,
             school_id=school_id,
+            scope=scope,
         )
         if "error" in bulletin:
             raise HTTPException(status_code=404, detail=bulletin["error"])

@@ -13,8 +13,15 @@ from app.models.school import (
 from app.services.bulletin_service import (
     build_eleve_bulletin,
     build_classe_bulletins,
-    _calc_moyenne_trimestre,
     _moyenne_matiere_trimestre,
+    _trim_note_for_group,
+    _populate_note_group,
+)
+from app.services.evaluation_types import (
+    empty_note_group,
+    resolve_sequence_entry,
+    sequence_labels_for_trimestre,
+    all_sequence_labels,
 )
 
 
@@ -28,17 +35,6 @@ GROUP_LABELS_EN = {
     2: "SECOND GROUP",
     3: "THIRD GROUP",
 }
-
-
-def sequence_labels(trimestre: int, lang: str) -> tuple[str, str]:
-    """Libellés des colonnes séquences selon le trimestre (1→1e/2e, 2→3e/4e, 3→5e/6e)."""
-    first_num = (trimestre - 1) * 2 + 1
-    second_num = first_num + 1
-    if lang == "en":
-        suffix = {1: "st", 2: "nd", 3: "rd"}.get(first_num if first_num <= 3 else 0, "th")
-        suffix2 = {1: "st", 2: "nd", 3: "rd"}.get(second_num if second_num <= 3 else 0, "th")
-        return f"{first_num}{suffix} SEQ.", f"{second_num}{suffix2} SEQ."
-    return f"{first_num}e eva", f"{second_num}e eva"
 
 
 def appreciation_code(moyenne: Optional[float], lang: str) -> str:
@@ -86,6 +82,7 @@ def _get_school_config(master_db: Session, school_id: Optional[int]) -> dict:
         ),
         "bulletin_next_term_note": "",
         "bulletin_template": "cameroon_bilingual",
+        "bulletin_scope": "trimestre",
     }
     if not school_id or not master_db:
         return defaults
@@ -104,6 +101,7 @@ def _get_school_config(master_db: Session, school_id: Optional[int]) -> dict:
         "bulletin_delegation_fr": school.bulletin_delegation_fr or defaults["bulletin_delegation_fr"],
         "bulletin_next_term_note": school.bulletin_next_term_note or "",
         "bulletin_template": getattr(school, "bulletin_template", None) or "cameroon_bilingual",
+        "bulletin_scope": getattr(school, "bulletin_scope", None) or "trimestre",
     }
 
 
@@ -137,13 +135,13 @@ def _compute_matiere_ranks(db: Session, classe_id: int, trimestre: int) -> dict[
     for matiere_id, eleve_notes in by_matiere_eleve.items():
         scores = []
         for eid, nlist in eleve_notes.items():
-            grouped = {"sequence_1": None, "sequence_2": None, "trimestre": None}
+            grouped = empty_note_group()
             for n in nlist:
-                grouped[n.type_evaluation] = n
+                _populate_note_group(grouped, n, "trimestre")
             moy = _moyenne_matiere_trimestre(
-                grouped.get("sequence_1"),
-                grouped.get("sequence_2"),
-                grouped.get("trimestre"),
+                resolve_sequence_entry(grouped, trimestre, 1),
+                resolve_sequence_entry(grouped, trimestre, 2),
+                _trim_note_for_group(grouped, trimestre),
             )
             if moy is not None:
                 scores.append((eid, moy))
@@ -160,15 +158,17 @@ def build_cameroon_bulletin(
     lang: Optional[str] = None,
     master_db: Optional[Session] = None,
     school_id: Optional[int] = None,
+    scope: Optional[str] = None,
 ) -> dict:
-    base = build_eleve_bulletin(db, eleve_id, trimestre)
+    school = _get_school_config(master_db, school_id)
+    bulletin_scope = scope or school.get("bulletin_scope", "trimestre")
+    base = build_eleve_bulletin(db, eleve_id, trimestre, scope=bulletin_scope)
     if "error" in base:
         return base
 
     eleve = db.query(Eleve).filter(Eleve.id == eleve_id).first()
     classe = db.query(Classe).filter(Classe.id == eleve.classe_id).first() if eleve else None
     section = getattr(classe, "section", None) or "francophone"
-    school = _get_school_config(master_db, school_id)
     school_template = school.get("bulletin_template", "cameroon_bilingual")
     if lang is None:
         lang = "en" if section == "anglophone" else "fr"
@@ -184,7 +184,9 @@ def build_cameroon_bulletin(
 
     matiere_ranks = _compute_matiere_ranks(db, eleve.classe_id, trimestre)
 
-    seq1_label, seq2_label = sequence_labels(trimestre, lang)
+    is_annual = bulletin_scope == "annual"
+    seq1_label, seq2_label = sequence_labels_for_trimestre(trimestre, lang)
+    sequence_labels_list = all_sequence_labels(lang) if is_annual else [seq1_label, seq2_label]
     group_labels = GROUP_LABELS_EN if lang == "en" else GROUP_LABELS_FR
 
     attrs = db.query(AttributionProfesseur).filter(
@@ -237,6 +239,9 @@ def build_cameroon_bulletin(
             "appreciation": appreciation_code(moy, lang),
             "professeur": _teacher_name(db, eleve.classe_id, mid) if mid else "—",
         }
+        if is_annual:
+            for i in range(1, 7):
+                row[f"seq{i}"] = detail.get(f"sequence_{i}")
         grouped_rows[groupe].append(row)
 
     for g in grouped_rows:
@@ -266,9 +271,11 @@ def build_cameroon_bulletin(
         "section": section,
         "bulletin_template": school_template,
         "school": school,
+        "bulletin_scope": bulletin_scope,
         "seq1_label": seq1_label,
         "seq2_label": seq2_label,
-        "term_label": term_label(trimestre, lang),
+        "sequence_labels": sequence_labels_list,
+        "term_label": "ANNUAL REPORT" if is_annual and lang == "en" else ("BULLETIN ANNUEL" if is_annual else term_label(trimestre, lang)),
         "effectif": effectif,
         "moyenne_classe": moyenne_classe,
         "total_coef": round(total_coef, 2),

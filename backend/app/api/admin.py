@@ -265,7 +265,9 @@ class BulletinSettingsResponse(BaseModel):
     bulletin_delegation_fr: Optional[str] = None
     bulletin_next_term_note: Optional[str] = None
     bulletin_template: str = "cameroon_bilingual"
+    bulletin_scope: str = "trimestre"
     available_templates: dict
+    available_scopes: dict
 
 
 class BulletinSettingsUpdate(BaseModel):
@@ -276,6 +278,7 @@ class BulletinSettingsUpdate(BaseModel):
     bulletin_delegation_fr: Optional[str] = None
     bulletin_next_term_note: Optional[str] = None
     bulletin_template: Optional[str] = None
+    bulletin_scope: Optional[str] = None
 
 
 # ════════════════════════════════════════════════════════════
@@ -1277,7 +1280,7 @@ def get_bulletin_settings(
     master_db: Session = Depends(get_db_session),
 ):
     from app.models.school import School
-    from app.services.bulletin_templates import AVAILABLE_TEMPLATES
+    from app.services.bulletin_templates import AVAILABLE_TEMPLATES, BULLETIN_SCOPES
 
     school_id = _require_admin_school(current_user)
     school = master_db.query(School).filter(School.id == school_id).first()
@@ -1295,7 +1298,9 @@ def get_bulletin_settings(
         bulletin_delegation_fr=school.bulletin_delegation_fr,
         bulletin_next_term_note=school.bulletin_next_term_note,
         bulletin_template=getattr(school, "bulletin_template", None) or "cameroon_bilingual",
+        bulletin_scope=getattr(school, "bulletin_scope", None) or "trimestre",
         available_templates=templates,
+        available_scopes=BULLETIN_SCOPES,
     )
 
 
@@ -1306,7 +1311,7 @@ def update_bulletin_settings(
     master_db: Session = Depends(get_db_session),
 ):
     from app.models.school import School
-    from app.services.bulletin_templates import AVAILABLE_TEMPLATES
+    from app.services.bulletin_templates import AVAILABLE_TEMPLATES, BULLETIN_SCOPES
 
     school_id = _require_admin_school(current_user)
     school = master_db.query(School).filter(School.id == school_id).first()
@@ -1316,6 +1321,8 @@ def update_bulletin_settings(
     payload = data.model_dump(exclude_unset=True)
     if "bulletin_template" in payload and payload["bulletin_template"] not in AVAILABLE_TEMPLATES:
         raise HTTPException(status_code=400, detail="Modèle de bulletin invalide")
+    if "bulletin_scope" in payload and payload["bulletin_scope"] not in BULLETIN_SCOPES:
+        raise HTTPException(status_code=400, detail="Portée de bulletin invalide")
 
     for field, value in payload.items():
         setattr(school, field, value)
@@ -1334,7 +1341,9 @@ def update_bulletin_settings(
         bulletin_delegation_fr=school.bulletin_delegation_fr,
         bulletin_next_term_note=school.bulletin_next_term_note,
         bulletin_template=getattr(school, "bulletin_template", None) or "cameroon_bilingual",
+        bulletin_scope=getattr(school, "bulletin_scope", None) or "trimestre",
         available_templates=templates,
+        available_scopes=BULLETIN_SCOPES,
     )
 
 
