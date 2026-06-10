@@ -13,13 +13,17 @@ backend/venv/
 backend/venv_linux/
 backend/.run_seed_venv/
 
-# Bases de données locales
+# Bases de données locales (hors deploy-data/ versionné pour l'équipe)
 *.db
 *.sqlite
 *.sqlite3
+!deploy-data/
+!deploy-data/**
 tenants/
+!deploy-data/tenants/
 backend/tenants/
 data/
+backups/
 
 # Node / Frontend
 frontend/node_modules/

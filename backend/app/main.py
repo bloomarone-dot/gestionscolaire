@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,6 +10,18 @@ from app.db.tenant_tables import create_master_tables
 from app.db.migrations import run_master_migrations
 from app.db.multi_tenant import provision_all_schools
 from app.models import school  # noqa: F401 — enregistre les modèles
+from app.models.school import Admin
+
+
+def _seed_demo_if_empty(db) -> None:
+    """Crée les comptes démo si la base est vide — désactivé par défaut (prod / client)."""
+    if os.getenv("SEED_DEMO_ON_START", "false").lower() not in ("1", "true", "yes"):
+        return
+    if db.query(Admin).count() > 0:
+        return
+    from app.db.demo_seed import run_demo_seed
+
+    run_demo_seed()
 
 
 @asynccontextmanager
@@ -18,6 +31,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         provision_all_schools(db)
+        _seed_demo_if_empty(db)
     finally:
         db.close()
     yield
@@ -25,9 +39,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SaaS Scolaire API", lifespan=lifespan)
 
+_cors_raw = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173",
+)
+_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

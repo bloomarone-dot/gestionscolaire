@@ -7,10 +7,14 @@ services:
       - "8000:8000"
     volumes:
       - backend_data:/app/data
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: sqlite:////app/data/master.db
       TENANT_DB_DIR: /app/data/tenants
       SECRET_KEY: change-me-in-production
+      SEED_DEMO_ON_START: "false"
       TZ: Africa/Douala
     restart: unless-stopped
     healthcheck:

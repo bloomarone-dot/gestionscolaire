@@ -10,6 +10,9 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
+COPY deploy-data/ /app/deploy-data/
+COPY scripts/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 RUN mkdir -p /app/data/tenants
 
@@ -18,4 +21,4 @@ ENV TENANT_DB_DIR=/app/data/tenants
 
 EXPOSE 8000
 
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
