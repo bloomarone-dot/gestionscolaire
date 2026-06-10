@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/admin-navigation.css';
 
@@ -25,7 +24,7 @@ const NAV_SECTIONS = [
       { id: 'saisie-notes', icon: '📝', label: 'Saisie Notes' },
       { id: 'fenetre-notes', icon: '⏰', label: 'Délais de saisie' },
       { id: 'bulletins', icon: '📄', label: 'Bulletins' },
-      { id: 'bulletin-config', icon: '⚙️', label: 'Config. bulletins' },
+      { id: 'bulletin-config', icon: '⚙️', label: 'Config. bulletins', badge: 'Nouveau' },
     ],
   },
   {
@@ -39,13 +38,7 @@ const NAV_SECTIONS = [
 
 export default function AdminNavigation({ activeTab, onTabChange, schoolName, schoolLogo }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { user } = useAuth();
 
   const handleTabClick = (tab) => {
     if (tab.disabled) return;
@@ -85,6 +78,7 @@ export default function AdminNavigation({ activeTab, onTabChange, schoolName, sc
                   >
                     <span className="admin-nav-link-icon">{tab.icon}</span>
                     <span className="admin-nav-label">{tab.label}</span>
+                    {tab.badge && <span className="admin-nav-badge admin-nav-badge-new">{tab.badge}</span>}
                     {tab.disabled && <span className="admin-nav-badge">Bientôt</span>}
                   </button>
                 </li>
@@ -104,9 +98,6 @@ export default function AdminNavigation({ activeTab, onTabChange, schoolName, sc
             <div className="admin-user-role">Administrateur</div>
           </div>
         </div>
-        <button type="button" className="admin-logout-btn" onClick={handleLogout}>
-          🚪 Déconnexion
-        </button>
       </div>
     </nav>
   );

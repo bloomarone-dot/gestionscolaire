@@ -13,6 +13,7 @@ function getMentionClass(moyenne) {
 }
 
 export default function BulletinModule({ loadClasses, loadEleves, isProfessor = false }) {
+  const allowExports = !isProfessor;
   const [classes, setClasses] = useState([]);
   const [selectedClasse, setSelectedClasse] = useState(null);
   const [selectedTrimestre, setSelectedTrimestre] = useState(1);
@@ -46,6 +47,12 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
   useEffect(() => {
     loadClassList();
   }, [loadClassList]);
+
+  useEffect(() => {
+    if (isProfessor && viewMode !== 'eleve') {
+      setViewMode('eleve');
+    }
+  }, [isProfessor, viewMode]);
 
   const handleClasseSelect = async (classe) => {
     setSelectedClasse(classe);
@@ -193,7 +200,7 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
   }
 
   return (
-    <div className="prof-bulletins">
+    <div className={`prof-bulletins ${isProfessor ? 'prof-bulletins-readonly' : ''}`}>
       <div className="prof-bulletins-toolbar">
         <div className="matiere-selector">
           <label>Trimestre</label>
@@ -203,7 +210,7 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
             ))}
           </select>
         </div>
-        {selectedClasse && (
+        {selectedClasse && allowExports && (
           <div className="bulletin-view-toggle">
             <button type="button" className={viewMode === 'eleve' ? 'active' : ''} onClick={() => setViewMode('eleve')}>
               Par élève
@@ -213,16 +220,6 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
             </button>
             <button type="button" className={viewMode === 'import' ? 'active' : ''} onClick={() => setViewMode('import')}>
               Importer Excel
-            </button>
-          </div>
-        )}
-        {selectedClasse && (
-          <div className="bulletin-export-group">
-            <button type="button" className="btn btn-secondary" onClick={handleExportClasseCsv} disabled={exporting}>
-              CSV classe
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={handleExportClasseXlsx} disabled={exporting}>
-              Excel classe
             </button>
           </div>
         )}
@@ -244,6 +241,9 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
       <div className="prof-bulletins-layout">
         <aside className="prof-bulletins-sidebar">
           <h3>{isProfessor ? 'Mes classes' : 'Classes'}</h3>
+          {isProfessor && selectedClasse && (
+            <p className="prof-eleves-count">{eleves.length} élève{eleves.length !== 1 ? 's' : ''}</p>
+          )}
           {classes.length === 0 ? (
             <p className="text-muted">Aucune classe</p>
           ) : (
@@ -269,7 +269,11 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
             <div className="empty-state">
               <div className="empty-state-icon">📄</div>
               <p className="empty-state-title">Sélectionnez une classe</p>
-              <p className="empty-state-text">Consultez les bulletins par trimestre avec séquences et moyennes.</p>
+              <p className="empty-state-text">
+                {isProfessor
+                  ? 'Choisissez une classe pour consulter l\'effectif et les résultats de vos élèves.'
+                  : 'Consultez les bulletins par trimestre avec séquences et moyennes.'}
+              </p>
             </div>
           ) : viewMode === 'import' ? (
             <div className="bulletin-import-panel">
@@ -327,6 +331,16 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
                     <div className="bulletin-summary-value">{classeBulletins.classe}</div>
                     <div className="bulletin-summary-label">Classe</div>
                   </div>
+                  {allowExports && (
+                    <div className="bulletin-export-group bulletin-export-inline">
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={handleExportClasseCsv} disabled={exporting}>
+                        CSV classe
+                      </button>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={handleExportClasseXlsx} disabled={exporting}>
+                        Excel classe
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="bulletin-detail-table-wrap">
@@ -375,7 +389,7 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
           ) : (
             <>
               <div className="eleves-picker">
-                <h3>Élèves — {selectedClasse.nom}</h3>
+                <h3>{isProfessor ? `Effectif — ${selectedClasse.nom}` : `Élèves — ${selectedClasse.nom}`}</h3>
                 {eleves.length === 0 ? (
                   <p className="text-muted">Aucun élève</p>
                 ) : (
@@ -396,12 +410,17 @@ export default function BulletinModule({ loadClasses, loadEleves, isProfessor = 
 
               {loadingBulletin && <div className="page-loader"><div className="spinner" /></div>}
 
+              {isProfessor && selectedEleve && (
+                <p className="prof-readonly-hint">Consultation seule — export et impression réservés à l&apos;administrateur.</p>
+              )}
+
               {bulletin && selectedEleve && !loadingBulletin && (
                 <BulletinDetail
                   bulletin={bulletin}
-                  onExportCsv={handleExportEleveCsv}
-                  onExportPdf={handleExportElevePdf}
+                  onExportCsv={allowExports ? handleExportEleveCsv : undefined}
+                  onExportPdf={allowExports ? handleExportElevePdf : undefined}
                   exporting={exporting}
+                  readOnly={isProfessor}
                 />
               )}
             </>

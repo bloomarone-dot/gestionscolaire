@@ -6,7 +6,7 @@ import ProfessorNavigation from '../components/ProfessorNavigation';
 import ProfessorHeader from '../components/ProfessorHeader';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import NotesEntry from '../components/NotesEntry';
-import ProfessorBulletins from '../components/ProfessorBulletins';
+import ProfessorMesEleves from '../components/ProfessorMesEleves';
 import '../styles/professor-dashboard.css';
 import '../styles/professor-workspace.css';
 
@@ -149,10 +149,10 @@ export default function ProfessorDashboard() {
           {activeSection === 'bulletins' && (
             <section className="content-section content-section-flat">
               <header className="section-header">
-                <h2>Bulletins des élèves</h2>
-                <p>Consultez les moyennes, classements et exports par trimestre</p>
+                <h2>Mes élèves</h2>
+                <p>Consultez l&apos;effectif de vos classes et les résultats par trimestre (lecture seule)</p>
               </header>
-              <ProfessorBulletins />
+              <ProfessorMesEleves />
             </section>
           )}
         </div>

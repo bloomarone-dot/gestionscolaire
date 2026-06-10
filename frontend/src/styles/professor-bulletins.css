@@ -44,6 +44,32 @@
   margin-left: auto;
 }
 
+.bulletin-export-inline {
+  margin-left: 0;
+  align-items: flex-end;
+}
+
+.prof-eleves-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: -0.5rem 0 1rem;
+}
+
+.prof-bulletins-readonly .bulletin-detail-actions,
+.prof-bulletins-readonly .bulletin-export-group {
+  display: none !important;
+}
+
+.prof-readonly-hint {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: var(--primary-50);
+  border: 1px solid var(--primary-100);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  color: var(--primary-700);
+}
+
 .btn-sm {
   padding: 0.35rem 0.75rem;
   font-size: 0.8rem;
@@ -244,7 +270,45 @@
 }
 
 @media (max-width: 768px) {
+  .prof-bulletins-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prof-bulletins-toolbar select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .bulletin-view-toggle {
+    width: 100%;
+  }
+
+  .bulletin-view-toggle button {
+    flex: 1;
+    min-height: 44px;
+  }
+
   .prof-bulletins-layout {
     grid-template-columns: 1fr;
+  }
+
+  .prof-bulletins-sidebar {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .bulletin-classe-btn {
+    min-height: 44px;
+  }
+
+  .eleve-chip {
+    min-height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .bulletin-classe-summary {
+    flex-wrap: wrap;
   }
 }

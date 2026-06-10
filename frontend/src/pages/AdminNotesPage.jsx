@@ -35,7 +35,7 @@ export default function AdminNotesPage() {
             <option value="">— Choisir une classe —</option>
             {classes.map((classe) => (
               <option key={classe.id} value={classe.id}>
-                {classe.nom} ({classe.niveau})
+                {classe.nom} ({classe.niveau}) — {classe.section === 'anglophone' ? 'Anglophone' : 'Francophone'}
               </option>
             ))}
           </select>

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import * as api from '../api/api';
+import { PROF_SECTION_OPTIONS, classMatchesProfSection } from '../utils/sections';
 import '../styles/modal-forms.css';
 
 export default function CreateProfesseurModal({ onClose, onCreated }) {
@@ -11,7 +12,8 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
     specialite: '',
     matricule: '',
     username: '',
-    password: ''
+    password: '',
+    section: 'francophone',
   });
   const [classes, setClasses] = useState([]);
   const [matieres, setMatieres] = useState([]);
@@ -103,6 +105,11 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
     }
   };
 
+  const visibleClasses = useMemo(
+    () => classes.filter((c) => classMatchesProfSection(formData.section, c.section)),
+    [classes, formData.section],
+  );
+
   const canSubmit = !loading && formData.nom && formData.prenom && formData.email && formData.matricule;
 
   return (
@@ -148,6 +155,17 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
                 <input type="text" name="specialite" value={formData.specialite} onChange={handleChange} />
               </div>
             </div>
+            <div className="form-group">
+              <label>Section d&apos;enseignement *</label>
+              <select name="section" value={formData.section} onChange={handleChange} required>
+                {PROF_SECTION_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>{s.flag} {s.label}</option>
+                ))}
+              </select>
+              <p className="form-section-hint">
+                Le professeur ne pourra être attribué qu&apos;aux classes de sa section (sauf « les deux »).
+              </p>
+            </div>
           </div>
 
           <div className="form-section">
@@ -168,11 +186,11 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
             <h3>Attribution classes / matières</h3>
             <p className="form-section-hint">Cochez les classes puis les matières à attribuer à ce professeur.</p>
 
-            {classes.length === 0 ? (
-              <div className="form-error">Aucune classe disponible. Créez une classe d'abord.</div>
+            {visibleClasses.length === 0 ? (
+              <div className="form-error">Aucune classe compatible avec cette section. Créez une classe d&apos;abord.</div>
             ) : (
               <div className="attribution-grid">
-                {classes.map((classe) => {
+                {visibleClasses.map((classe) => {
                   const classChecked = selectedClasses.includes(classe.id);
                   const classMatieres = selectedMatieresByClass[classe.id] || [];
                   return (
@@ -183,7 +201,7 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
                           checked={classChecked}
                           onChange={() => handleClassToggle(classe.id)}
                         />
-                        <span>{classe.nom}</span>
+                        <span>{classe.nom} — {classe.section === 'anglophone' ? '🇬🇧 EN' : '🇫🇷 FR'}</span>
                       </label>
                       {classChecked && (
                         <div className="matiere-chips">

@@ -84,6 +84,15 @@
   border-bottom: none;
 }
 
+.card-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
 .info-label {
   font-size: 0.85rem;
   color: var(--text-muted);

@@ -10,6 +10,13 @@ import {
   getAppreciation,
   formatSessionCountdown,
 } from '../utils/notes';
+import {
+  getEvalTypes,
+  getTrimestreLabel,
+  getNotesUiLabels,
+  getSectionLabel,
+} from '../utils/sections';
+import { formatLocalDate } from '../utils/dates';
 import '../styles/notes-entry.css';
 import '../styles/professor-workspace.css';
 
@@ -45,14 +52,18 @@ export default function NotesEntry({
   const [savedSnapshot, setSavedSnapshot] = useState({});
 
   const isProfessorLayout = variant === 'professor' && !isAdmin;
+  const canAdminActions = isAdmin;
+  const classSection = classe?.section || 'francophone';
+  const sectionEvalTypes = getEvalTypes(classSection);
+  const uiLabels = getNotesUiLabels(classSection);
 
   const peutModifier = isAdmin ? !readOnlyMode : (!readOnlyMode && periodeInfo?.peut_saisir === true);
   const isPeriodeFermee = !isAdmin && !readOnlyMode && periodeInfo && !periodeInfo.peut_saisir;
   const dateFin = periodeInfo?.periode?.date_fin
-    ? new Date(periodeInfo.periode.date_fin).toLocaleDateString('fr-FR')
+    ? formatLocalDate(periodeInfo.periode.date_fin)
     : null;
   const dateDebut = periodeInfo?.periode?.date_debut
-    ? new Date(periodeInfo.periode.date_debut).toLocaleDateString('fr-FR')
+    ? formatLocalDate(periodeInfo.periode.date_debut)
     : null;
 
   const fetchNotes = useCallback(async (classeId, matiereId, trimestre, typeEval) => {
@@ -82,10 +93,19 @@ export default function NotesEntry({
         fetchNotes(classe.id, matiereId, trimestre, typeEval),
         fetchAllTrimestreNotes(classe.id, matiereId, trimestre),
       ];
+      const [notesData, allNotes] = await Promise.all(requests);
+
+      let verificationPeriode = null;
       if (!isAdmin) {
-        requests.push(api.verifierPeriodeSaisie(classe.id, matiereId));
+        try {
+          verificationPeriode = await api.verifierPeriodeProfesseur(classe.id, matiereId);
+        } catch (verifyErr) {
+          verificationPeriode = {
+            peut_saisir: false,
+            raison: verifyErr.message || 'Impossible de vérifier le délai de saisie',
+          };
+        }
       }
-      const [notesData, allNotes, verificationPeriode] = await Promise.all(requests);
 
       const notesMapData = {};
       notesData.forEach((note) => {
@@ -100,7 +120,7 @@ export default function NotesEntry({
       setError(err.message || 'Erreur lors du chargement des notes');
       setNotesMap({});
       setTrimestreNotes([]);
-      if (!isAdmin) setPeriodeInfo(null);
+      if (!isAdmin) setPeriodeInfo({ peut_saisir: false, raison: err.message });
     } finally {
       setVerificationEnCours(false);
     }
@@ -268,7 +288,7 @@ export default function NotesEntry({
       }
       await reloadCurrent();
       const total = newNotes.length + existingNotes.length;
-      setSuccess(`${total} note(s) enregistrée(s) — ${evalTypeLabel(selectedType)}, trimestre ${selectedTrimestre}`);
+      setSuccess(`${total} note(s) enregistrée(s) — ${evalTypeLabel(selectedType, classSection)}, ${getTrimestreLabel(selectedTrimestre, classSection)}`);
     } catch (err) {
       setError(err.message || 'Erreur lors de la sauvegarde');
     } finally {
@@ -397,7 +417,7 @@ export default function NotesEntry({
               <th>{evalTypeLabel(selectedType)}</th>
               <th>Coeff.</th>
               <th>Commentaire</th>
-              {peutModifier && <th>Actions</th>}
+              {canAdminActions && peutModifier && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -461,7 +481,7 @@ export default function NotesEntry({
                       <span>{existingNote?.id ? existingNote.commentaire || '—' : '—'}</span>
                     )}
                   </td>
-                  {peutModifier && (
+                  {canAdminActions && peutModifier && (
                     <td>
                       <div className="note-actions">
                         {selectedType === 'trimestre' && canEnterNew && moyenneCalc !== null && (
@@ -523,19 +543,22 @@ export default function NotesEntry({
               <div className="prof-context-value">{eleves.length} élève{eleves.length > 1 ? 's' : ''}</div>
             </div>
           </div>
+          <div className="prof-section-badge-wrap">
+            <span className="prof-section-badge">{getSectionLabel(classSection)}</span>
+          </div>
           <div className="prof-sequence-select">
-            <label htmlFor="prof-trimestre">Trimestre</label>
+            <label htmlFor="prof-trimestre">{uiLabels.trimestre}</label>
             <select id="prof-trimestre" value={selectedTrimestre}
               onChange={(e) => handleTrimestreChange(parseInt(e.target.value, 10))}>
               {TRIMESTRES.map((t) => (
-                <option key={t} value={t}>{t}er trimestre</option>
+                <option key={t} value={t}>{getTrimestreLabel(t, classSection)}</option>
               ))}
             </select>
           </div>
           <div className="prof-sequence-select">
-            <label htmlFor="prof-type">Séquence / Période</label>
+            <label htmlFor="prof-type">{uiLabels.sequencePeriod}</label>
             <select id="prof-type" value={selectedType} onChange={(e) => handleTypeChange(e.target.value)}>
-              {EVAL_TYPES.map((t) => (
+              {sectionEvalTypes.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
@@ -562,23 +585,18 @@ export default function NotesEntry({
 
         <div className="prof-notes-panel">
           <div className="prof-notes-panel-header">
-            <h2>Saisie des notes</h2>
+            <h2>{uiLabels.entryTitle}</h2>
             <div className="prof-notes-panel-actions">
               {peutModifier && (
-                <>
-                  <button type="button" className="btn btn-secondary" onClick={handleCancelChanges} disabled={saving}>
-                    Annuler les modifications
-                  </button>
-                  <button type="button" className="btn btn-primary" onClick={handleSaveNotes} disabled={saving}>
-                    {saving ? 'Enregistrement…' : 'Enregistrer les notes'}
-                  </button>
-                </>
+                <button type="button" className="btn btn-primary btn-save-mobile" onClick={handleSaveNotes} disabled={saving}>
+                  {saving ? 'Enregistrement…' : 'Enregistrer les notes'}
+                </button>
               )}
             </div>
           </div>
 
           <div className="prof-info-banner">
-            Les appréciations sont générées automatiquement selon la note. Vous pouvez ajouter un commentaire personnalisé pour chaque élève.
+            {uiLabels.sessionBanner}
           </div>
 
           {verificationEnCours ? (
@@ -586,23 +604,24 @@ export default function NotesEntry({
           ) : eleves.length === 0 ? (
             <div className="empty-state"><p>Aucun élève dans cette classe</p></div>
           ) : (
-            <div className="prof-notes-table-wrap">
+            <>
+            <div className="prof-notes-table-wrap prof-notes-desktop">
               <table className="prof-notes-table">
                 <thead>
                   <tr>
-                    <th>N°</th>
-                    <th>Matricule</th>
-                    <th>Nom et Prénoms</th>
-                    <th>Note / 20</th>
-                    <th>Appréciation</th>
-                    <th>Commentaire</th>
+                    <th>{uiLabels.number}</th>
+                    <th>{uiLabels.matricule}</th>
+                    <th>{uiLabels.fullName}</th>
+                    <th>{uiLabels.mark}</th>
+                    <th>{uiLabels.appreciation}</th>
+                    <th>{uiLabels.comment}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {eleves.map((eleve, index) => {
                     const note = notesMap[eleve.id] || {};
                     const valeur = note.valeur ?? '';
-                    const appreciation = getAppreciation(valeur);
+                    const appreciation = getAppreciation(valeur, classSection);
                     const vNum = parseFloat(valeur);
                     const isFail = !Number.isNaN(vNum) && vNum < 10;
                     const canEdit = peutModifier;
@@ -656,6 +675,74 @@ export default function NotesEntry({
                 </tbody>
               </table>
             </div>
+
+            <div className="prof-notes-mobile-list">
+              {eleves.map((eleve, index) => {
+                const note = notesMap[eleve.id] || {};
+                const valeur = note.valeur ?? '';
+                const appreciation = getAppreciation(valeur, classSection);
+                const vNum = parseFloat(valeur);
+                const isFail = !Number.isNaN(vNum) && vNum < 10;
+                const canEdit = peutModifier;
+
+                return (
+                  <article key={eleve.id} className={`prof-note-card ${isPeriodeFermee ? 'row-locked' : ''}`}>
+                    <div className="prof-note-card-head">
+                      <span className="prof-note-card-rank">#{index + 1}</span>
+                      <div>
+                        <div className="prof-note-card-name">{eleve.nom} {eleve.prenom}</div>
+                        <div className="prof-note-card-matricule">{eleve.matricule}</div>
+                      </div>
+                    </div>
+                    <div className="prof-note-card-fields">
+                      <label className="prof-note-card-field">
+                        <span>{uiLabels.mark}</span>
+                        {canEdit ? (
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            step="0.25"
+                            inputMode="decimal"
+                            value={valeur}
+                            className={`prof-note-input prof-note-input-mobile ${isFail ? 'fail' : ''}`}
+                            placeholder="0–20"
+                            onChange={(e) => handleNoteChange(eleve.id, 'valeur', e.target.value)}
+                          />
+                        ) : (
+                          <strong className={isFail ? 'fail' : ''}>{valeur !== '' ? valeur : '—'}</strong>
+                        )}
+                      </label>
+                      <div className="prof-note-card-field">
+                        <span>{uiLabels.appreciation}</span>
+                        {appreciation.className ? (
+                          <span className={`appreciation-badge ${appreciation.className}`}>
+                            {appreciation.label}
+                          </span>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </div>
+                      <label className="prof-note-card-field prof-note-card-field-full">
+                        <span>{uiLabels.comment}</span>
+                        {canEdit ? (
+                          <textarea
+                            className="prof-comment-input prof-comment-input-mobile"
+                            rows={2}
+                            placeholder="Optionnel"
+                            value={note.commentaire ?? ''}
+                            onChange={(e) => handleNoteChange(eleve.id, 'commentaire', e.target.value)}
+                          />
+                        ) : (
+                          <span>{note.commentaire || '—'}</span>
+                        )}
+                      </label>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            </>
           )}
 
           <div className="prof-notes-footer">
@@ -683,7 +770,10 @@ export default function NotesEntry({
   return (
     <div className="notes-entry-container">
       <div className="notes-header">
-        <h2>Saisie des notes — {classe.nom}</h2>
+        <h2>{uiLabels.entryTitle} — {classe.nom}</h2>
+        <span className="prof-section-badge" style={{ marginBottom: '0.5rem', display: 'inline-flex' }}>
+          {getSectionLabel(classSection)}
+        </span>
         <div className="notes-filters">
           {matieres.length > 0 && (
             <div className="matiere-selector">
@@ -697,26 +787,26 @@ export default function NotesEntry({
             </div>
           )}
           <div className="matiere-selector">
-            <label htmlFor="trimestre-select">Trimestre</label>
+            <label htmlFor="trimestre-select">{uiLabels.trimestre}</label>
             <select id="trimestre-select" value={selectedTrimestre}
               onChange={(e) => handleTrimestreChange(parseInt(e.target.value, 10))}>
               {TRIMESTRES.map((t) => (
-                <option key={t} value={t}>{t}er trimestre</option>
+                <option key={t} value={t}>{getTrimestreLabel(t, classSection)}</option>
               ))}
             </select>
           </div>
           <div className="matiere-selector">
-            <label htmlFor="type-select">Évaluation</label>
+            <label htmlFor="type-select">{uiLabels.sequencePeriod}</label>
             <select id="type-select" value={selectedType}
               onChange={(e) => handleTypeChange(e.target.value)}>
-              {EVAL_TYPES.map((t) => (
+              {sectionEvalTypes.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
           </div>
         </div>
         <div className="notes-header-actions">
-          {selectedMatiere && (
+          {canAdminActions && selectedMatiere && (
             <button type="button" className="btn btn-secondary" onClick={handleExport} disabled={exporting}>
               {exporting ? 'Export...' : 'Exporter CSV'}
             </button>
@@ -731,7 +821,7 @@ export default function NotesEntry({
 
       <div className="notes-period-info">
         <span className="notes-period-badge">
-          Trimestre {selectedTrimestre} — {evalTypeLabel(selectedType)}
+          {getTrimestreLabel(selectedTrimestre, classSection)} — {evalTypeLabel(selectedType, classSection)}
         </span>
         {selectedType === 'trimestre' && (
           <span className="notes-period-hint">
@@ -761,6 +851,13 @@ export default function NotesEntry({
         <div className="alert alert-success">
           <span>✅</span>
           Saisie ouverte du {dateDebut} au <strong>{dateFin}</strong>
+        </div>
+      )}
+
+      {!isAdmin && !readOnlyMode && periodeInfo && !periodeInfo.peut_saisir && (
+        <div className="alert alert-error">
+          <span>🔒</span>
+          {periodeInfo.raison || 'Saisie non autorisée pour cette classe et matière.'}
         </div>
       )}
 

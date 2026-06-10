@@ -156,7 +156,10 @@
 }
 
 .prof-classe-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
   width: 100%;
   text-align: left;
   padding: 0.45rem 0.75rem;
@@ -169,6 +172,15 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.prof-classe-section-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: rgba(139, 92, 246, 0.12);
+  color: var(--primary-600);
 }
 
 .prof-classe-btn:hover {
@@ -317,29 +329,39 @@
 /* Mobile */
 @media (max-width: 768px) {
   .professor-navigation {
-    position: static;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     width: 100%;
     height: auto;
+    max-height: none;
     flex-direction: column;
     border-right: none;
     border-bottom: 1px solid var(--border);
+    z-index: 120;
   }
 
   .prof-nav-header {
     flex: 1;
+    padding: 0.85rem 1rem;
+    min-height: 56px;
   }
 
   .nav-toggle {
     display: block;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .prof-nav-body {
     position: absolute;
-    top: 70px;
+    top: 100%;
     left: 0;
     right: 0;
     background: #ffffff;
     border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
@@ -347,8 +369,14 @@
   }
 
   .prof-nav-body.open {
-    max-height: 70vh;
+    max-height: 75vh;
     overflow-y: auto;
+  }
+
+  .prof-nav-main-link,
+  .prof-matiere-btn,
+  .prof-classe-btn {
+    min-height: 44px;
   }
 
   .prof-sidebar-footer {

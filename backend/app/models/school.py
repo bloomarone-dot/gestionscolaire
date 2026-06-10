@@ -180,6 +180,9 @@ class Professeur(Base):
     username = Column(String(50), unique=True, nullable=True)
     hashed_password = Column(String(255), nullable=True)
     
+    # Section d'enseignement : francophone | anglophone | les_deux
+    section = Column(String(20), default="francophone")
+
     # Métadonnées
     is_active = Column(Boolean, default=True)
     date_creation = Column(DateTime, default=datetime.utcnow)

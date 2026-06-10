@@ -56,14 +56,17 @@ export default function ClassesList() {
       await api.deleteClasse(classeId);
       setClasses(classes.filter(c => c.id !== classeId));
     } catch (error) {
-      console.error('Erreur:', error);
+      alert(error.message || 'Erreur lors de la suppression');
     }
   };
 
   return (
     <div className="classes-section">
       <div className="section-header">
-        <h2>Gestion des Classes</h2>
+        <div>
+          <h2>Gestion des Classes</h2>
+          <p className="form-section-hint">Définissez la <strong>section</strong> (francophone / anglophone) pour le bulletin PDF.</p>
+        </div>
         <button className="btn btn-primary" onClick={() => setShowCreateForm(!showCreateForm)}>
           + Ajouter une classe
         </button>
@@ -165,6 +168,7 @@ export default function ClassesList() {
               </p>
               {classe.salle && <p><strong>Salle:</strong> {classe.salle}</p>}
               <button
+                type="button"
                 className="btn btn-danger btn-sm"
                 onClick={() => handleDelete(classe.id)}
               >

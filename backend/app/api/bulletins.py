@@ -33,6 +33,11 @@ def _require_bulletin_access(current_user: dict):
         raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs et professeurs")
 
 
+def _require_admin(current_user: dict):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+
+
 @router.get("/eleve/{eleve_id}")
 def get_bulletin_eleve(
     eleve_id: int,
@@ -112,7 +117,7 @@ def export_bulletin_eleve_csv(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
 ):
-    _require_bulletin_access(current_user)
+    _require_admin(current_user)
     bulletin = build_eleve_bulletin(db, eleve_id, trimestre)
     if "error" in bulletin:
         raise HTTPException(status_code=404, detail=bulletin["error"])
@@ -137,7 +142,7 @@ def export_bulletins_classe_csv(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
 ):
-    _require_bulletin_access(current_user)
+    _require_admin(current_user)
     data = build_classe_bulletins(db, classe_id, trimestre)
     if "error" in data:
         raise HTTPException(status_code=404, detail=data["error"])
@@ -195,7 +200,7 @@ def export_bulletins_classe_xlsx(
     db: Session = Depends(get_tenant_session),
 ):
     """Export Excel (.xlsx) — nécessite openpyxl."""
-    _require_bulletin_access(current_user)
+    _require_admin(current_user)
     try:
         from openpyxl import Workbook
         from openpyxl.styles import Font, Alignment
@@ -411,7 +416,7 @@ def download_import_template(
     current_user: dict = Depends(get_current_user),
 ):
     """Télécharge un modèle Excel pour l'import des notes (bulletins)."""
-    _require_bulletin_access(current_user)
+    _require_admin(current_user)
     try:
         from openpyxl import Workbook
         from openpyxl.styles import Font
@@ -458,7 +463,7 @@ async def import_bulletins_xlsx(
     db: Session = Depends(get_tenant_session),
 ):
     """Importe des notes depuis Excel pour alimenter les bulletins."""
-    _require_bulletin_access(current_user)
+    _require_admin(current_user)
     if trimestre not in (1, 2, 3):
         raise HTTPException(status_code=400, detail="Trimestre invalide (1, 2 ou 3)")
 
@@ -641,7 +646,7 @@ def export_bulletin_eleve_pdf(
     db: Session = Depends(get_tenant_session),
     master_db: Session = Depends(get_db_session),
 ):
-    _require_bulletin_access(current_user)
+    _require_admin(current_user)
     school_id = current_user.get("school_id")
     from app.models.school import School, Classe, Eleve
 

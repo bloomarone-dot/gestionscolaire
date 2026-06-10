@@ -41,6 +41,9 @@ TENANT_COLUMN_MIGRATIONS = {
         ("sexe", "VARCHAR(1)"),
         ("redoublant", "BOOLEAN DEFAULT 0"),
     ],
+    "professeurs": [
+        ("section", "VARCHAR(20) DEFAULT 'francophone'"),
+    ],
 }
 
 NOTE_COLUMN_MIGRATIONS = [

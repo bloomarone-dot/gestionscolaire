@@ -33,6 +33,15 @@ async function handleResponse(res) {
   return res.json();
 }
 
+async function deleteResource(url) {
+  const res = await fetch(url, { method: 'DELETE', headers: getHeaders() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Erreur suppression' }));
+    throw new Error(formatApiError(err.detail));
+  }
+  return { success: true };
+}
+
 // ── Authentification ──────────────────────────────────────
 export async function login(username, password) {
   const formData = new URLSearchParams();
@@ -150,17 +159,36 @@ export async function verifierPeriodeSaisie(classeId, matiereId) {
   return handleResponse(res);
 }
 
+export async function verifierPeriodeProfesseur(classeId, matiereId) {
+  const params = new URLSearchParams({ classe_id: String(classeId), matiere_id: String(matiereId) });
+  const res = await fetch(`/professor/verifier-periode?${params}`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
 export async function fetchPeriodesSaisie(classeId, matiereId) {
   const params = new URLSearchParams();
   if (classeId) params.set('classe_id', String(classeId));
   if (matiereId) params.set('matiere_id', String(matiereId));
   const url = params.toString() ? `/notes/periode-saisie?${params}` : '/notes/periode-saisie';
   const res = await fetch(url, { headers: getHeaders() });
-  return handleResponse(res);
+  const data = await handleResponse(res);
+  if (Array.isArray(data)) {
+    return { items: data, server_date: null };
+  }
+  return { items: data.items || [], server_date: data.server_date || null };
 }
 
 export async function createPeriodeSaisie(data) {
   const res = await fetch('/notes/periode-saisie', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function createPeriodesBulk(data) {
+  const res = await fetch('/notes/periode-saisie/bulk', {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify(data),
@@ -350,12 +378,7 @@ export async function createProfesseur(profData) {
 }
 
 export async function deleteProfesseur(profId) {
-  const res = await fetch(`/admin/professeurs/${profId}`, {
-    method: 'DELETE',
-    headers: getHeaders(),
-  });
-  if (!res.ok) throw new Error('Erreur suppression');
-  return { success: true };
+  return deleteResource(`/admin/professeurs/${profId}`);
 }
 
 // ── Classes (Admin) ──────────────────────────────────────
@@ -374,12 +397,7 @@ export async function createClasse(classeData) {
 }
 
 export async function deleteClasse(classeId) {
-  const res = await fetch(`/admin/classes/${classeId}`, {
-    method: 'DELETE',
-    headers: getHeaders(),
-  });
-  if (!res.ok) throw new Error('Erreur suppression');
-  return { success: true };
+  return deleteResource(`/admin/classes/${classeId}`);
 }
 
 // ── Matières (Admin) ─────────────────────────────────────
@@ -398,12 +416,7 @@ export async function createMatiere(matiereData) {
 }
 
 export async function deleteMatiere(matiereId) {
-  const res = await fetch(`/admin/matieres/${matiereId}`, {
-    method: 'DELETE',
-    headers: getHeaders(),
-  });
-  if (!res.ok) throw new Error('Erreur suppression');
-  return { success: true };
+  return deleteResource(`/admin/matieres/${matiereId}`);
 }
 
 export async function updateMatiere(matiereId, data) {
@@ -589,12 +602,7 @@ export async function updateEleve_admin(eleveId, eleveData) {
 }
 
 export async function deleteEleve_admin(eleveId) {
-  const res = await fetch(`/admin/eleves/${eleveId}`, {
-    method: 'DELETE',
-    headers: getHeaders(),
-  });
-  if (!res.ok) throw new Error('Erreur suppression');
-  return { success: true };
+  return deleteResource(`/admin/eleves/${eleveId}`);
 }
 
 // ── Admin Années scolaires ────────────────────────────────

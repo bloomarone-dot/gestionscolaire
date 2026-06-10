@@ -27,6 +27,7 @@ class ProfesseurCreate(BaseModel):
     matricule: str
     username: Optional[str] = None
     password: Optional[str] = None
+    section: Optional[str] = "francophone"
 
 
 class ProfesseurUpdate(BaseModel):
@@ -35,6 +36,7 @@ class ProfesseurUpdate(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     specialite: Optional[str] = None
+    section: Optional[str] = None
 
 
 class ProfesseurResponse(BaseModel):
@@ -45,6 +47,7 @@ class ProfesseurResponse(BaseModel):
     phone: Optional[str] = None
     specialite: Optional[str] = None
     matricule: str
+    section: Optional[str] = "francophone"
     is_active: bool
     created_at: datetime = Field(validation_alias="date_creation")
 
@@ -89,12 +92,14 @@ class EleveCreate(BaseModel):
     prenom: str
     matricule: str
     classe_id: Optional[int] = None
+    section: Optional[str] = None
 
 
 class EleveUpdate(BaseModel):
     nom: Optional[str] = None
     prenom: Optional[str] = None
     classe_id: Optional[int] = None
+    section: Optional[str] = None
 
 
 class EleveResponse(BaseModel):
@@ -105,6 +110,7 @@ class EleveResponse(BaseModel):
     classe_id: Optional[int] = None
     date_inscription: datetime
     classe_nom: Optional[str] = None
+    section: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -227,7 +233,13 @@ def create_professeur(
             detail="Cet email est déjà utilisé"
         )
     
+    from app.services.sections import validate_section
+
     try:
+        try:
+            prof_section = validate_section(prof_data.section, allow_both=True)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         professeur = Professeur(
             nom=prof_data.nom,
             prenom=prof_data.prenom,
@@ -235,6 +247,7 @@ def create_professeur(
             phone=prof_data.phone,
             specialite=prof_data.specialite,
             matricule=prof_data.matricule,
+            section=prof_section,
             username=prof_data.username or prof_data.email.split('@')[0],
             hashed_password=hash_password(prof_data.password or "default123"),
             is_active=True
@@ -314,8 +327,14 @@ def update_professeur(
             detail="Professeur non trouvé"
         )
     
-    # Mettre à jour les champs
+    from app.services.sections import validate_section
+
     update_data = prof_update.dict(exclude_unset=True)
+    if "section" in update_data:
+        try:
+            update_data["section"] = validate_section(update_data["section"], allow_both=True)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     for field, value in update_data.items():
         setattr(professeur, field, value)
     
@@ -324,13 +343,61 @@ def update_professeur(
     return professeur
 
 
+def _purge_professeur_dependencies(db, professeur_id: int) -> None:
+    from app.models.school import Note, AttributionProfesseur, EmploiTemps
+    db.query(Note).filter(Note.professeur_id == professeur_id).delete(synchronize_session=False)
+    db.query(AttributionProfesseur).filter(
+        AttributionProfesseur.professeur_id == professeur_id,
+    ).delete(synchronize_session=False)
+    db.query(EmploiTemps).filter(EmploiTemps.professeur_id == professeur_id).delete(synchronize_session=False)
+
+
+def _purge_matiere_dependencies(db, matiere_id: int) -> None:
+    from app.models.school import Note, AttributionProfesseur, EmploiTemps, PeriodeSaisieNotes
+    db.query(Note).filter(Note.matiere_id == matiere_id).delete(synchronize_session=False)
+    db.query(AttributionProfesseur).filter(
+        AttributionProfesseur.matiere_id == matiere_id,
+    ).delete(synchronize_session=False)
+    db.query(PeriodeSaisieNotes).filter(
+        PeriodeSaisieNotes.matiere_id == matiere_id,
+    ).delete(synchronize_session=False)
+    db.query(EmploiTemps).filter(EmploiTemps.matiere_id == matiere_id).delete(synchronize_session=False)
+
+
+def _purge_classe_dependencies(db, classe_id: int) -> None:
+    from app.models.school import (
+        Eleve, Note, Bulletin, AttributionProfesseur, EmploiTemps, PeriodeSaisieNotes,
+    )
+    eleve_ids = [
+        row[0] for row in db.query(Eleve.id).filter(Eleve.classe_id == classe_id).all()
+    ]
+    if eleve_ids:
+        db.query(Note).filter(Note.eleve_id.in_(eleve_ids)).delete(synchronize_session=False)
+        db.query(Bulletin).filter(Bulletin.eleve_id.in_(eleve_ids)).delete(synchronize_session=False)
+    db.query(Bulletin).filter(Bulletin.classe_id == classe_id).delete(synchronize_session=False)
+    db.query(AttributionProfesseur).filter(
+        AttributionProfesseur.classe_id == classe_id,
+    ).delete(synchronize_session=False)
+    db.query(PeriodeSaisieNotes).filter(
+        PeriodeSaisieNotes.classe_id == classe_id,
+    ).delete(synchronize_session=False)
+    db.query(EmploiTemps).filter(EmploiTemps.classe_id == classe_id).delete(synchronize_session=False)
+    db.query(Eleve).filter(Eleve.classe_id == classe_id).delete(synchronize_session=False)
+
+
+def _purge_eleve_dependencies(db, eleve_id: int) -> None:
+    from app.models.school import Note, Bulletin
+    db.query(Note).filter(Note.eleve_id == eleve_id).delete(synchronize_session=False)
+    db.query(Bulletin).filter(Bulletin.eleve_id == eleve_id).delete(synchronize_session=False)
+
+
 @router.delete("/professeurs/{prof_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_professeur(
     prof_id: int,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session)
 ):
-    """Supprime un professeur"""
+    """Supprime un professeur et ses données liées"""
     from app.models.school import Professeur
     
     if current_user.get("role") != "admin":
@@ -346,8 +413,13 @@ def delete_professeur(
             detail="Professeur non trouvé"
         )
     
-    db.delete(professeur)
-    db.commit()
+    try:
+        _purge_professeur_dependencies(db, prof_id)
+        db.delete(professeur)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Impossible de supprimer le professeur : {e}") from e
 
 
 # ════════════════════════════════════════════════════════════
@@ -381,6 +453,16 @@ def create_attribution(
     matiere = db.query(Matiere).filter(Matiere.id == attrib_data.matiere_id).first()
     if not matiere:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Matière non trouvée")
+
+    from app.services.sections import sections_compatible
+    if not sections_compatible(getattr(prof, "section", None), getattr(classe, "section", None)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Le professeur ({getattr(prof, 'section', 'francophone')}) "
+                f"ne peut pas enseigner en section {getattr(classe, 'section', 'francophone')}"
+            ),
+        )
     
     # Vérifier si attribution existe déjà
     existing = db.query(AttributionProfesseur).filter(
@@ -539,8 +621,13 @@ def delete_classe(
     if not classe:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classe non trouvée")
     
-    db.delete(classe)
-    db.commit()
+    try:
+        _purge_classe_dependencies(db, classe_id)
+        db.delete(classe)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Impossible de supprimer la classe : {e}") from e
 
 
 # ════════════════════════════════════════════════════════════
@@ -639,8 +726,13 @@ def delete_matiere(
     if not matiere:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Matière non trouvée")
     
-    db.delete(matiere)
-    db.commit()
+    try:
+        _purge_matiere_dependencies(db, matiere_id)
+        db.delete(matiere)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Impossible de supprimer la matière : {e}") from e
 
 
 # ════════════════════════════════════════════════════════════
@@ -723,6 +815,24 @@ def delete_annee_scolaire(
     db.commit()
 
 
+def _eleve_to_response(eleve, classe=None) -> EleveResponse:
+    classe_nom = None
+    section = None
+    if classe:
+        classe_nom = f"{classe.nom} ({classe.niveau})"
+        section = getattr(classe, "section", None) or "francophone"
+    return EleveResponse(
+        id=eleve.id,
+        nom=eleve.nom,
+        prenom=eleve.prenom,
+        matricule=eleve.matricule,
+        classe_id=eleve.classe_id,
+        date_inscription=eleve.date_inscription,
+        classe_nom=classe_nom,
+        section=section,
+    )
+
+
 # ════════════════════════════════════════════════════════════
 # ÉLÈVES — CRUD
 # ════════════════════════════════════════════════════════════
@@ -743,32 +853,30 @@ def create_eleve(
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ce matricule existe déjà")
 
+    classe = None
     if eleve_data.classe_id:
         classe = db.query(Classe).filter(Classe.id == eleve_data.classe_id).first()
         if not classe:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classe non trouvée")
+        if eleve_data.section:
+            classe_section = getattr(classe, "section", None) or "francophone"
+            if eleve_data.section != classe_section:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"La classe {classe.nom} est en section {classe_section}, pas {eleve_data.section}",
+                )
 
     try:
-        eleve = Eleve(**eleve_data.dict())
+        payload = eleve_data.model_dump(exclude={"section"})
+        eleve = Eleve(**payload)
         db.add(eleve)
         db.commit()
         db.refresh(eleve)
 
-        # Enrichir avec le nom de la classe
-        classe_nom = None
-        if eleve.classe_id:
+        if not classe and eleve.classe_id:
             classe = db.query(Classe).filter(Classe.id == eleve.classe_id).first()
-            classe_nom = f"{classe.nom} ({classe.niveau})" if classe else None
 
-        return EleveResponse(
-            id=eleve.id,
-            nom=eleve.nom,
-            prenom=eleve.prenom,
-            matricule=eleve.matricule,
-            classe_id=eleve.classe_id,
-            date_inscription=eleve.date_inscription,
-            classe_nom=classe_nom,
-        )
+        return _eleve_to_response(eleve, classe)
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -802,21 +910,8 @@ def list_eleves(
 
     result = []
     for e in eleves:
-        classe_nom = None
-        if e.classe_id:
-            classe = db.query(Classe).filter(Classe.id == e.classe_id).first()
-            classe_nom = f"{classe.nom} ({classe.niveau})" if classe else None
-        result.append(
-            EleveResponse(
-                id=e.id,
-                nom=e.nom,
-                prenom=e.prenom,
-                matricule=e.matricule,
-                classe_id=e.classe_id,
-                date_inscription=e.date_inscription,
-                classe_nom=classe_nom,
-            )
-        )
+        classe = db.query(Classe).filter(Classe.id == e.classe_id).first() if e.classe_id else None
+        result.append(_eleve_to_response(e, classe))
     return result
 
 
@@ -833,20 +928,8 @@ def get_eleve(
     if not eleve:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Élève non trouvé")
 
-    classe_nom = None
-    if eleve.classe_id:
-        classe = db.query(Classe).filter(Classe.id == eleve.classe_id).first()
-        classe_nom = f"{classe.nom} ({classe.niveau})" if classe else None
-
-    return EleveResponse(
-        id=eleve.id,
-        nom=eleve.nom,
-        prenom=eleve.prenom,
-        matricule=eleve.matricule,
-        classe_id=eleve.classe_id,
-        date_inscription=eleve.date_inscription,
-        classe_nom=classe_nom,
-    )
+    classe = db.query(Classe).filter(Classe.id == eleve.classe_id).first() if eleve.classe_id else None
+    return _eleve_to_response(eleve, classe)
 
 
 @router.put("/eleves/{eleve_id}", response_model=EleveResponse)
@@ -866,31 +949,29 @@ def update_eleve(
     if not eleve:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Élève non trouvé")
 
+    classe = None
     if eleve_update.classe_id is not None and eleve_update.classe_id != 0:
         classe = db.query(Classe).filter(Classe.id == eleve_update.classe_id).first()
         if not classe:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classe non trouvée")
+        if eleve_update.section:
+            classe_section = getattr(classe, "section", None) or "francophone"
+            if eleve_update.section != classe_section:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"La classe {classe.nom} est en section {classe_section}",
+                )
 
-    for field, value in eleve_update.dict(exclude_unset=True).items():
+    for field, value in eleve_update.dict(exclude_unset=True, exclude={"section"}).items():
         setattr(eleve, field, value)
 
     db.commit()
     db.refresh(eleve)
 
-    classe_nom = None
-    if eleve.classe_id:
+    if not classe and eleve.classe_id:
         classe = db.query(Classe).filter(Classe.id == eleve.classe_id).first()
-        classe_nom = f"{classe.nom} ({classe.niveau})" if classe else None
 
-    return EleveResponse(
-        id=eleve.id,
-        nom=eleve.nom,
-        prenom=eleve.prenom,
-        matricule=eleve.matricule,
-        classe_id=eleve.classe_id,
-        date_inscription=eleve.date_inscription,
-        classe_nom=classe_nom,
-    )
+    return _eleve_to_response(eleve, classe)
 
 
 @router.delete("/eleves/{eleve_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -909,8 +990,13 @@ def delete_eleve(
     if not eleve:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Élève non trouvé")
 
-    db.delete(eleve)
-    db.commit()
+    try:
+        _purge_eleve_dependencies(db, eleve_id)
+        db.delete(eleve)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Impossible de supprimer l'élève : {e}") from e
 
 
 # ════════════════════════════════════════════════════════════

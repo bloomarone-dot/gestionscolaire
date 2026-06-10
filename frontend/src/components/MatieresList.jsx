@@ -65,14 +65,17 @@ export default function MatieresList() {
       await api.deleteMatiere(matiereId);
       setMatieres(matieres.filter(m => m.id !== matiereId));
     } catch (error) {
-      console.error('Erreur:', error);
+      alert(error.message || 'Erreur lors de la suppression');
     }
   };
 
   return (
     <div className="matieres-section">
       <div className="section-header">
-        <h2>Gestion des Matières</h2>
+        <div>
+          <h2>Gestion des Matières</h2>
+          <p className="form-section-hint">Chaque matière a un <strong>groupe bulletin</strong> (1–3) et un <strong>coefficient</strong>.</p>
+        </div>
         <button className="btn btn-primary" onClick={() => setShowCreateForm(!showCreateForm)}>
           + Ajouter une matière
         </button>
@@ -159,6 +162,7 @@ export default function MatieresList() {
               <p><strong>Groupe:</strong> {matiere.groupe ?? 1} · <strong>Coef:</strong> {matiere.coefficient_defaut ?? 1}</p>
               {matiere.description && <p><strong>Description:</strong> {matiere.description}</p>}
               <button
+                type="button"
                 className="btn btn-danger btn-sm"
                 onClick={() => handleDelete(matiere.id)}
               >

@@ -97,7 +97,7 @@ function CameroonBulletinView({ bulletin }) {
   );
 }
 
-export default function BulletinDetail({ bulletin, onExportCsv, onExportPdf, onExportXlsx, exporting }) {
+export default function BulletinDetail({ bulletin, onExportCsv, onExportPdf, onExportXlsx, exporting, readOnly = false }) {
   if (!bulletin) return null;
 
   const mentionClass = getMentionClass(bulletin.moyenne_generale);
@@ -132,6 +132,7 @@ export default function BulletinDetail({ bulletin, onExportCsv, onExportPdf, onE
         </div>
       </div>
 
+      {!readOnly && (onExportCsv || onExportPdf || onExportXlsx) && (
       <div className="bulletin-detail-actions">
         {onExportCsv && (
           <button type="button" className="btn btn-secondary" onClick={onExportCsv} disabled={exporting}>
@@ -149,6 +150,7 @@ export default function BulletinDetail({ bulletin, onExportCsv, onExportPdf, onE
           </button>
         )}
       </div>
+      )}
 
       {isCameroon ? (
         <CameroonBulletinView bulletin={bulletin} />

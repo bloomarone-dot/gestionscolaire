@@ -141,12 +141,18 @@
 }
 
 @media (max-width: 768px) {
+  .professor-dashboard {
+    flex-direction: column;
+  }
+
   .professor-content-area {
     margin-left: 0;
+    padding-top: 58px;
   }
 
   .professor-content {
-    padding: 1rem;
+    padding: 0.75rem;
+    padding-bottom: 5rem;
   }
 
   .accueil-header h1 {
@@ -155,5 +161,14 @@
 
   .professor-stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .content-section {
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .section-header h2 {
+    font-size: 1.2rem;
   }
 }

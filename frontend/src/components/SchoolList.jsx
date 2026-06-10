@@ -98,13 +98,6 @@ export default function SchoolList({ schools, onSchoolDeleted, onSchoolUpdated }
               >
                 ✏️
               </button>
-              <button
-                className="btn-icon btn-danger"
-                title="Supprimer"
-                onClick={() => handleDelete(school.id, school.name)}
-              >
-                🗑️
-              </button>
             </div>
           </div>
 
@@ -196,6 +189,15 @@ export default function SchoolList({ schools, onSchoolDeleted, onSchoolUpdated }
                     ? new Date(school.created_at).toLocaleDateString('fr-FR')
                     : '—'}
                 </span>
+              </div>
+              <div className="card-footer-actions">
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  onClick={() => handleDelete(school.id, school.name)}
+                >
+                  Supprimer
+                </button>
               </div>
             </div>
           )}

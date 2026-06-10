@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import * as api from '../api/api';
+import { SECTION_OPTIONS, getSectionLabel } from '../utils/sections';
 import '../styles/eleves-list.css';
 
 export default function ElevesList() {
@@ -8,6 +9,7 @@ export default function ElevesList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterClasse, setFilterClasse] = useState('');
+  const [filterSection, setFilterSection] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingEleve, setEditingEleve] = useState(null);
   const [error, setError] = useState('');
@@ -40,9 +42,10 @@ export default function ElevesList() {
         e.prenom.toLowerCase().includes(search.toLowerCase()) ||
         e.matricule.toLowerCase().includes(search.toLowerCase());
       const matchClasse = !filterClasse || String(e.classe_id) === filterClasse;
-      return matchSearch && matchClasse;
+      const matchSection = !filterSection || e.section === filterSection;
+      return matchSearch && matchClasse && matchSection;
     });
-  }, [eleves, search, filterClasse]);
+  }, [eleves, search, filterClasse, filterSection]);
 
   const handleDelete = async (eleveId, name) => {
     if (!window.confirm(`Supprimer "${name}" ?`)) return;
@@ -78,13 +81,25 @@ export default function ElevesList() {
         />
         <select
           className="eleves-filter"
+          value={filterSection}
+          onChange={(e) => setFilterSection(e.target.value)}
+        >
+          <option value="">Toutes les sections</option>
+          {SECTION_OPTIONS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+        <select
+          className="eleves-filter"
           value={filterClasse}
           onChange={(e) => setFilterClasse(e.target.value)}
         >
           <option value="">Toutes les classes</option>
-          {classes.map((c) => (
+          {classes
+            .filter((c) => !filterSection || c.section === filterSection)
+            .map((c) => (
             <option key={c.id} value={String(c.id)}>
-              {c.nom} ({c.niveau})
+              {c.nom} ({c.niveau}) — {c.section === 'anglophone' ? 'EN' : 'FR'}
             </option>
           ))}
         </select>
@@ -111,6 +126,7 @@ export default function ElevesList() {
                 <th>Matricule</th>
                 <th>Nom</th>
                 <th>Prénom</th>
+                <th>Section</th>
                 <th>Classe</th>
                 <th>Date d'inscription</th>
                 <th>Actions</th>
@@ -122,6 +138,7 @@ export default function ElevesList() {
                   <td><code>{eleve.matricule}</code></td>
                   <td><strong>{eleve.nom}</strong></td>
                   <td>{eleve.prenom}</td>
+                  <td>{eleve.section ? getSectionLabel(eleve.section) : '—'}</td>
                   <td>
                     {eleve.classe_nom ? (
                       <span className="classe-badge">{eleve.classe_nom}</span>
@@ -139,6 +156,7 @@ export default function ElevesList() {
                       ✏️
                     </button>
                     <button
+                      type="button"
                       className="action-btn delete-btn"
                       title="Supprimer"
                       onClick={() => handleDelete(eleve.id, `${eleve.prenom} ${eleve.nom}`)}
@@ -171,8 +189,13 @@ function EleveModal({ eleve, classes, onClose, onSaved }) {
     nom: eleve?.nom || '',
     prenom: eleve?.prenom || '',
     matricule: eleve?.matricule || '',
+    section: eleve?.section || 'francophone',
     classe_id: eleve?.classe_id ? String(eleve.classe_id) : '',
   });
+
+  const filteredClasses = classes.filter(
+    (c) => !form.section || c.section === form.section,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -183,13 +206,15 @@ function EleveModal({ eleve, classes, onClose, onSaved }) {
     try {
       const payload = {
         ...form,
-        classe_id: form.classe_id ? parseInt(form.classe_id) : null,
+        classe_id: form.classe_id ? parseInt(form.classe_id, 10) : null,
+        section: form.section,
       };
       if (isEdit) {
         await api.updateEleve_admin(eleve.id, {
           nom: payload.nom,
           prenom: payload.prenom,
           classe_id: payload.classe_id,
+          section: payload.section,
         });
       } else {
         await api.createEleve_admin(payload);
@@ -246,18 +271,35 @@ function EleveModal({ eleve, classes, onClose, onSaved }) {
           )}
 
           <div className="form-group">
+            <label>Section *</label>
+            <select
+              value={form.section}
+              onChange={(e) => setForm({ ...form, section: e.target.value, classe_id: '' })}
+              required
+            >
+              {SECTION_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>{s.flag} {s.label}</option>
+              ))}
+            </select>
+            <small className="form-section-hint">Détermine la langue du bulletin et les classes disponibles.</small>
+          </div>
+
+          <div className="form-group">
             <label>Classe</label>
             <select
               value={form.classe_id}
               onChange={(e) => setForm({ ...form, classe_id: e.target.value })}
             >
-              <option value="">— Aucune classe —</option>
-              {classes.map((c) => (
+              <option value="">— Choisir une classe —</option>
+              {filteredClasses.map((c) => (
                 <option key={c.id} value={String(c.id)}>
                   {c.nom} ({c.niveau})
                 </option>
               ))}
             </select>
+            {filteredClasses.length === 0 && (
+              <small className="form-section-hint">Aucune classe en section {form.section}. Créez-en une d&apos;abord.</small>
+            )}
           </div>
 
           <div className="modal-actions">

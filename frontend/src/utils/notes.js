@@ -1,3 +1,5 @@
+import { getAppreciationForSection, getEvalTypes } from './sections';
+
 export const TRIMESTRES = [1, 2, 3];
 
 export const EVAL_TYPES = [
@@ -6,8 +8,11 @@ export const EVAL_TYPES = [
   { value: 'trimestre', label: 'Note trimestrielle' },
 ];
 
-export function evalTypeLabel(type) {
-  return EVAL_TYPES.find((t) => t.value === type)?.label || type;
+export function evalTypeLabel(type, section = 'francophone') {
+  const types = getEvalTypes(section);
+  return types.find((t) => t.value === type)?.label
+    || EVAL_TYPES.find((t) => t.value === type)?.label
+    || type;
 }
 
 export function calcMoyenneTrimestre(seq1, seq2) {
@@ -29,25 +34,9 @@ export function getSeqNotesForEleve(eleveId, notes, trimestre) {
   };
 }
 
-export function getAppreciation(valeur) {
-  const v = parseFloat(valeur);
-  if (Number.isNaN(v)) return { label: '—', className: '' };
-  if (v >= 16) return { label: 'Très bien', className: 'excellent' };
-  if (v >= 14) return { label: 'Bien', className: 'bien' };
-  if (v >= 12) return { label: 'Assez bien', className: 'assez-bien' };
-  if (v >= 10) return { label: 'Passable', className: 'passable' };
-  return { label: 'Insuffisant', className: 'insuffisant' };
+export function getAppreciation(valeur, section = 'francophone') {
+  const result = getAppreciationForSection(valeur, section);
+  return { label: result.label, className: result.className, code: result.code };
 }
 
-export function formatSessionCountdown(dateFinIso) {
-  if (!dateFinIso) return null;
-  const end = new Date(dateFinIso);
-  const now = new Date();
-  const diff = end.getTime() - now.getTime();
-  if (diff <= 0) return 'Session expirée';
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  if (days > 0) return `Il reste ${days} jour${days > 1 ? 's' : ''} et ${hours}h`;
-  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  return `Il reste ${hours}h ${mins}min`;
-}
+export { formatSessionCountdown } from './dates';

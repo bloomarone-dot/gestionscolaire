@@ -18,10 +18,21 @@ import '../styles/admin-dashboard.css';
 import '../styles/dashboard-shared.css';
 
 const ADMIN_QUICK_ACTIONS = [
+  { id: 'bulletin-config', icon: '⚙️', title: 'Config. bulletins', desc: 'Logo, en-tête, modèle PDF' },
+  { id: 'matieres', icon: '📖', title: 'Matières', desc: 'Groupes & coefficients' },
+  { id: 'classes', icon: '📚', title: 'Classes', desc: 'Section FR / EN' },
+  { id: 'bulletins', icon: '📄', title: 'Bulletins', desc: 'PDF officiel Cameroun' },
   { id: 'eleves', icon: '👥', title: 'Élèves', desc: 'Gérer les inscriptions' },
   { id: 'professeurs', icon: '👨‍🏫', title: 'Professeurs', desc: 'Comptes et attributions' },
-  { id: 'fenetre-notes', icon: '⏰', title: 'Délais de saisie', desc: 'Fixer les échéances' },
-  { id: 'saisie-notes', icon: '📝', title: 'Notes', desc: 'Consulter et modifier' },
+];
+
+const ADMIN_SETUP_STEPS = [
+  { id: 'bulletin-config', step: 1, label: 'Config. bulletins', hint: 'Logo, en-têtes, modèle Cameroun auto' },
+  { id: 'matieres', step: 2, label: 'Matières', hint: 'Créer avec groupe (1–3) & coefficient' },
+  { id: 'classes', step: 3, label: 'Classes', hint: 'Une section FR ou EN par classe' },
+  { id: 'eleves', step: 4, label: 'Élèves', hint: 'Inscription avec choix de section' },
+  { id: 'professeurs', step: 5, label: 'Professeurs', hint: 'Section + classes compatibles' },
+  { id: 'bulletins', step: 6, label: 'Bulletins', hint: 'PDF selon section de la classe' },
 ];
 
 export default function AdminDashboard() {
@@ -78,10 +89,32 @@ export default function AdminDashboard() {
         <div className="admin-content">
           {activeTab === 'accueil' && (
             <div className="dashboard-accueil">
+              <section className="admin-setup-guide">
+                <h3>Configuration bulletin officiel</h3>
+                <p>Suivez ces étapes pour Royal Priesthood et les bulletins Cameroun :</p>
+                <ol className="admin-setup-steps">
+                  {ADMIN_SETUP_STEPS.map((item) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        className="admin-setup-step-btn"
+                        onClick={() => setActiveTab(item.id)}
+                      >
+                        <span className="admin-setup-step-num">{item.step}</span>
+                        <span>
+                          <strong>{item.label}</strong>
+                          <small>{item.hint}</small>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+
               <DashboardHero
                 greeting={greeting}
                 title={user.first_name}
-                subtitle={`Pilotage de ${schoolName} — élèves, professeurs, notes et délais de saisie.`}
+                subtitle={`Pilotage de ${schoolName} — bulletins officiels, élèves, professeurs et notes.`}
                 badge={schoolName}
                 stats={stats ? [
                   { value: stats.total_eleves, label: 'Élèves' },

@@ -11,6 +11,7 @@ services:
       DATABASE_URL: sqlite:////app/data/master.db
       TENANT_DB_DIR: /app/data/tenants
       SECRET_KEY: change-me-in-production
+      TZ: Africa/Douala
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/')"]

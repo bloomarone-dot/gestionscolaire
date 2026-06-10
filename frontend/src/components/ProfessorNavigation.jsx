@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import '../styles/professor-navigation.css';
 
 export default function ProfessorNavigation({
@@ -15,16 +13,8 @@ export default function ProfessorNavigation({
 }) {
   const [expandedMatieres, setExpandedMatieres] = useState({});
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-
   const toggleMatiere = (matiereId) => {
     setExpandedMatieres((prev) => ({ ...prev, [matiereId]: !prev[matiereId] }));
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
   };
 
   const handleSelect = (classe, matiere) => {
@@ -94,7 +84,10 @@ export default function ProfessorNavigation({
                             }`}
                             onClick={() => handleSelect(classe, matiere)}
                           >
-                            {classe.nom}
+                            <span>{classe.nom}</span>
+                            <span className="prof-classe-section-tag">
+                              {classe.section === 'anglophone' ? 'EN' : 'FR'}
+                            </span>
                           </button>
                         </li>
                       ))}
@@ -111,8 +104,8 @@ export default function ProfessorNavigation({
           className={`prof-nav-main-link ${activeSection === 'bulletins' ? 'active' : ''}`}
           onClick={() => { onSectionChange('bulletins'); setMobileOpen(false); }}
         >
-          <span className="nav-icon">📄</span>
-          <span>Bulletins</span>
+          <span className="nav-icon">👥</span>
+          <span>Mes élèves</span>
         </button>
       </div>
 
@@ -121,9 +114,6 @@ export default function ProfessorNavigation({
           <strong>Besoin d&apos;aide ?</strong>
           <p>Consultez le guide rapide ou contactez l&apos;administrateur.</p>
         </div>
-        <button type="button" className="prof-logout-btn" onClick={handleLogout}>
-          Déconnexion
-        </button>
       </div>
     </nav>
   );

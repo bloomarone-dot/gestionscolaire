@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import CreateProfesseurModal from './CreateProfesseurModal';
+import { getSectionLabel } from '../utils/sections';
 import AttributeProfesseurModal from './AttributeProfesseurModal';
 import * as api from '../api/api';
 import '../styles/professeurs-list.css';
@@ -41,7 +42,7 @@ export default function ProfesseursList() {
       await api.deleteProfesseur(profId);
       setProfesseurs(professeurs.filter(p => p.id !== profId));
     } catch (error) {
-      console.error('Erreur suppression:', error);
+      alert(error.message || 'Erreur lors de la suppression');
     }
   };
 
@@ -78,6 +79,7 @@ export default function ProfesseursList() {
                 <p><strong>Email:</strong> {prof.email}</p>
                 {prof.phone && <p><strong>Téléphone:</strong> {prof.phone}</p>}
                 {prof.specialite && <p><strong>Spécialité:</strong> {prof.specialite}</p>}
+                <p><strong>Section:</strong> {getSectionLabel(prof.section || 'francophone')}</p>
               </div>
 
               <div className="prof-actions">
@@ -91,6 +93,7 @@ export default function ProfesseursList() {
                   Attribuer classe/matière
                 </button>
                 <button
+                  type="button"
                   className="btn btn-danger btn-sm"
                   onClick={() => handleDelete(prof.id, `${prof.prenom} ${prof.nom}`)}
                 >

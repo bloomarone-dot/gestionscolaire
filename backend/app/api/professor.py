@@ -12,7 +12,7 @@ from app.models.school import (
     Professeur, Classe, Matiere, AttributionProfesseur,
     Eleve, Note, Bulletin, AnneeScolaire
 )
-from app.api.notes import _verifier_periode_saisie, _find_note, VALID_TYPES
+from app.api.notes import _verifier_periode_saisie, _find_note, VALID_TYPES, SaisieVerificationResponse
 
 router = APIRouter(prefix="/professor", tags=["Professor"])
 
@@ -164,12 +164,42 @@ async def get_professor_enseignements(
                 "niveau": cls.niveau,
                 "capacite": cls.capacite,
                 "salle": cls.salle,
+                "section": getattr(cls, "section", None) or "francophone",
+                "serie": getattr(cls, "serie", None),
             })
 
     result = sorted(tree.values(), key=lambda m: m["nom"].lower())
     for m in result:
         m["classes"].sort(key=lambda c: c["nom"].lower())
     return {"matieres": result}
+
+
+@router.get("/verifier-periode", response_model=SaisieVerificationResponse)
+async def verifier_periode_professeur(
+    classe_id: int,
+    matiere_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_tenant_session),
+):
+    """Vérifie si la saisie est ouverte pour une classe/matière (professeur)."""
+    if current_user.get("role") != "professeur":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
+
+    attribution = db.query(AttributionProfesseur).filter(
+        and_(
+            AttributionProfesseur.professeur_id == current_user.get("id"),
+            AttributionProfesseur.classe_id == classe_id,
+            AttributionProfesseur.matiere_id == matiere_id,
+            AttributionProfesseur.is_active == True,
+        )
+    ).first()
+    if not attribution:
+        return SaisieVerificationResponse(
+            peut_saisir=False,
+            raison="Vous n'êtes pas assigné à cette classe et matière",
+        )
+
+    return _verifier_periode_saisie(db, classe_id, matiere_id)
 
 
 @router.get("/classes/{classe_id}/eleves", response_model=List[EleveResponse])

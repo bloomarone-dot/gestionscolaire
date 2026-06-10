@@ -4,7 +4,7 @@ Endpoints Notes — CRUD complet pour professeurs et administrateurs.
 import csv
 import io
 from datetime import datetime, date
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -89,6 +89,21 @@ class PeriodeCreate(BaseModel):
     justification_autorisee: Optional[bool] = True
 
 
+class PeriodeBulkCreate(BaseModel):
+    date_debut: date
+    date_fin: date
+    scope: Literal["single", "classe_all_matieres", "matiere_all_classes", "all"] = "single"
+    classe_id: Optional[int] = None
+    matiere_id: Optional[int] = None
+    justification_autorisee: Optional[bool] = False
+
+
+class PeriodeBulkResult(BaseModel):
+    created: int
+    updated: int
+    total: int
+
+
 class PeriodeResponse(BaseModel):
     id: int
     classe_id: int
@@ -98,8 +113,14 @@ class PeriodeResponse(BaseModel):
     justification_autorisee: bool
     created_at: datetime
     updated_at: datetime
+    statut: Literal["ouverte", "a_venir", "expiree"]
+    statut_label: str
+    peut_saisir: bool
 
-    model_config = ConfigDict(from_attributes=True)
+
+class PeriodeListResponse(BaseModel):
+    server_date: date
+    items: List[PeriodeResponse]
 
 
 class SaisieVerificationResponse(BaseModel):
@@ -160,35 +181,89 @@ def _find_note(
     return query.first()
 
 
+def _coerce_date(value) -> date:
+    """Normalise une date SQLAlchemy/SQLite (date, datetime ou chaîne ISO)."""
+    if value is None:
+        raise ValueError("Date manquante")
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        return date.fromisoformat(value.split("T")[0])
+    return value
+
+
+def _compute_periode_statut(
+    debut: date,
+    fin: date,
+    today: Optional[date] = None,
+) -> tuple[Literal["ouverte", "a_venir", "expiree"], str, bool]:
+    """Calcule le statut d'une période selon la date du serveur (TZ configurée)."""
+    ref = today or date.today()
+    if ref < debut:
+        return "a_venir", "À venir", False
+    if ref > fin:
+        return "expiree", "Expirée", False
+    return "ouverte", "Ouverte", True
+
+
+def _periode_to_response(periode: PeriodeSaisieNotes) -> PeriodeResponse:
+    debut = _coerce_date(periode.date_debut)
+    fin = _coerce_date(periode.date_fin)
+    statut, statut_label, peut_saisir = _compute_periode_statut(debut, fin)
+    return PeriodeResponse(
+        id=periode.id,
+        classe_id=periode.classe_id,
+        matiere_id=periode.matiere_id,
+        date_debut=debut,
+        date_fin=fin,
+        justification_autorisee=periode.justification_autorisee,
+        created_at=periode.created_at,
+        updated_at=periode.updated_at,
+        statut=statut,
+        statut_label=statut_label,
+        peut_saisir=peut_saisir,
+    )
+
+
 def _verifier_periode_saisie(db: Session, classe_id: int, matiere_id: int) -> SaisieVerificationResponse:
     """Vérifie si la saisie des notes est autorisée pour une classe/matière donnée."""
     periode = db.query(PeriodeSaisieNotes).filter(
         and_(
             PeriodeSaisieNotes.classe_id == classe_id,
             PeriodeSaisieNotes.matiere_id == matiere_id,
-            PeriodeSaisieNotes.date_debut <= date.today(),
-            PeriodeSaisieNotes.date_fin >= date.today(),
         )
     ).first()
 
     if not periode:
         return SaisieVerificationResponse(
             peut_saisir=False,
-            raison="Aucune période de saisie configurée pour cette classe et matière"
+            raison="Aucune période de saisie configurée pour cette classe et matière",
+        )
+
+    periode_resp = _periode_to_response(periode)
+    today = date.today()
+    debut = _coerce_date(periode.date_debut)
+    fin = _coerce_date(periode.date_fin)
+
+    if today < debut:
+        return SaisieVerificationResponse(
+            peut_saisir=False,
+            raison=f"La saisie ouvre le {debut.strftime('%d/%m/%Y')}",
+            periode=periode_resp,
+        )
+
+    if today > fin:
+        return SaisieVerificationResponse(
+            peut_saisir=False,
+            raison=f"Le délai est expiré (échéance : {fin.strftime('%d/%m/%Y')})",
+            periode=periode_resp,
         )
 
     return SaisieVerificationResponse(
         peut_saisir=True,
-        periode=PeriodeResponse(
-            id=periode.id,
-            classe_id=periode.classe_id,
-            matiere_id=periode.matiere_id,
-            date_debut=periode.date_debut,
-            date_fin=periode.date_fin,
-            justification_autorisee=periode.justification_autorisee,
-            created_at=periode.created_at,
-            updated_at=periode.updated_at,
-        )
+        periode=periode_resp,
     )
 
 
@@ -198,6 +273,14 @@ def _require_professor_or_admin(current_user: dict):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Accès réservé aux professeurs et administrateurs"
+        )
+
+
+def _require_admin(current_user: dict):
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs",
         )
 
 
@@ -351,7 +434,7 @@ def create_note(
 # Période de saisie — CRUD (admin uniquement)
 # ──────────────────────────────────────────────────────────
 
-@router.get("/periode-saisie", response_model=List[PeriodeResponse])
+@router.get("/periode-saisie", response_model=PeriodeListResponse)
 def list_periodes(
     classe_id: Optional[int] = None,
     matiere_id: Optional[int] = None,
@@ -368,7 +451,11 @@ def list_periodes(
     if matiere_id:
         query = query.filter(PeriodeSaisieNotes.matiere_id == matiere_id)
 
-    return query.order_by(PeriodeSaisieNotes.date_debut.desc()).all()
+    periodes = query.order_by(PeriodeSaisieNotes.date_debut.desc()).all()
+    return PeriodeListResponse(
+        server_date=date.today(),
+        items=[_periode_to_response(p) for p in periodes],
+    )
 
 
 @router.get("/periode-saisie/{periode_id}", response_model=PeriodeResponse)
@@ -385,16 +472,95 @@ def get_periode(
     if not periode:
         raise HTTPException(status_code=404, detail="Période non trouvée")
 
-    return PeriodeResponse(
-        id=periode.id,
-        classe_id=periode.classe_id,
-        matiere_id=periode.matiere_id,
-        date_debut=periode.date_debut,
-        date_fin=periode.date_fin,
-        justification_autorisee=periode.justification_autorisee,
-        created_at=periode.created_at,
-        updated_at=periode.updated_at,
+    return _periode_to_response(periode)
+
+
+def _upsert_periode(
+    db: Session,
+    classe_id: int,
+    matiere_id: int,
+    date_debut: date,
+    date_fin: date,
+    justification_autorisee: bool,
+):
+    """Crée ou met à jour une période. Retourne (periode, created?)."""
+    existing = db.query(PeriodeSaisieNotes).filter(
+        and_(
+            PeriodeSaisieNotes.classe_id == classe_id,
+            PeriodeSaisieNotes.matiere_id == matiere_id,
+        )
+    ).first()
+
+    if existing:
+        existing.date_debut = date_debut
+        existing.date_fin = date_fin
+        existing.justification_autorisee = justification_autorisee
+        existing.updated_at = datetime.utcnow()
+        return existing, False
+
+    periode = PeriodeSaisieNotes(
+        classe_id=classe_id,
+        matiere_id=matiere_id,
+        date_debut=date_debut,
+        date_fin=date_fin,
+        justification_autorisee=justification_autorisee,
     )
+    db.add(periode)
+    return periode, True
+
+
+@router.post("/periode-saisie/bulk", response_model=PeriodeBulkResult)
+def create_periodes_bulk(
+    payload: PeriodeBulkCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_tenant_session),
+):
+    """Crée ou met à jour des délais pour plusieurs couples classe/matière."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+
+    if payload.date_fin < payload.date_debut:
+        raise HTTPException(status_code=400, detail="La date de fin doit être postérieure ou égale à la date de début")
+
+    classes = db.query(Classe).all()
+    matieres = db.query(Matiere).all()
+    if not classes or not matieres:
+        raise HTTPException(status_code=400, detail="Créez d'abord des classes et des matières")
+
+    pairs: list[tuple[int, int]] = []
+    if payload.scope == "single":
+        if not payload.classe_id or not payload.matiere_id:
+            raise HTTPException(status_code=400, detail="Classe et matière requises")
+        pairs = [(payload.classe_id, payload.matiere_id)]
+    elif payload.scope == "classe_all_matieres":
+        if not payload.classe_id:
+            raise HTTPException(status_code=400, detail="Classe requise")
+        pairs = [(payload.classe_id, m.id) for m in matieres]
+    elif payload.scope == "matiere_all_classes":
+        if not payload.matiere_id:
+            raise HTTPException(status_code=400, detail="Matière requise")
+        pairs = [(c.id, payload.matiere_id) for c in classes]
+    else:
+        pairs = [(c.id, m.id) for c in classes for m in matieres]
+
+    created = 0
+    updated = 0
+    for classe_id, matiere_id in pairs:
+        _periode, is_new = _upsert_periode(
+            db,
+            classe_id,
+            matiere_id,
+            payload.date_debut,
+            payload.date_fin,
+            payload.justification_autorisee or False,
+        )
+        if is_new:
+            created += 1
+        else:
+            updated += 1
+
+    db.commit()
+    return PeriodeBulkResult(created=created, updated=updated, total=created + updated)
 
 
 @router.post("/periode-saisie", response_model=PeriodeResponse, status_code=status.HTTP_201_CREATED)
@@ -408,53 +574,19 @@ def create_periode(
         raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
 
     if periode_data.date_fin < periode_data.date_debut:
-        raise HTTPException(status_code=400, detail="La date de fin doit être postérieure à la date de début")
+        raise HTTPException(status_code=400, detail="La date de fin doit être postérieure ou égale à la date de début")
 
-    existing = db.query(PeriodeSaisieNotes).filter(
-        and_(
-            PeriodeSaisieNotes.classe_id == periode_data.classe_id,
-            PeriodeSaisieNotes.matiere_id == periode_data.matiere_id,
-        )
-    ).first()
-
-    if existing:
-        existing.date_debut = periode_data.date_debut
-        existing.date_fin = periode_data.date_fin
-        existing.justification_autorisee = periode_data.justification_autorisee
-        existing.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(existing)
-        return PeriodeResponse(
-            id=existing.id,
-            classe_id=existing.classe_id,
-            matiere_id=existing.matiere_id,
-            date_debut=existing.date_debut,
-            date_fin=existing.date_fin,
-            justification_autorisee=existing.justification_autorisee,
-            created_at=existing.created_at,
-            updated_at=existing.updated_at,
-        )
-
-    periode = PeriodeSaisieNotes(
-        classe_id=periode_data.classe_id,
-        matiere_id=periode_data.matiere_id,
-        date_debut=periode_data.date_debut,
-        date_fin=periode_data.date_fin,
-        justification_autorisee=periode_data.justification_autorisee,
+    periode, _ = _upsert_periode(
+        db,
+        periode_data.classe_id,
+        periode_data.matiere_id,
+        periode_data.date_debut,
+        periode_data.date_fin,
+        periode_data.justification_autorisee or False,
     )
-    db.add(periode)
     db.commit()
     db.refresh(periode)
-    return PeriodeResponse(
-        id=periode.id,
-        classe_id=periode.classe_id,
-        matiere_id=periode.matiere_id,
-        date_debut=periode.date_debut,
-        date_fin=periode.date_fin,
-        justification_autorisee=periode.justification_autorisee,
-        created_at=periode.created_at,
-        updated_at=periode.updated_at,
-    )
+    return _periode_to_response(periode)
 
 
 @router.delete("/periode-saisie/{periode_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -494,8 +626,8 @@ def export_notes_csv(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
 ):
-    """Exporte les notes d'une classe/matière au format CSV."""
-    _require_professor_or_admin(current_user)
+    """Exporte les notes d'une classe/matière au format CSV (admin uniquement)."""
+    _require_admin(current_user)
     role = current_user.get("role")
     professeur_id = current_user.get("id")
 
@@ -642,22 +774,12 @@ def delete_note(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
 ):
-    """Supprime une note (admin ou professeur propriétaire de la note)."""
-    role = current_user.get("role")
-    if role not in ["admin", "professeur"]:
-        raise HTTPException(status_code=403, detail="Accès refusé")
+    """Supprime une note (administrateur uniquement)."""
+    _require_admin(current_user)
 
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note non trouvée")
-
-    if role == "professeur":
-        if note.professeur_id != current_user.get("id"):
-            raise HTTPException(status_code=403, detail="Vous ne pouvez supprimer que vos propres notes")
-        eleve = db.query(Eleve).filter(Eleve.id == note.eleve_id).first()
-        if eleve and eleve.classe_id:
-            verification = _verifier_periode_saisie(db, eleve.classe_id, note.matiere_id)
-            _enforce_professor_deadline(role, verification)
 
     db.delete(note)
     db.commit()
