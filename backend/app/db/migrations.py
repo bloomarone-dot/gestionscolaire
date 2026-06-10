@@ -14,7 +14,34 @@ SCHOOL_COLUMN_MIGRATIONS = [
     ("logo_url", "TEXT"),
     ("primary_color", "VARCHAR(7) DEFAULT '#10b981'"),
     ("secondary_color", "VARCHAR(7) DEFAULT '#f59e0b'"),
+    ("bulletin_po_box", "VARCHAR(100)"),
+    ("bulletin_motto", "VARCHAR(255)"),
+    ("bulletin_delegation_en", "TEXT"),
+    ("bulletin_delegation_fr", "TEXT"),
+    ("bulletin_next_term_note", "VARCHAR(255)"),
+    ("bulletin_template", "VARCHAR(40) DEFAULT 'cameroon_bilingual'"),
 ]
+
+BULLETIN_TEMPLATES = {
+    "cameroon_bilingual": "Cameroun bilingue (FR + EN)",
+    "cameroon_auto": "Cameroun auto (selon section classe)",
+    "standard": "Standard EduSaaS (simple)",
+}
+
+TENANT_COLUMN_MIGRATIONS = {
+    "classes": [
+        ("section", "VARCHAR(20) DEFAULT 'francophone'"),
+        ("serie", "VARCHAR(50)"),
+    ],
+    "matieres": [
+        ("groupe", "INTEGER DEFAULT 1"),
+        ("coefficient_defaut", "FLOAT DEFAULT 1.0"),
+    ],
+    "eleves": [
+        ("sexe", "VARCHAR(1)"),
+        ("redoublant", "BOOLEAN DEFAULT 0"),
+    ],
+}
 
 NOTE_COLUMN_MIGRATIONS = [
     ("trimestre", "INTEGER DEFAULT 1"),
@@ -96,4 +123,16 @@ def run_tenant_migrations(engine: Engine) -> None:
                     )
 
         _migrate_notes_columns(conn)
+        for table_name, columns in TENANT_COLUMN_MIGRATIONS.items():
+            existing = {
+                row[1]
+                for row in conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+            }
+            if "id" not in existing:
+                continue
+            for column_name, column_type in columns:
+                if column_name not in existing:
+                    conn.execute(
+                        text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+                    )
         conn.commit()

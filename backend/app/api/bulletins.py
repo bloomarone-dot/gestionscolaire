@@ -12,11 +12,15 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
+from app.db.connection import get_db_session
 from app.db.multi_tenant import get_tenant_session
 from app.models.school import (
     Eleve, Matiere, Note, AttributionProfesseur, Classe,
 )
 from app.services.bulletin_service import build_eleve_bulletin, build_classe_bulletins
+from app.services.bulletin_cameroon import build_cameroon_bulletin
+from app.services.bulletin_pdf_cameroon import build_cameroon_bulletin_pdf
+from app.services.bulletin_templates import get_pdf_builder_name, resolve_template
 from app.api.notes import (
     _find_note, _verifier_periode_saisie, _enforce_professor_deadline,
 )
@@ -33,14 +37,25 @@ def _require_bulletin_access(current_user: dict):
 def get_bulletin_eleve(
     eleve_id: int,
     trimestre: int = 1,
+    format: str = "cameroon",
+    lang: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
+    master_db: Session = Depends(get_db_session),
 ):
     _require_bulletin_access(current_user)
     if trimestre not in (1, 2, 3):
         raise HTTPException(status_code=400, detail="Trimestre invalide (1, 2 ou 3)")
 
-    data = build_eleve_bulletin(db, eleve_id, trimestre)
+    if format == "cameroon":
+        data = build_cameroon_bulletin(
+            db, eleve_id, trimestre,
+            lang=lang,
+            master_db=master_db,
+            school_id=current_user.get("school_id"),
+        )
+    else:
+        data = build_eleve_bulletin(db, eleve_id, trimestre)
     if "error" in data:
         raise HTTPException(status_code=404, detail=data["error"])
     return data
@@ -620,16 +635,53 @@ async def import_bulletins_xlsx(
 def export_bulletin_eleve_pdf(
     eleve_id: int,
     trimestre: int = 1,
+    template: str = "cameroon",
+    lang: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
+    master_db: Session = Depends(get_db_session),
 ):
     _require_bulletin_access(current_user)
-    bulletin = build_eleve_bulletin(db, eleve_id, trimestre)
-    if "error" in bulletin:
-        raise HTTPException(status_code=404, detail=bulletin["error"])
+    school_id = current_user.get("school_id")
+    from app.models.school import School, Classe, Eleve
 
-    pdf_bytes = _build_bulletin_pdf(bulletin)
-    filename = f"bulletin_{bulletin['matricule']}_T{trimestre}.pdf"
+    resolved = template
+    if template == "auto" and school_id:
+        school_row = master_db.query(School).filter(School.id == school_id).first()
+        eleve = db.query(Eleve).filter(Eleve.id == eleve_id).first()
+        section = None
+        if eleve and eleve.classe_id:
+            classe = db.query(Classe).filter(Classe.id == eleve.classe_id).first()
+            section = getattr(classe, "section", None) if classe else None
+        resolved = resolve_template(
+            getattr(school_row, "bulletin_template", None) if school_row else None,
+            section,
+        )
+    elif template == "cameroon":
+        resolved = "cameroon_bilingual"
+
+    builder = get_pdf_builder_name(resolved)
+    if builder == "cameroon":
+        bulletin = build_cameroon_bulletin(
+            db, eleve_id, trimestre,
+            lang=lang,
+            master_db=master_db,
+            school_id=school_id,
+        )
+        if "error" in bulletin:
+            raise HTTPException(status_code=404, detail=bulletin["error"])
+        try:
+            pdf_bytes = build_cameroon_bulletin_pdf(bulletin)
+        except ImportError as exc:
+            raise HTTPException(status_code=501, detail="Export PDF indisponible (reportlab).") from exc
+    else:
+        bulletin = build_eleve_bulletin(db, eleve_id, trimestre)
+        if "error" in bulletin:
+            raise HTTPException(status_code=404, detail=bulletin["error"])
+        pdf_bytes = _build_bulletin_pdf(bulletin)
+
+    suffix = bulletin.get("lang", "fr") if builder == "cameroon" else "std"
+    filename = f"bulletin_{bulletin['matricule']}_T{trimestre}_{suffix}.pdf"
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",

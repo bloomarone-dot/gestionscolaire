@@ -62,9 +62,9 @@
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  color: var(--success);
+  background: var(--primary-50);
+  border: 1px solid var(--primary-200);
+  color: var(--primary-700);
 }
 
 .notes-period-hint {
@@ -115,7 +115,7 @@
 
 .notes-table {
   overflow-x: auto;
-  background: rgba(99, 102, 241, 0.05);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 12px;
 }
@@ -126,7 +126,7 @@
 }
 
 .notes-table thead {
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--bg-700);
 }
 
 .notes-table th {

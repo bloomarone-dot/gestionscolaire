@@ -1,9 +1,10 @@
 """
-Gestion multi-tenant — SQLite (fichier par établissement) ou SQL Server (schema par établissement)
+Gestion multi-tenant — SQLite (fichier par établissement) ou SQL Server (base dédiée par établissement)
 """
 import os
 from pathlib import Path
 from typing import Generator, Optional
+from urllib.parse import quote_plus
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import create_engine, text
@@ -17,6 +18,10 @@ from app.db.migrations import run_tenant_migrations
 from app.models.school import School
 
 TENANT_DB_DIR = os.getenv("TENANT_DB_DIR", "./tenants")
+DEFAULT_TENANT_DB_HOST = os.getenv("TENANT_DB_HOST", "localhost")
+DEFAULT_TENANT_DB_PORT = int(os.getenv("TENANT_DB_PORT", "1433"))
+DEFAULT_TENANT_DB_USERNAME = os.getenv("TENANT_DB_USERNAME", "sa")
+DEFAULT_TENANT_DB_PASSWORD = os.getenv("TENANT_DB_PASSWORD", "YourPassword")
 
 
 def tenant_schema_name(school_id: int) -> str:
@@ -30,6 +35,24 @@ def _sqlite_tenant_path(schema_name: str) -> Path:
 def _sqlite_tenant_url(schema_name: str) -> str:
     path = _sqlite_tenant_path(schema_name)
     return f"sqlite:///{path.resolve()}"
+
+
+def default_tenant_db_credentials() -> dict:
+    return {
+        "db_host": DEFAULT_TENANT_DB_HOST,
+        "db_port": DEFAULT_TENANT_DB_PORT,
+        "db_username": DEFAULT_TENANT_DB_USERNAME,
+        "db_password": DEFAULT_TENANT_DB_PASSWORD,
+    }
+
+
+def _sqlserver_url(host: str, port: int, username: str, password: str, database: str) -> str:
+    user = quote_plus(username)
+    pwd = quote_plus(password)
+    return (
+        f"mssql+pyodbc://{user}:{pwd}@{host}:{port}/{database}"
+        f"?driver=ODBC+Driver+17+for+SQL+Server"
+    )
 
 
 class TenantManager:
@@ -65,10 +88,12 @@ class TenantManager:
                 connect_args={"check_same_thread": False},
             )
         else:
-            tenant_url = (
-                f"mssql+pyodbc://{school.db_username}:{school.db_password}"
-                f"@{school.db_host}:{school.db_port}/{school.db_name}"
-                f"?driver=ODBC+Driver+17+for+SQL+Server"
+            tenant_url = _sqlserver_url(
+                school.db_host,
+                school.db_port,
+                school.db_username,
+                school.db_password,
+                school.db_name,
             )
             engine = create_engine(tenant_url, echo=False)
 
@@ -80,13 +105,61 @@ class TenantManager:
         SessionLocal = sessionmaker(bind=engine)
         return SessionLocal()
 
+    def _ensure_sqlserver_database(self, school: School, database_name: str) -> None:
+        """Crée la base SQL Server dédiée à l'établissement (style Sage 100)."""
+        admin_engine = create_engine(
+            _sqlserver_url(
+                school.db_host,
+                school.db_port,
+                school.db_username,
+                school.db_password,
+                "master",
+            ),
+            echo=False,
+            isolation_level="AUTOCOMMIT",
+        )
+        with admin_engine.connect() as conn:
+            conn.execute(
+                text(
+                    f"IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'{database_name}') "
+                    f"CREATE DATABASE [{database_name}]"
+                )
+            )
+        admin_engine.dispose()
+
+    def test_server_connection(
+        self,
+        db_host: str,
+        db_port: int,
+        db_username: str,
+        db_password: str,
+    ) -> dict:
+        """Teste l'accès au serveur SQL Server (connexion sur la base master)."""
+        try:
+            engine = create_engine(
+                _sqlserver_url(db_host, db_port, db_username, db_password, "master"),
+                echo=False,
+            )
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            engine.dispose()
+            return {
+                "status": "connected",
+                "message": "Connexion au serveur SQL Server OK",
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e),
+            }
+
     def provision_tenant(self, school: School) -> bool:
         """
         Provisionne la base tenant d'un établissement :
         - SQLite : crée le fichier + tables
-        - SQL Server : crée le schema + tables
+        - SQL Server : crée une base dédiée + tables
         """
-        schema_name = school.db_name or tenant_schema_name(school.id)
+        database_name = school.db_name or tenant_schema_name(school.id)
 
         try:
             if is_sqlite():
@@ -94,19 +167,12 @@ class TenantManager:
                 create_tenant_tables(engine)
                 run_tenant_migrations(engine)
             else:
-                with self._get_master_engine().connect() as conn:
-                    conn.execute(
-                        text(
-                            f"IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '{schema_name}') "
-                            f"EXEC('CREATE SCHEMA [{schema_name}]')"
-                        )
-                    )
-                    conn.commit()
+                self._ensure_sqlserver_database(school, database_name)
                 engine = self.get_tenant_engine(school)
-                create_tenant_tables(engine, schema_name=schema_name)
+                create_tenant_tables(engine)
             return True
         except Exception as e:
-            print(f"Erreur provisioning tenant {schema_name}: {e}")
+            print(f"Erreur provisioning tenant {database_name}: {e}")
             return False
 
     def delete_tenant(self, school: School) -> bool:
@@ -122,20 +188,28 @@ class TenantManager:
                     path.unlink()
                 return True
 
-            with self._get_master_engine().connect() as conn:
-                tables = conn.execute(
+            admin_engine = create_engine(
+                _sqlserver_url(
+                    school.db_host,
+                    school.db_port,
+                    school.db_username,
+                    school.db_password,
+                    "master",
+                ),
+                echo=False,
+                isolation_level="AUTOCOMMIT",
+            )
+            with admin_engine.connect() as conn:
+                conn.execute(
                     text(
-                        "SELECT t.name FROM sys.tables t "
-                        "INNER JOIN sys.schemas s ON t.schema_id = s.schema_id "
-                        "WHERE s.name = :schema"
-                    ),
-                    {"schema": schema_name},
-                ).fetchall()
-
-                for (table_name,) in tables:
-                    conn.execute(text(f"DROP TABLE [{schema_name}].[{table_name}]"))
-                conn.execute(text(f"DROP SCHEMA IF EXISTS [{schema_name}]"))
-                conn.commit()
+                        f"IF EXISTS (SELECT name FROM sys.databases WHERE name = N'{schema_name}') "
+                        f"BEGIN "
+                        f"ALTER DATABASE [{schema_name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; "
+                        f"DROP DATABASE [{schema_name}]; "
+                        f"END"
+                    )
+                )
+            admin_engine.dispose()
             return True
         except Exception as e:
             print(f"Erreur suppression tenant {schema_name}: {e}")

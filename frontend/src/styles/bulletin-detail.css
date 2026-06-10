@@ -11,10 +11,85 @@
   align-items: flex-start;
   gap: 1.5rem;
   padding: 1.5rem 2rem;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(245, 158, 11, 0.05));
+  background: linear-gradient(135deg, var(--primary-50), rgba(167, 139, 250, 0.08));
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
+
+.bulletin-cameroon-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding: 1rem 2rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.bulletin-section-badge {
+  background: var(--primary-50);
+  color: var(--primary-700);
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.bulletin-cameroon-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: rgba(255, 229, 204, 0.35);
+  border-bottom: 1px solid var(--border);
+}
+
+.bulletin-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.bulletin-summary-item label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.bulletin-summary-item strong {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.decision-pass { color: #15803d; }
+.decision-fail { color: #b91c1c; }
+
+.bulletin-group-row td {
+  background: #4a7ab8 !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bulletin-cameroon-table .prof-cell {
+  font-size: 0.78rem;
+  max-width: 140px;
+}
+
+.bulletin-cameroon-table .appreciation-badge {
+  display: inline-flex;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.bulletin-cameroon-table .app-a { background: rgba(34, 197, 94, 0.12); color: #15803d; }
+.bulletin-cameroon-table .app-eca { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+.bulletin-cameroon-table .app-na { background: rgba(239, 68, 68, 0.1); color: #b91c1c; }
 
 .bulletin-detail-label {
   font-size: 0.75rem;

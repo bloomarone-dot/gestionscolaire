@@ -86,7 +86,7 @@ export default function SchoolDbConfigPanel({ school, onUpdated }) {
       <div className="db-config-header">
         <h3>⚙️ Configuration base de données</h3>
         <div className="db-schema-info">
-          Schema : <code>{school.db_name}</code>
+          Base dédiée : <code>{school.db_name}</code>
           {databaseMode && (
             <span className="db-mode-tag">Mode : {databaseMode}</span>
           )}
@@ -137,6 +137,10 @@ export default function SchoolDbConfigPanel({ school, onUpdated }) {
         </div>
       ) : (
         <form onSubmit={handleSave} className="db-config-form">
+          <p className="form-section-hint" style={{ marginBottom: '0.75rem' }}>
+            Connexion au serveur SQL Server où la base <code>{school.db_name}</code> a été créée.
+            Chaque établissement possède sa propre base isolée.
+          </p>
           <div className="db-config-row">
             <div className="form-group">
               <label>Hôte</label>

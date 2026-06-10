@@ -11,6 +11,7 @@ import AdminStatsCards from '../components/AdminStatsCards';
 import AdminNotesPage from './AdminNotesPage';
 import AdminPeriodeSaisiePage from './AdminPeriodeSaisiePage';
 import AdminBulletinsPage from './AdminBulletinsPage';
+import AdminBulletinSettingsPage from './AdminBulletinSettingsPage';
 import * as api from '../api/api';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import '../styles/admin-dashboard.css';
@@ -124,6 +125,7 @@ export default function AdminDashboard() {
           {activeTab === 'saisie-notes' && <AdminNotesPage />}
           {activeTab === 'fenetre-notes' && <AdminPeriodeSaisiePage />}
           {activeTab === 'bulletins' && <AdminBulletinsPage />}
+          {activeTab === 'bulletin-config' && <AdminBulletinSettingsPage />}
         </div>
       </div>
     </div>

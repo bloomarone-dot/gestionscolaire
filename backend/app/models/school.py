@@ -38,6 +38,14 @@ class School(Base):
     primary_color = Column(String(7), default="#10b981")
     secondary_color = Column(String(7), default="#f59e0b")
 
+    # En-tête bulletin officiel (Cameroun)
+    bulletin_po_box = Column(String(100), nullable=True)
+    bulletin_motto = Column(String(255), nullable=True)
+    bulletin_delegation_en = Column(Text, nullable=True)
+    bulletin_delegation_fr = Column(Text, nullable=True)
+    bulletin_next_term_note = Column(String(255), nullable=True)
+    bulletin_template = Column(String(40), default="cameroon_bilingual")
+
     # Métadonnées
     admin_id = Column(Integer, ForeignKey("admins.id"), nullable=True)
     is_active = Column(Boolean, default=True)
@@ -125,6 +133,8 @@ class Classe(Base):
     # Métadonnées
     capacite = Column(Integer, default=30)
     salle = Column(String(100), nullable=True)
+    section = Column(String(20), default="francophone")  # francophone | anglophone
+    serie = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relations
@@ -142,6 +152,8 @@ class Matiere(Base):
     nom = Column(String(100), nullable=False)  # Ex: "Mathématiques"
     code = Column(String(20), unique=True)  # Ex: "MATH"
     description = Column(String(255), nullable=True)
+    groupe = Column(Integer, default=1)  # 1, 2 ou 3 (groupes bulletin Cameroun)
+    coefficient_defaut = Column(Float, default=1.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relations
@@ -205,6 +217,8 @@ class Eleve(Base):
     nom = Column(String(100), nullable=False)
     prenom = Column(String(100), nullable=False)
     matricule = Column(String(50), unique=True, nullable=False)
+    sexe = Column(String(1), nullable=True)  # M | F
+    redoublant = Column(Boolean, default=False)
     
     # Classe
     classe_id = Column(Integer, ForeignKey("classes.id"), nullable=True)

@@ -10,7 +10,9 @@ export default function ClassesList() {
     nom: '',
     niveau: '',
     capacite: 30,
-    salle: ''
+    salle: '',
+    section: 'francophone',
+    serie: '',
   });
 
   const loadClasses = useCallback(async () => {
@@ -39,7 +41,7 @@ export default function ClassesList() {
 
     try {
       await api.createClasse(formData);
-      setFormData({ nom: '', niveau: '', capacite: 30, salle: '' });
+      setFormData({ nom: '', niveau: '', capacite: 30, salle: '', section: 'francophone', serie: '' });
       setShowCreateForm(false);
       loadClasses();
     } catch (error) {
@@ -116,6 +118,26 @@ export default function ClassesList() {
             </div>
           </div>
 
+          <div className="form-row">
+            <div className="form-group">
+              <label>Section</label>
+              <select name="section" value={formData.section} onChange={handleFormChange}>
+                <option value="francophone">Francophone</option>
+                <option value="anglophone">Anglophone</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Série</label>
+              <input
+                type="text"
+                name="serie"
+                value={formData.serie}
+                onChange={handleFormChange}
+                placeholder="Ex: ESP, MM"
+              />
+            </div>
+          </div>
+
           <div className="form-actions">
             <button type="submit" className="btn btn-primary btn-sm">Créer</button>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreateForm(false)}>Annuler</button>
@@ -136,6 +158,11 @@ export default function ClassesList() {
               <h3>{classe.nom}</h3>
               <p><strong>Niveau:</strong> {classe.niveau}</p>
               <p><strong>Capacité:</strong> {classe.capacite}</p>
+              <p>
+                <strong>Section:</strong>{' '}
+                {classe.section === 'anglophone' ? 'Anglophone' : 'Francophone'}
+                {classe.serie ? ` · ${classe.serie}` : ''}
+              </p>
               {classe.salle && <p><strong>Salle:</strong> {classe.salle}</p>}
               <button
                 className="btn btn-danger btn-sm"

@@ -115,6 +115,17 @@ class ClasseCreate(BaseModel):
     annee_scolaire_id: Optional[int] = None
     capacite: Optional[int] = 30
     salle: Optional[str] = None
+    section: Optional[str] = "francophone"
+    serie: Optional[str] = None
+
+
+class ClasseUpdate(BaseModel):
+    nom: Optional[str] = None
+    niveau: Optional[str] = None
+    capacite: Optional[int] = None
+    salle: Optional[str] = None
+    section: Optional[str] = None
+    serie: Optional[str] = None
 
 
 class ClasseResponse(BaseModel):
@@ -123,6 +134,8 @@ class ClasseResponse(BaseModel):
     niveau: str
     capacite: int
     salle: Optional[str] = None
+    section: Optional[str] = "francophone"
+    serie: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -132,6 +145,16 @@ class MatiereCreate(BaseModel):
     nom: str
     code: str
     description: Optional[str] = None
+    groupe: Optional[int] = 1
+    coefficient_defaut: Optional[float] = 1.0
+
+
+class MatiereUpdate(BaseModel):
+    nom: Optional[str] = None
+    code: Optional[str] = None
+    description: Optional[str] = None
+    groupe: Optional[int] = None
+    coefficient_defaut: Optional[float] = None
 
 
 class MatiereResponse(BaseModel):
@@ -139,8 +162,33 @@ class MatiereResponse(BaseModel):
     nom: str
     code: str
     description: Optional[str] = None
+    groupe: Optional[int] = 1
+    coefficient_defaut: Optional[float] = 1.0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BulletinSettingsResponse(BaseModel):
+    school_id: int
+    name: str
+    logo_url: Optional[str] = None
+    bulletin_po_box: Optional[str] = None
+    bulletin_motto: Optional[str] = None
+    bulletin_delegation_en: Optional[str] = None
+    bulletin_delegation_fr: Optional[str] = None
+    bulletin_next_term_note: Optional[str] = None
+    bulletin_template: str = "cameroon_bilingual"
+    available_templates: dict
+
+
+class BulletinSettingsUpdate(BaseModel):
+    logo_url: Optional[str] = None
+    bulletin_po_box: Optional[str] = None
+    bulletin_motto: Optional[str] = None
+    bulletin_delegation_en: Optional[str] = None
+    bulletin_delegation_fr: Optional[str] = None
+    bulletin_next_term_note: Optional[str] = None
+    bulletin_template: Optional[str] = None
 
 
 # ════════════════════════════════════════════════════════════
@@ -452,6 +500,29 @@ def list_classes(
     return classes
 
 
+@router.patch("/classes/{classe_id}", response_model=ClasseResponse)
+def update_classe(
+    classe_id: int,
+    data: ClasseUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_tenant_session),
+):
+    from app.models.school import Classe
+
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Non autorisé")
+
+    classe = db.query(Classe).filter(Classe.id == classe_id).first()
+    if not classe:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classe non trouvée")
+
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(classe, field, value)
+    db.commit()
+    db.refresh(classe)
+    return classe
+
+
 @router.delete("/classes/{classe_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_classe(
     classe_id: int,
@@ -492,6 +563,9 @@ def create_matiere(
     existing = db.query(Matiere).filter(Matiere.code == matiere_data.code).first()
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ce code existe déjà")
+
+    if matiere_data.groupe is not None and matiere_data.groupe not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="Le groupe doit être 1, 2 ou 3")
     
     try:
         matiere = Matiere(**matiere_data.dict())
@@ -514,6 +588,39 @@ def list_matieres(
     
     matieres = db.query(Matiere).all()
     return matieres
+
+
+@router.patch("/matieres/{matiere_id}", response_model=MatiereResponse)
+def update_matiere(
+    matiere_id: int,
+    data: MatiereUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_tenant_session),
+):
+    from app.models.school import Matiere
+
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Non autorisé")
+
+    matiere = db.query(Matiere).filter(Matiere.id == matiere_id).first()
+    if not matiere:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Matière non trouvée")
+
+    payload = data.model_dump(exclude_unset=True)
+    if "groupe" in payload and payload["groupe"] not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="Le groupe doit être 1, 2 ou 3")
+    if "code" in payload:
+        existing = db.query(Matiere).filter(
+            Matiere.code == payload["code"], Matiere.id != matiere_id,
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Ce code existe déjà")
+
+    for field, value in payload.items():
+        setattr(matiere, field, value)
+    db.commit()
+    db.refresh(matiere)
+    return matiere
 
 
 @router.delete("/matieres/{matiere_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -804,6 +911,86 @@ def delete_eleve(
 
     db.delete(eleve)
     db.commit()
+
+
+# ════════════════════════════════════════════════════════════
+# CONFIGURATION BULLETINS — en-tête & modèle par établissement
+# ════════════════════════════════════════════════════════════
+
+def _require_admin_school(current_user: dict) -> int:
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Non autorisé")
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="Aucun établissement associé à ce compte")
+    return school_id
+
+
+@router.get("/bulletin-settings", response_model=BulletinSettingsResponse)
+def get_bulletin_settings(
+    current_user: dict = Depends(get_current_user),
+    master_db: Session = Depends(get_db_session),
+):
+    from app.models.school import School
+    from app.services.bulletin_templates import AVAILABLE_TEMPLATES
+
+    school_id = _require_admin_school(current_user)
+    school = master_db.query(School).filter(School.id == school_id).first()
+    if not school:
+        raise HTTPException(status_code=404, detail="Établissement non trouvé")
+
+    templates = {k: v["label"] for k, v in AVAILABLE_TEMPLATES.items()}
+    return BulletinSettingsResponse(
+        school_id=school.id,
+        name=school.name,
+        logo_url=school.logo_url,
+        bulletin_po_box=school.bulletin_po_box,
+        bulletin_motto=school.bulletin_motto,
+        bulletin_delegation_en=school.bulletin_delegation_en,
+        bulletin_delegation_fr=school.bulletin_delegation_fr,
+        bulletin_next_term_note=school.bulletin_next_term_note,
+        bulletin_template=getattr(school, "bulletin_template", None) or "cameroon_bilingual",
+        available_templates=templates,
+    )
+
+
+@router.put("/bulletin-settings", response_model=BulletinSettingsResponse)
+def update_bulletin_settings(
+    data: BulletinSettingsUpdate,
+    current_user: dict = Depends(get_current_user),
+    master_db: Session = Depends(get_db_session),
+):
+    from app.models.school import School
+    from app.services.bulletin_templates import AVAILABLE_TEMPLATES
+
+    school_id = _require_admin_school(current_user)
+    school = master_db.query(School).filter(School.id == school_id).first()
+    if not school:
+        raise HTTPException(status_code=404, detail="Établissement non trouvé")
+
+    payload = data.model_dump(exclude_unset=True)
+    if "bulletin_template" in payload and payload["bulletin_template"] not in AVAILABLE_TEMPLATES:
+        raise HTTPException(status_code=400, detail="Modèle de bulletin invalide")
+
+    for field, value in payload.items():
+        setattr(school, field, value)
+    school.updated_at = datetime.utcnow()
+    master_db.commit()
+    master_db.refresh(school)
+
+    templates = {k: v["label"] for k, v in AVAILABLE_TEMPLATES.items()}
+    return BulletinSettingsResponse(
+        school_id=school.id,
+        name=school.name,
+        logo_url=school.logo_url,
+        bulletin_po_box=school.bulletin_po_box,
+        bulletin_motto=school.bulletin_motto,
+        bulletin_delegation_en=school.bulletin_delegation_en,
+        bulletin_delegation_fr=school.bulletin_delegation_fr,
+        bulletin_next_term_note=school.bulletin_next_term_note,
+        bulletin_template=getattr(school, "bulletin_template", None) or "cameroon_bilingual",
+        available_templates=templates,
+    )
 
 
 # ════════════════════════════════════════════════════════════

@@ -1,8 +1,6 @@
 """
 API endpoints pour gestion des établissements (Super Admin)
 """
-import os
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
@@ -10,7 +8,8 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.db.connection import get_db_session
-from app.db.multi_tenant import tenant_manager
+from app.db.multi_tenant import default_tenant_db_credentials, tenant_manager
+from app.db.connection import is_sqlite
 from app.models.school import School, Admin, ActivityLog, Eleve, Professeur
 from app.auth.security import get_current_user, hash_password
 
@@ -40,6 +39,19 @@ class SchoolCreate(BaseModel):
     admin_password: str
     admin_first_name: str
     admin_last_name: str
+    # Connexion SQL Server dédiée (une base par établissement — style Sage 100)
+    use_default_db_server: bool = True
+    db_host: Optional[str] = None
+    db_port: Optional[int] = None
+    db_username: Optional[str] = None
+    db_password: Optional[str] = None
+
+
+class SchoolDbServerTest(BaseModel):
+    db_host: str
+    db_port: int = 1433
+    db_username: str
+    db_password: str
 
 
 class SchoolUpdate(BaseModel):
@@ -113,9 +125,64 @@ class SchoolPublicResponse(BaseModel):
         from_attributes = True
 
 
+def _resolve_school_db_credentials(school_data: SchoolCreate) -> dict:
+    """Résout les credentials SQL Server pour un nouvel établissement."""
+    if school_data.use_default_db_server or is_sqlite():
+        defaults = default_tenant_db_credentials()
+        return {
+            "db_host": defaults["db_host"],
+            "db_port": defaults["db_port"],
+            "db_username": defaults["db_username"],
+            "db_password": defaults["db_password"],
+        }
+
+    missing = [
+        field
+        for field, value in {
+            "db_host": school_data.db_host,
+            "db_username": school_data.db_username,
+            "db_password": school_data.db_password,
+        }.items()
+        if not value
+    ]
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Champs requis pour la connexion SQL Server : {', '.join(missing)}",
+        )
+
+    return {
+        "db_host": school_data.db_host,
+        "db_port": school_data.db_port or 1433,
+        "db_username": school_data.db_username,
+        "db_password": school_data.db_password,
+    }
+
+
 # ════════════════════════════════════════════════════════════
 # CRUD Endpoints
 # ════════════════════════════════════════════════════════════
+
+@router.post("/test-db-server")
+def test_db_server_before_create(
+    payload: SchoolDbServerTest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Teste la connexion au serveur SQL Server avant création d'un établissement."""
+    if current_user.get("role") != "superadmin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Non autorisé")
+    if is_sqlite():
+        return {
+            "status": "connected",
+            "message": "Mode SQLite : aucune connexion SQL Server requise",
+        }
+    return tenant_manager.test_server_connection(
+        payload.db_host,
+        payload.db_port,
+        payload.db_username,
+        payload.db_password,
+    )
+
 
 @router.post("/", response_model=SchoolResponse, status_code=status.HTTP_201_CREATED)
 def create_school(
@@ -160,6 +227,15 @@ def create_school(
         )
         db.add(admin)
         db.flush()  # Récupérer l'ID de l'admin
+
+        db_creds = _resolve_school_db_credentials(school_data)
+        if not is_sqlite():
+            server_check = tenant_manager.test_server_connection(**db_creds)
+            if server_check["status"] != "connected":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Connexion SQL Server impossible : {server_check['message']}",
+                )
         
         # 2. Créer l'établissement
         school = School(
@@ -176,10 +252,10 @@ def create_school(
             logo_url=school_data.logo_url,
             primary_color=school_data.primary_color or "#10b981",
             secondary_color=school_data.secondary_color or "#f59e0b",
-            db_host=os.getenv("TENANT_DB_HOST", "localhost"),
-            db_port=int(os.getenv("TENANT_DB_PORT", "1433")),
-            db_username=os.getenv("TENANT_DB_USERNAME", "sa"),
-            db_password=os.getenv("TENANT_DB_PASSWORD", "YourPassword"),
+            db_host=db_creds["db_host"],
+            db_port=db_creds["db_port"],
+            db_username=db_creds["db_username"],
+            db_password=db_creds["db_password"],
             admin_id=admin.id
         )
         db.add(school)
@@ -190,7 +266,7 @@ def create_school(
         # 3. Mettre à jour l'admin avec l'ID de l'établissement
         admin.school_id = school.id
         
-        # 4. Provisionner la base tenant (schema SQL Server ou fichier SQLite)
+        # 4. Provisionner la base tenant (base SQL Server dédiée ou fichier SQLite)
         if not tenant_manager.provision_tenant(school):
             db.rollback()
             raise HTTPException(
@@ -212,6 +288,9 @@ def create_school(
 
         return school
     
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(

@@ -7,10 +7,19 @@ import {
   evalTypeLabel,
   calcMoyenneTrimestre,
   getSeqNotesForEleve,
+  getAppreciation,
+  formatSessionCountdown,
 } from '../utils/notes';
 import '../styles/notes-entry.css';
+import '../styles/professor-workspace.css';
 
-export default function NotesEntry({ classe, readOnlyMode = false }) {
+export default function NotesEntry({
+  classe,
+  readOnlyMode = false,
+  variant = 'default',
+  fixedMatiereId = null,
+  matiereName = '',
+}) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
@@ -33,6 +42,9 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
   const [editValue, setEditValue] = useState('');
   const [editCoefficient, setEditCoefficient] = useState(1);
   const [editCommentaire, setEditCommentaire] = useState('');
+  const [savedSnapshot, setSavedSnapshot] = useState({});
+
+  const isProfessorLayout = variant === 'professor' && !isAdmin;
 
   const peutModifier = isAdmin ? !readOnlyMode : (!readOnlyMode && periodeInfo?.peut_saisir === true);
   const isPeriodeFermee = !isAdmin && !readOnlyMode && periodeInfo && !periodeInfo.peut_saisir;
@@ -80,6 +92,7 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
         notesMapData[note.eleve_id] = { ...note, matiere_id: note.matiere_id };
       });
       setNotesMap(notesMapData);
+      setSavedSnapshot(notesMapData);
       setTrimestreNotes(allNotes || []);
       if (!isAdmin) setPeriodeInfo(verificationPeriode);
     } catch (err) {
@@ -105,9 +118,11 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
       setEleves(elevesData);
       setMatieres(matieresData);
       if (matieresData.length > 0) {
-        const firstMatiereId = matieresData[0].id;
-        setSelectedMatiere(firstMatiereId);
-        await loadNotesForMatiere(firstMatiereId, selectedTrimestre, selectedType);
+        const targetId = fixedMatiereId && matieresData.some((m) => m.id === fixedMatiereId)
+          ? fixedMatiereId
+          : matieresData[0].id;
+        setSelectedMatiere(targetId);
+        await loadNotesForMatiere(targetId, selectedTrimestre, selectedType);
       } else {
         setSelectedMatiere(null);
         setNotesMap({});
@@ -120,7 +135,7 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
     } finally {
       setLoading(false);
     }
-  }, [classe, isAdmin, loadNotesForMatiere]);
+  }, [classe, isAdmin, loadNotesForMatiere, fixedMatiereId]);
 
   useEffect(() => {
     loadData();
@@ -177,6 +192,13 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
     type_evaluation: selectedType,
   });
 
+  const handleCancelChanges = () => {
+    setNotesMap({ ...savedSnapshot });
+    setEditingId(null);
+    setError('');
+    setSuccess('');
+  };
+
   const handleSaveNotes = async () => {
     if (!selectedMatiere) {
       setError('Veuillez sélectionner une matière');
@@ -186,22 +208,57 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
       setError('Délai de saisie dépassé — contactez l\'administrateur');
       return;
     }
-    const notesToSave = Object.values(notesMap).filter((note) => {
+
+    const notesToProcess = isProfessorLayout
+      ? eleves.map((eleve) => notesMap[eleve.id]).filter(Boolean)
+      : Object.values(notesMap);
+
+    const notesToSave = notesToProcess.filter((note) => {
       const v = parseFloat(note.valeur);
-      return !note.id && !Number.isNaN(v) && v >= 0 && v <= 20;
+      return !Number.isNaN(v) && v >= 0 && v <= 20 && (
+        !note.id || isProfessorLayout
+      );
     });
-    if (notesToSave.length === 0) {
+
+    const newNotes = notesToSave.filter((n) => !n.id);
+    const existingNotes = isProfessorLayout
+      ? notesToSave.filter((n) => {
+          if (!n.id) return false;
+          const snap = savedSnapshot[n.eleve_id];
+          if (!snap) return true;
+          return String(snap.valeur) !== String(n.valeur)
+            || (snap.commentaire || '') !== (n.commentaire || '');
+        })
+      : [];
+
+    if (newNotes.length === 0 && existingNotes.length === 0 && !isProfessorLayout) {
       setError('Aucune nouvelle note valide à enregistrer (valeur entre 0 et 20)');
       return;
     }
+    if (isProfessorLayout && newNotes.length === 0 && existingNotes.length === 0) {
+      setError('Aucune modification à enregistrer');
+      return;
+    }
+
     try {
       setSaving(true);
       setError('');
       setSuccess('');
       const errors = [];
-      for (const note of notesToSave) {
+      for (const note of newNotes) {
         try {
           await api.postNote(buildNotePayload(note));
+        } catch (err) {
+          errors.push(err.message);
+        }
+      }
+      for (const note of existingNotes) {
+        try {
+          await api.updateNote(note.id, {
+            valeur: parseFloat(note.valeur),
+            coefficient: note.coefficient ?? 1,
+            commentaire: note.commentaire || null,
+          });
         } catch (err) {
           errors.push(err.message);
         }
@@ -210,7 +267,8 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
         throw new Error(`${errors.length} note(s) non enregistrée(s): ${errors[0]}`);
       }
       await reloadCurrent();
-      setSuccess(`${notesToSave.length} note(s) enregistrée(s) — ${evalTypeLabel(selectedType)}, trimestre ${selectedTrimestre}`);
+      const total = newNotes.length + existingNotes.length;
+      setSuccess(`${total} note(s) enregistrée(s) — ${evalTypeLabel(selectedType)}, trimestre ${selectedTrimestre}`);
     } catch (err) {
       setError(err.message || 'Erreur lors de la sauvegarde');
     } finally {
@@ -304,6 +362,17 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
   };
 
   if (loading) return <div className="page-loader"><div className="spinner" /></div>;
+
+  const selectedMatiereObj = matieres.find((m) => m.id === selectedMatiere);
+  const notesSaisies = eleves.filter((e) => {
+    const n = notesMap[e.id];
+    if (!n) return false;
+    const v = parseFloat(n.valeur);
+    return !Number.isNaN(v) && v >= 0;
+  }).length;
+
+  const sessionOpen = periodeInfo?.peut_saisir === true;
+  const countdown = formatSessionCountdown(periodeInfo?.periode?.date_fin);
 
   const renderContent = () => {
     if (verificationEnCours) {
@@ -428,6 +497,188 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
       </div>
     );
   };
+
+  if (isProfessorLayout) {
+    return (
+      <div className="prof-workspace">
+        <div className="prof-context-cards">
+          <div className="prof-context-card">
+            <div className="prof-context-icon">📐</div>
+            <div>
+              <div className="prof-context-label">Matière</div>
+              <div className="prof-context-value">{matiereName || selectedMatiereObj?.nom || '—'}</div>
+            </div>
+          </div>
+          <div className="prof-context-card">
+            <div className="prof-context-icon">🏫</div>
+            <div>
+              <div className="prof-context-label">Classe</div>
+              <div className="prof-context-value">{classe.nom}</div>
+            </div>
+          </div>
+          <div className="prof-context-card">
+            <div className="prof-context-icon">👥</div>
+            <div>
+              <div className="prof-context-label">Effectif</div>
+              <div className="prof-context-value">{eleves.length} élève{eleves.length > 1 ? 's' : ''}</div>
+            </div>
+          </div>
+          <div className="prof-sequence-select">
+            <label htmlFor="prof-trimestre">Trimestre</label>
+            <select id="prof-trimestre" value={selectedTrimestre}
+              onChange={(e) => handleTrimestreChange(parseInt(e.target.value, 10))}>
+              {TRIMESTRES.map((t) => (
+                <option key={t} value={t}>{t}er trimestre</option>
+              ))}
+            </select>
+          </div>
+          <div className="prof-sequence-select">
+            <label htmlFor="prof-type">Séquence / Période</label>
+            <select id="prof-type" value={selectedType} onChange={(e) => handleTypeChange(e.target.value)}>
+              {EVAL_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={`prof-session-card ${sessionOpen ? 'open' : 'closed'}`}>
+          <div className="prof-session-label">Session de saisie</div>
+          <div className={`prof-session-status ${sessionOpen ? 'open' : 'closed'}`}>
+            {sessionOpen ? '● OUVERTE' : '● FERMÉE'}
+          </div>
+          {periodeInfo?.periode ? (
+            <div className="prof-session-dates">
+              Du {dateDebut} au <strong>{dateFin}</strong>
+              {countdown && <div className="prof-session-countdown">{countdown}</div>}
+            </div>
+          ) : (
+            <div className="prof-session-dates">Aucune période configurée par l&apos;administrateur.</div>
+          )}
+        </div>
+
+        {error && <div className="alert alert-error">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
+
+        <div className="prof-notes-panel">
+          <div className="prof-notes-panel-header">
+            <h2>Saisie des notes</h2>
+            <div className="prof-notes-panel-actions">
+              {peutModifier && (
+                <>
+                  <button type="button" className="btn btn-secondary" onClick={handleCancelChanges} disabled={saving}>
+                    Annuler les modifications
+                  </button>
+                  <button type="button" className="btn btn-primary" onClick={handleSaveNotes} disabled={saving}>
+                    {saving ? 'Enregistrement…' : 'Enregistrer les notes'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="prof-info-banner">
+            Les appréciations sont générées automatiquement selon la note. Vous pouvez ajouter un commentaire personnalisé pour chaque élève.
+          </div>
+
+          {verificationEnCours ? (
+            <div className="page-loader"><div className="spinner" /></div>
+          ) : eleves.length === 0 ? (
+            <div className="empty-state"><p>Aucun élève dans cette classe</p></div>
+          ) : (
+            <div className="prof-notes-table-wrap">
+              <table className="prof-notes-table">
+                <thead>
+                  <tr>
+                    <th>N°</th>
+                    <th>Matricule</th>
+                    <th>Nom et Prénoms</th>
+                    <th>Note / 20</th>
+                    <th>Appréciation</th>
+                    <th>Commentaire</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {eleves.map((eleve, index) => {
+                    const note = notesMap[eleve.id] || {};
+                    const valeur = note.valeur ?? '';
+                    const appreciation = getAppreciation(valeur);
+                    const vNum = parseFloat(valeur);
+                    const isFail = !Number.isNaN(vNum) && vNum < 10;
+                    const canEdit = peutModifier;
+
+                    return (
+                      <tr key={eleve.id} className={isPeriodeFermee ? 'row-locked' : ''}>
+                        <td className="col-num">{index + 1}</td>
+                        <td>{eleve.matricule}</td>
+                        <td className="col-name">{eleve.nom} {eleve.prenom}</td>
+                        <td>
+                          {canEdit ? (
+                            <input
+                              type="number"
+                              min="0"
+                              max="20"
+                              step="0.25"
+                              value={valeur}
+                              className={`prof-note-input ${isFail ? 'fail' : ''}`}
+                              placeholder="—"
+                              onChange={(e) => handleNoteChange(eleve.id, 'valeur', e.target.value)}
+                            />
+                          ) : (
+                            <span className={isFail ? 'fail' : ''}>{valeur !== '' ? valeur : '—'}</span>
+                          )}
+                        </td>
+                        <td>
+                          {appreciation.className ? (
+                            <span className={`appreciation-badge ${appreciation.className}`}>
+                              {appreciation.label}
+                            </span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
+                        </td>
+                        <td>
+                          {canEdit ? (
+                            <textarea
+                              className="prof-comment-input"
+                              rows={1}
+                              placeholder="Optionnel"
+                              value={note.commentaire ?? ''}
+                              onChange={(e) => handleNoteChange(eleve.id, 'commentaire', e.target.value)}
+                            />
+                          ) : (
+                            <span>{note.commentaire || '—'}</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="prof-notes-footer">
+            <div className="prof-notes-stats">
+              <span>Total élèves : <strong>{eleves.length}</strong></span>
+              <span>Notes saisies : <strong>{notesSaisies} / {eleves.length}</strong></span>
+            </div>
+            <div className="prof-lock-hint">
+              <span>🔒</span>
+              {sessionOpen
+                ? 'Les modifications sont possibles tant que la session est ouverte.'
+                : 'Session fermée — contactez l\'administrateur pour toute modification.'}
+            </div>
+            {peutModifier && (
+              <button type="button" className="btn btn-primary" onClick={handleSaveNotes} disabled={saving}>
+                {saving ? 'Enregistrement…' : 'Enregistrer les notes'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="notes-entry-container">

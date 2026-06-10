@@ -3,22 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/professor-navigation.css';
 
-export default function ProfessorNavigation({ activeTab, onTabChange, schoolName, schoolLogo }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { user, logout } = useAuth();
+export default function ProfessorNavigation({
+  enseignements = [],
+  selectedClasseId,
+  selectedMatiereId,
+  onSelectTeaching,
+  activeSection,
+  onSectionChange,
+  schoolName,
+  schoolLogo,
+}) {
+  const [expandedMatieres, setExpandedMatieres] = useState({});
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const tabs = [
-    { id: 'accueil', label: 'Accueil', icon: '🏠' },
-    { id: 'mes-classes', label: 'Mes classes', icon: '📚' },
-    { id: 'notes', label: 'Saisie notes', icon: '📝' },
-    { id: 'bulletins', label: 'Bulletins', icon: '📄' },
-    { id: 'parametres', label: 'Paramètres', icon: '⚙️' },
-  ];
+  const toggleMatiere = (matiereId) => {
+    setExpandedMatieres((prev) => ({ ...prev, [matiereId]: !prev[matiereId] }));
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleSelect = (classe, matiere) => {
+    onSelectTeaching(classe, matiere);
+    onSectionChange('notes');
+    setMobileOpen(false);
   };
 
   return (
@@ -27,44 +39,87 @@ export default function ProfessorNavigation({ activeTab, onTabChange, schoolName
         {schoolLogo ? (
           <img src={schoolLogo} alt="" className="school-logo-thumb" />
         ) : (
-          <div className="prof-nav-icon">👨‍🏫</div>
+          <div className="prof-nav-icon">🎓</div>
         )}
         <div className="prof-nav-brand-text">
-          <div className="prof-nav-title">Espace professeur</div>
-          {schoolName && <div className="prof-nav-subtitle">{schoolName}</div>}
+          <div className="prof-nav-title">EduSaaS</div>
+          <div className="prof-nav-subtitle">{schoolName || 'Espace Enseignant'}</div>
         </div>
-        <button type="button" className="nav-toggle" onClick={() => setDropdownOpen(!dropdownOpen)}>
+        <button type="button" className="nav-toggle" onClick={() => setMobileOpen(!mobileOpen)}>
           ☰
         </button>
       </div>
 
-      <ul className={`prof-nav-menu ${dropdownOpen ? 'open' : ''}`}>
-        {tabs.map((tab) => (
-          <li key={tab.id}>
-            <button
-              type="button"
-              className={`nav-link ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => {
-                onTabChange(tab.id);
-                setDropdownOpen(false);
-              }}
-            >
-              <span className="nav-icon">{tab.icon}</span>
-              <span className="nav-label">{tab.label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className={`prof-nav-body ${mobileOpen ? 'open' : ''}`}>
+        <div className="prof-nav-section-label">Navigation</div>
+
+        <button
+          type="button"
+          className={`prof-nav-main-link ${activeSection === 'accueil' ? 'active' : ''}`}
+          onClick={() => { onSectionChange('accueil'); setMobileOpen(false); }}
+        >
+          <span className="nav-icon">🏠</span>
+          <span>Tableau de bord</span>
+        </button>
+
+        <div className="prof-nav-section-label">Mes enseignements</div>
+
+        {enseignements.length === 0 ? (
+          <p className="prof-nav-empty">Aucune attribution</p>
+        ) : (
+          <ul className="prof-matiere-tree">
+            {enseignements.map((matiere) => {
+              const isExpanded = expandedMatieres[matiere.id] !== false;
+              const hasActiveClass = matiere.classes?.some(
+                (c) => c.id === selectedClasseId && matiere.id === selectedMatiereId,
+              );
+              return (
+                <li key={matiere.id} className="prof-matiere-item">
+                  <button
+                    type="button"
+                    className={`prof-matiere-btn ${hasActiveClass ? 'active' : ''}`}
+                    onClick={() => toggleMatiere(matiere.id)}
+                  >
+                    <span className="prof-matiere-chevron">{isExpanded ? '▾' : '▸'}</span>
+                    <span className="prof-matiere-name">{matiere.nom}</span>
+                  </button>
+                  {isExpanded && (
+                    <ul className="prof-classe-list">
+                      {matiere.classes.map((classe) => (
+                        <li key={classe.id}>
+                          <button
+                            type="button"
+                            className={`prof-classe-btn ${
+                              selectedClasseId === classe.id && selectedMatiereId === matiere.id ? 'active' : ''
+                            }`}
+                            onClick={() => handleSelect(classe, matiere)}
+                          >
+                            {classe.nom}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <button
+          type="button"
+          className={`prof-nav-main-link ${activeSection === 'bulletins' ? 'active' : ''}`}
+          onClick={() => { onSectionChange('bulletins'); setMobileOpen(false); }}
+        >
+          <span className="nav-icon">📄</span>
+          <span>Bulletins</span>
+        </button>
+      </div>
 
       <div className="prof-sidebar-footer">
-        <div className="prof-user-card">
-          <div className="prof-user-avatar">
-            {user?.first_name?.[0]}{user?.last_name?.[0]}
-          </div>
-          <div className="prof-user-info">
-            <div className="prof-user-name">{user?.first_name} {user?.last_name}</div>
-            <div className="prof-user-role">Professeur</div>
-          </div>
+        <div className="prof-help-box">
+          <strong>Besoin d&apos;aide ?</strong>
+          <p>Consultez le guide rapide ou contactez l&apos;administrateur.</p>
         </div>
         <button type="button" className="prof-logout-btn" onClick={handleLogout}>
           Déconnexion

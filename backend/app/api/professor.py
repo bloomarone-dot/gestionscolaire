@@ -119,6 +119,59 @@ async def get_professor_classes(
     return db.query(Classe).filter(Classe.id.in_(classes_ids)).all()
 
 
+@router.get("/enseignements")
+async def get_professor_enseignements(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_tenant_session),
+):
+    """Arbre matière → classes pour la navigation enseignant."""
+    if current_user.get("role") != "professeur":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
+
+    professeur_id = current_user.get("id")
+    attributions = db.query(AttributionProfesseur).filter(
+        and_(
+            AttributionProfesseur.professeur_id == professeur_id,
+            AttributionProfesseur.is_active == True,
+        )
+    ).all()
+
+    if not attributions:
+        return {"matieres": []}
+
+    matiere_ids = list({a.matiere_id for a in attributions})
+    classe_ids = list({a.classe_id for a in attributions})
+    matieres = {m.id: m for m in db.query(Matiere).filter(Matiere.id.in_(matiere_ids)).all()}
+    classes = {c.id: c for c in db.query(Classe).filter(Classe.id.in_(classe_ids)).all()}
+
+    tree = {}
+    for attr in attributions:
+        mat = matieres.get(attr.matiere_id)
+        cls = classes.get(attr.classe_id)
+        if not mat or not cls:
+            continue
+        if mat.id not in tree:
+            tree[mat.id] = {
+                "id": mat.id,
+                "nom": mat.nom,
+                "code": getattr(mat, "code", None),
+                "classes": [],
+            }
+        if not any(c["id"] == cls.id for c in tree[mat.id]["classes"]):
+            tree[mat.id]["classes"].append({
+                "id": cls.id,
+                "nom": cls.nom,
+                "niveau": cls.niveau,
+                "capacite": cls.capacite,
+                "salle": cls.salle,
+            })
+
+    result = sorted(tree.values(), key=lambda m: m["nom"].lower())
+    for m in result:
+        m["classes"].sort(key=lambda c: c["nom"].lower())
+    return {"matieres": result}
+
+
 @router.get("/classes/{classe_id}/eleves", response_model=List[EleveResponse])
 async def get_class_eleves(
     classe_id: int,
@@ -392,8 +445,8 @@ async def get_professor_stats(
 
     school_name = None
     logo_url = None
-    primary_color = "#10b981"
-    secondary_color = "#f59e0b"
+    primary_color = "#8b5cf6"
+    secondary_color = "#a78bfa"
     school_id = current_user.get("school_id")
     if school_id:
         school = master_db.query(School).filter(School.id == school_id).first()

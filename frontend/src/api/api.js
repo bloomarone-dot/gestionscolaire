@@ -197,10 +197,11 @@ async function downloadFileResponse(res, fallbackName) {
   URL.revokeObjectURL(url);
 }
 
-export async function fetchEleveBulletin(eleveId, trimestre = 1) {
-  const res = await fetch(`/bulletins/eleve/${eleveId}?trimestre=${trimestre}`, {
-    headers: getHeaders(),
-  });
+export async function fetchEleveBulletin(eleveId, trimestre = 1, format = 'cameroon') {
+  const res = await fetch(
+    `/bulletins/eleve/${eleveId}?trimestre=${trimestre}&format=${format}`,
+    { headers: getHeaders() },
+  );
   return handleResponse(res);
 }
 
@@ -226,10 +227,10 @@ export async function exportEleveBulletinCsv(eleveId, trimestre = 1) {
   return downloadFileResponse(res, `bulletin_T${trimestre}.csv`);
 }
 
-export async function exportEleveBulletinPdf(eleveId, trimestre = 1) {
-  const res = await fetch(`/bulletins/eleve/${eleveId}/export/pdf?trimestre=${trimestre}`, {
-    headers: getHeaders(),
-  });
+export async function exportEleveBulletinPdf(eleveId, trimestre = 1, template = 'auto', lang = null) {
+  let url = `/bulletins/eleve/${eleveId}/export/pdf?trimestre=${trimestre}&template=${template}`;
+  if (lang) url += `&lang=${lang}`;
+  const res = await fetch(url, { headers: getHeaders() });
   return downloadFileResponse(res, `bulletin_T${trimestre}.pdf`);
 }
 
@@ -289,6 +290,15 @@ export async function createSchool(schoolData) {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify(schoolData),
+  });
+  return handleResponse(res);
+}
+
+export async function testDbServerBeforeCreate(dbConfig) {
+  const res = await fetch('/schools/test-db-server', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(dbConfig),
   });
   return handleResponse(res);
 }
@@ -396,6 +406,38 @@ export async function deleteMatiere(matiereId) {
   return { success: true };
 }
 
+export async function updateMatiere(matiereId, data) {
+  const res = await fetch(`/admin/matieres/${matiereId}`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function updateClasse(classeId, data) {
+  const res = await fetch(`/admin/classes/${classeId}`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function fetchBulletinSettings() {
+  const res = await fetch('/admin/bulletin-settings', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function updateBulletinSettings(data) {
+  const res = await fetch('/admin/bulletin-settings', {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
 // ── Attributions Professeurs ─────────────────────────────
 export async function createAttribution(attributionData) {
   const res = await fetch('/admin/attributions-professeurs/', {
@@ -426,6 +468,11 @@ export async function getProfessorProfile() {
 
 export async function getProfessorClasses() {
   const res = await fetch('/professor/classes', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function getProfessorEnseignements() {
+  const res = await fetch('/professor/enseignements', { headers: getHeaders() });
   return handleResponse(res);
 }
 

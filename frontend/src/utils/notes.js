@@ -28,3 +28,26 @@ export function getSeqNotesForEleve(eleveId, notes, trimestre) {
     trimestre: mine.find((n) => n.type_evaluation === 'trimestre'),
   };
 }
+
+export function getAppreciation(valeur) {
+  const v = parseFloat(valeur);
+  if (Number.isNaN(v)) return { label: '—', className: '' };
+  if (v >= 16) return { label: 'Très bien', className: 'excellent' };
+  if (v >= 14) return { label: 'Bien', className: 'bien' };
+  if (v >= 12) return { label: 'Assez bien', className: 'assez-bien' };
+  if (v >= 10) return { label: 'Passable', className: 'passable' };
+  return { label: 'Insuffisant', className: 'insuffisant' };
+}
+
+export function formatSessionCountdown(dateFinIso) {
+  if (!dateFinIso) return null;
+  const end = new Date(dateFinIso);
+  const now = new Date();
+  const diff = end.getTime() - now.getTime();
+  if (diff <= 0) return 'Session expirée';
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  if (days > 0) return `Il reste ${days} jour${days > 1 ? 's' : ''} et ${hours}h`;
+  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  return `Il reste ${hours}h ${mins}min`;
+}

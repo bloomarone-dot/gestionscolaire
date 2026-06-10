@@ -247,9 +247,15 @@ def get_global_settings(current_user: dict = Depends(get_current_user)):
     _require_superadmin(current_user)
     from app.db.connection import is_sqlite
 
+    from app.db.multi_tenant import default_tenant_db_credentials
+
+    defaults = default_tenant_db_credentials()
     return {
         "app_name": "EduSaaS",
         "database_mode": "sqlite" if is_sqlite() else "sql_server",
-        "multi_tenant_strategy": "schema_per_school",
+        "multi_tenant_strategy": "database_per_school",
         "version": "1.0.0",
+        "default_tenant_db_host": defaults["db_host"],
+        "default_tenant_db_port": defaults["db_port"],
+        "default_tenant_db_username": defaults["db_username"],
     }

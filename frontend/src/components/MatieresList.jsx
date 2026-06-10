@@ -9,7 +9,9 @@ export default function MatieresList() {
   const [formData, setFormData] = useState({
     nom: '',
     code: '',
-    description: ''
+    description: '',
+    groupe: 1,
+    coefficient_defaut: 1,
   });
 
   const loadMatieres = useCallback(async () => {
@@ -30,15 +32,25 @@ export default function MatieresList() {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const parsed =
+      name === 'groupe'
+        ? parseInt(value, 10)
+        : name === 'coefficient_defaut'
+          ? parseFloat(value)
+          : value;
+    setFormData((prev) => ({ ...prev, [name]: parsed }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      await api.createMatiere(formData);
-      setFormData({ nom: '', code: '', description: '' });
+      await api.createMatiere({
+        ...formData,
+        groupe: Number(formData.groupe) || 1,
+        coefficient_defaut: Number(formData.coefficient_defaut) || 1,
+      });
+      setFormData({ nom: '', code: '', description: '', groupe: 1, coefficient_defaut: 1 });
       setShowCreateForm(false);
       loadMatieres();
     } catch (error) {
@@ -93,6 +105,28 @@ export default function MatieresList() {
             </div>
           </div>
 
+          <div className="form-row">
+            <div className="form-group">
+              <label>Groupe bulletin</label>
+              <select name="groupe" value={formData.groupe} onChange={handleFormChange}>
+                <option value={1}>1 — Premier groupe</option>
+                <option value={2}>2 — Deuxième groupe</option>
+                <option value={3}>3 — Troisième groupe</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Coefficient</label>
+              <input
+                type="number"
+                name="coefficient_defaut"
+                min="0.5"
+                step="0.5"
+                value={formData.coefficient_defaut}
+                onChange={handleFormChange}
+              />
+            </div>
+          </div>
+
           <div className="form-group full">
             <label>Description</label>
             <textarea
@@ -122,6 +156,7 @@ export default function MatieresList() {
             <div key={matiere.id} className="matiere-card">
               <h3>{matiere.nom}</h3>
               <p><strong>Code:</strong> {matiere.code}</p>
+              <p><strong>Groupe:</strong> {matiere.groupe ?? 1} · <strong>Coef:</strong> {matiere.coefficient_defaut ?? 1}</p>
               {matiere.description && <p><strong>Description:</strong> {matiere.description}</p>}
               <button
                 className="btn btn-danger btn-sm"

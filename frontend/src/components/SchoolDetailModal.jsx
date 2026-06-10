@@ -169,7 +169,7 @@ export default function SchoolDetailModal({ schoolId, onClose, onSchoolUpdated }
               </div>
 
               <div className="info-row" style={{ marginTop: '1rem' }}>
-                <span className="info-label">Schema</span>
+                <span className="info-label">Base dédiée</span>
                 <code>{stats.db_name}</code>
               </div>
               <div className="info-row">

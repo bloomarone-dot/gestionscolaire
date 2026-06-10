@@ -5,7 +5,7 @@
 .professor-dashboard {
   display: flex;
   min-height: 100vh;
-  background: var(--bg-900);
+  background: var(--bg-700);
 }
 
 .professor-content-area {
@@ -68,11 +68,11 @@
 .stat-card:nth-child(3) { animation-delay: 0.2s; }
 
 .stat-card-emerald {
-  border-color: rgba(16, 185, 129, 0.2);
+  border-color: var(--primary-100);
 }
 
 .stat-card-amber {
-  border-color: rgba(245, 158, 11, 0.2);
+  border-color: var(--primary-200);
 }
 
 .stat-card:hover {
