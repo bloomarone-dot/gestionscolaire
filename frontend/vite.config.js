@@ -9,6 +9,7 @@ export default defineConfig({
       '/eleves': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/notes': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/bulletin': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/bulletins': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/auth': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/schools': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/admin': { target: 'http://127.0.0.1:8000', changeOrigin: true },

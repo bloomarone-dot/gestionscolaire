@@ -26,8 +26,9 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 2rem;
-  background: rgba(22, 27, 39, 0.95);
-  backdrop-filter: blur(12px);
+  background: #ffffff;
+  backdrop-filter: none;
+  box-shadow: var(--shadow-sm);
   border-bottom: 1px solid var(--border);
 }
 
@@ -86,7 +87,7 @@
 }
 
 .content-section {
-  background: linear-gradient(135deg, rgba(30, 37, 53, 0.5), rgba(22, 27, 39, 0.8));
+  background: linear-gradient(135deg, var(--primary-50), #ffffff);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 2rem;

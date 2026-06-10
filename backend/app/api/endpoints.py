@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
 from app.db.multi_tenant import get_tenant_session
-from app.models.school import Eleve, Note, Matiere
+from app.models.school import Eleve
 
 router = APIRouter()
 
@@ -54,24 +54,11 @@ def lister_eleves(
 @router.get("/bulletin/{eleve_id}")
 def generer_bulletin(
     eleve_id: int,
+    trimestre: int = 1,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
 ):
     _require_authenticated(current_user)
-    eleve = db.query(Eleve).filter(Eleve.id == eleve_id).first()
-    if not eleve:
-        return {"error": "Élève non trouvé"}
+    from app.services.bulletin_service import build_eleve_bulletin
 
-    notes = db.query(Note).filter(Note.eleve_id == eleve_id).all()
-    moyenne = sum(n.valeur for n in notes) / len(notes) if notes else 0
-
-    details = []
-    for n in notes:
-        matiere = db.query(Matiere).filter(Matiere.id == n.matiere_id).first()
-        details.append({"matiere": matiere.nom if matiere else "?", "note": n.valeur})
-
-    return {
-        "eleve": f"{eleve.nom} {eleve.prenom}",
-        "moyenne_generale": round(moyenne, 2),
-        "details_notes": details,
-    }
+    return build_eleve_bulletin(db, eleve_id, trimestre)

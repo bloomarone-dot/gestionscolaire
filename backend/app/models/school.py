@@ -225,6 +225,10 @@ class Note(Base):
     matiere_id = Column(Integer, ForeignKey("matieres.id"), nullable=False)
     professeur_id = Column(Integer, ForeignKey("professeurs.id"), nullable=False)
     
+    # Période scolaire : trimestre 1-3, type sequence_1 | sequence_2 | trimestre
+    trimestre = Column(Integer, nullable=False, default=1)
+    type_evaluation = Column(String(20), nullable=False, default="sequence_1")
+    
     # Note
     valeur = Column(Float, nullable=False)
     coefficient = Column(Float, default=1.0)

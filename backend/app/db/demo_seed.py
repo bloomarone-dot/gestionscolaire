@@ -225,19 +225,30 @@ def _seed_tenant_data(school: School) -> None:
             )
         )
 
-        for eleve in eleves[:3]:
-            tenant_db.add(
-                Note(
-                    eleve_id=eleve.id,
-                    matiere_id=maths.id,
-                    professeur_id=professeur.id,
-                    valeur=14.5 if eleve.matricule != "ELV-002" else 11.0,
-                    coefficient=1.0,
-                    description="Contrôle n°1",
-                    date_creation=now,
-                    date_saisie=now,
+        demo_notes = [
+            ("sequence_1", 14.5, 1.0),
+            ("sequence_1", 11.0, 1.0),
+            ("sequence_2", 15.0, 2.0),
+            ("sequence_2", 12.5, 2.0),
+            ("trimestre", 14.75, 1.0),
+            ("trimestre", 11.5, 1.0),
+        ]
+        for i, eleve in enumerate(eleves[:2]):
+            for type_eval, valeur, coef in demo_notes[i * 3 : i * 3 + 3]:
+                tenant_db.add(
+                    Note(
+                        eleve_id=eleve.id,
+                        matiere_id=maths.id,
+                        professeur_id=professeur.id,
+                        trimestre=1,
+                        type_evaluation=type_eval,
+                        valeur=valeur if eleve.matricule != "ELV-002" or type_eval != "sequence_1" else 11.0,
+                        coefficient=coef,
+                        description=f"Trimestre 1 — {type_eval}",
+                        date_creation=now,
+                        date_saisie=now,
+                    )
                 )
-            )
 
         tenant_db.commit()
         logger.info(

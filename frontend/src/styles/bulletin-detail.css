@@ -1,0 +1,182 @@
+.bulletin-detail-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.bulletin-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(245, 158, 11, 0.05));
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.bulletin-detail-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.bulletin-detail-name {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.bulletin-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.bulletin-detail-score {
+  text-align: center;
+  min-width: 120px;
+}
+
+.bulletin-moyenne {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bulletin-moyenne.excellent { color: var(--success); }
+.bulletin-moyenne.bien { color: var(--accent-400); }
+.bulletin-moyenne.passable { color: var(--warning); }
+.bulletin-moyenne.insuffisant { color: var(--danger); }
+
+.bulletin-moyenne-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.bulletin-mention {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+.bulletin-detail-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.bulletin-detail-table-wrap {
+  overflow-x: auto;
+  padding: 0 0 1rem;
+}
+
+.bulletin-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.bulletin-detail-table th,
+.bulletin-detail-table td {
+  padding: 0.75rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.bulletin-detail-table th {
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.bulletin-detail-table .matiere-cell {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bulletin-detail-table .calc-cell {
+  color: var(--accent-400);
+  font-weight: 600;
+}
+
+.bulletin-empty {
+  padding: 2rem !important;
+  color: var(--text-muted);
+}
+
+.bulletin-trimestre-legend {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem 1.25rem;
+}
+
+.bulletin-trimestre-legend span {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.bulletin-trimestre-legend span.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--success);
+  font-weight: 600;
+}
+
+.bulletin-classe-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bulletin-summary-card {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.bulletin-summary-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--accent-400);
+}
+
+.bulletin-summary-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.bulletin-ranking-table .rang-cell {
+  font-weight: 800;
+  color: var(--accent-400);
+}
+
+@media (max-width: 768px) {
+  .bulletin-detail-header {
+    padding: 1rem;
+  }
+
+  .bulletin-detail-actions {
+    padding: 1rem;
+  }
+}

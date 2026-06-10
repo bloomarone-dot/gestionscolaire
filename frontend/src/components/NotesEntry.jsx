@@ -1,14 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 import * as api from '../api/api';
+import {
+  TRIMESTRES,
+  EVAL_TYPES,
+  evalTypeLabel,
+  calcMoyenneTrimestre,
+  getSeqNotesForEleve,
+} from '../utils/notes';
 import '../styles/notes-entry.css';
 
 export default function NotesEntry({ classe, readOnlyMode = false }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const [eleves, setEleves] = useState([]);
   const [matieres, setMatieres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notesMap, setNotesMap] = useState({});
+  const [trimestreNotes, setTrimestreNotes] = useState([]);
   const [selectedMatiere, setSelectedMatiere] = useState(null);
+  const [selectedTrimestre, setSelectedTrimestre] = useState(1);
+  const [selectedType, setSelectedType] = useState('sequence_1');
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -19,8 +34,8 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
   const [editCoefficient, setEditCoefficient] = useState(1);
   const [editCommentaire, setEditCommentaire] = useState('');
 
-  const peutModifier = !readOnlyMode && periodeInfo?.peut_saisir === true;
-  const isPeriodeFermee = !readOnlyMode && periodeInfo && !periodeInfo.peut_saisir;
+  const peutModifier = isAdmin ? !readOnlyMode : (!readOnlyMode && periodeInfo?.peut_saisir === true);
+  const isPeriodeFermee = !isAdmin && !readOnlyMode && periodeInfo && !periodeInfo.peut_saisir;
   const dateFin = periodeInfo?.periode?.date_fin
     ? new Date(periodeInfo.periode.date_fin).toLocaleDateString('fr-FR')
     : null;
@@ -28,29 +43,55 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
     ? new Date(periodeInfo.periode.date_debut).toLocaleDateString('fr-FR')
     : null;
 
-  const loadNotesForMatiere = useCallback(async (matiereId) => {
+  const fetchNotes = useCallback(async (classeId, matiereId, trimestre, typeEval) => {
+    if (isAdmin) {
+      return api.fetchNotes({
+        classe_id: classeId,
+        matiere_id: matiereId,
+        trimestre,
+        type_evaluation: typeEval,
+      });
+    }
+    return api.getClassNotes(classeId, matiereId, trimestre, typeEval);
+  }, [isAdmin]);
+
+  const fetchAllTrimestreNotes = useCallback(async (classeId, matiereId, trimestre) => {
+    if (isAdmin) {
+      return api.fetchNotes({ classe_id: classeId, matiere_id: matiereId, trimestre });
+    }
+    return api.getClassNotes(classeId, matiereId, trimestre);
+  }, [isAdmin]);
+
+  const loadNotesForMatiere = useCallback(async (matiereId, trimestre, typeEval) => {
     if (!classe || !matiereId) return;
     try {
       setVerificationEnCours(true);
-      const [notesData, verificationPeriode] = await Promise.all([
-        api.getClassNotes(classe.id, matiereId),
-        api.verifierPeriodeSaisie(classe.id, matiereId),
-      ]);
+      const requests = [
+        fetchNotes(classe.id, matiereId, trimestre, typeEval),
+        fetchAllTrimestreNotes(classe.id, matiereId, trimestre),
+      ];
+      if (!isAdmin) {
+        requests.push(api.verifierPeriodeSaisie(classe.id, matiereId));
+      }
+      const [notesData, allNotes, verificationPeriode] = await Promise.all(requests);
+
       const notesMapData = {};
       notesData.forEach((note) => {
         notesMapData[note.eleve_id] = { ...note, matiere_id: note.matiere_id };
       });
       setNotesMap(notesMapData);
-      setPeriodeInfo(verificationPeriode);
+      setTrimestreNotes(allNotes || []);
+      if (!isAdmin) setPeriodeInfo(verificationPeriode);
     } catch (err) {
       console.error('Erreur:', err);
       setError(err.message || 'Erreur lors du chargement des notes');
       setNotesMap({});
-      setPeriodeInfo(null);
+      setTrimestreNotes([]);
+      if (!isAdmin) setPeriodeInfo(null);
     } finally {
       setVerificationEnCours(false);
     }
-  }, [classe]);
+  }, [classe, fetchNotes, fetchAllTrimestreNotes, isAdmin]);
 
   const loadData = useCallback(async () => {
     if (!classe) return;
@@ -58,18 +99,19 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
       setLoading(true);
       setError('');
       const [elevesData, matieresData] = await Promise.all([
-        api.getClassEleves(classe.id),
-        api.getClassMatieres(classe.id),
+        isAdmin ? api.fetchEleves_admin(classe.id) : api.getClassEleves(classe.id),
+        isAdmin ? api.fetchMatieres() : api.getClassMatieres(classe.id),
       ]);
       setEleves(elevesData);
       setMatieres(matieresData);
       if (matieresData.length > 0) {
         const firstMatiereId = matieresData[0].id;
         setSelectedMatiere(firstMatiereId);
-        await loadNotesForMatiere(firstMatiereId);
+        await loadNotesForMatiere(firstMatiereId, selectedTrimestre, selectedType);
       } else {
         setSelectedMatiere(null);
         setNotesMap({});
+        setTrimestreNotes([]);
         setPeriodeInfo(null);
       }
     } catch (err) {
@@ -78,18 +120,44 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
     } finally {
       setLoading(false);
     }
-  }, [classe, loadNotesForMatiere]);
+  }, [classe, isAdmin, loadNotesForMatiere]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const reloadCurrent = async () => {
+    if (selectedMatiere) {
+      await loadNotesForMatiere(selectedMatiere, selectedTrimestre, selectedType);
+    }
+  };
 
   const handleMatiereChange = async (matiereId) => {
     setSelectedMatiere(matiereId);
     setSuccess('');
     setError('');
     setEditingId(null);
-    await loadNotesForMatiere(matiereId);
+    await loadNotesForMatiere(matiereId, selectedTrimestre, selectedType);
+  };
+
+  const handleTrimestreChange = async (trimestre) => {
+    setSelectedTrimestre(trimestre);
+    setSuccess('');
+    setError('');
+    setEditingId(null);
+    if (selectedMatiere) {
+      await loadNotesForMatiere(selectedMatiere, trimestre, selectedType);
+    }
+  };
+
+  const handleTypeChange = async (typeEval) => {
+    setSelectedType(typeEval);
+    setSuccess('');
+    setError('');
+    setEditingId(null);
+    if (selectedMatiere) {
+      await loadNotesForMatiere(selectedMatiere, selectedTrimestre, typeEval);
+    }
   };
 
   const handleNoteChange = (eleveId, field, value) => {
@@ -98,6 +166,16 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
       return { ...prev, [eleveId]: { ...existing, eleve_id: eleveId, [field]: value } };
     });
   };
+
+  const buildNotePayload = (note) => ({
+    eleve_id: note.eleve_id,
+    matiere_id: selectedMatiere,
+    valeur: parseFloat(note.valeur),
+    coefficient: note.coefficient ?? 1.0,
+    commentaire: note.commentaire || '',
+    trimestre: selectedTrimestre,
+    type_evaluation: selectedType,
+  });
 
   const handleSaveNotes = async () => {
     if (!selectedMatiere) {
@@ -123,13 +201,7 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
       const errors = [];
       for (const note of notesToSave) {
         try {
-          await api.postNote({
-            eleve_id: note.eleve_id,
-            matiere_id: selectedMatiere,
-            valeur: parseFloat(note.valeur),
-            coefficient: note.coefficient ?? 1.0,
-            commentaire: note.commentaire || '',
-          });
+          await api.postNote(buildNotePayload(note));
         } catch (err) {
           errors.push(err.message);
         }
@@ -137,13 +209,24 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
       if (errors.length > 0) {
         throw new Error(`${errors.length} note(s) non enregistrée(s): ${errors[0]}`);
       }
-      await loadNotesForMatiere(selectedMatiere);
-      setSuccess('Notes sauvegardées avec succès !');
+      await reloadCurrent();
+      setSuccess(`${notesToSave.length} note(s) enregistrée(s) — ${evalTypeLabel(selectedType)}, trimestre ${selectedTrimestre}`);
     } catch (err) {
       setError(err.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleApplyCalculatedTrimestre = (eleveId) => {
+    const { seq1, seq2 } = getSeqNotesForEleve(eleveId, trimestreNotes, selectedTrimestre);
+    const moyenne = calcMoyenneTrimestre(seq1, seq2);
+    if (moyenne === null) {
+      setError('Saisissez d\'abord les notes des 1ère et 2ème séquences');
+      return;
+    }
+    handleNoteChange(eleveId, 'valeur', moyenne);
+    setError('');
   };
 
   const handleStartEdit = (note) => {
@@ -179,7 +262,7 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
         coefficient: editCoefficient,
         commentaire: editCommentaire || null,
       });
-      await loadNotesForMatiere(selectedMatiere);
+      await reloadCurrent();
       setSuccess('Note modifiée avec succès');
       setEditingId(null);
     } catch (err) {
@@ -199,10 +282,24 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
       setError('');
       setSuccess('');
       await api.deleteNote(noteId);
-      await loadNotesForMatiere(selectedMatiere);
+      await reloadCurrent();
       setSuccess('Note supprimée');
     } catch (err) {
       setError(err.message || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleExport = async () => {
+    if (!selectedMatiere) return;
+    try {
+      setExporting(true);
+      setError('');
+      await api.exportNotesCsv(classe.id, selectedMatiere, selectedTrimestre);
+      setSuccess('Export CSV téléchargé');
+    } catch (err) {
+      setError(err.message || 'Erreur lors de l\'export');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -227,7 +324,8 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
               <th>Nom</th>
               <th>Prénom</th>
               <th>Matricule</th>
-              <th>Note</th>
+              {selectedType === 'trimestre' && <th>Moy. calc.</th>}
+              <th>{evalTypeLabel(selectedType)}</th>
               <th>Coeff.</th>
               <th>Commentaire</th>
               {peutModifier && <th>Actions</th>}
@@ -238,11 +336,23 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
               const existingNote = notesMap[eleve.id];
               const isEditing = editingId === existingNote?.id;
               const canEnterNew = peutModifier && !existingNote?.id;
+              const { seq1, seq2 } = getSeqNotesForEleve(eleve.id, trimestreNotes, selectedTrimestre);
+              const moyenneCalc = calcMoyenneTrimestre(seq1, seq2);
+
               return (
                 <tr key={eleve.id} className={isPeriodeFermee ? 'row-locked' : ''}>
                   <td>{eleve.nom}</td>
                   <td>{eleve.prenom}</td>
                   <td>{eleve.matricule}</td>
+                  {selectedType === 'trimestre' && (
+                    <td className="moyenne-calc-cell">
+                      {moyenneCalc !== null ? (
+                        <span className="moyenne-calc-value">{moyenneCalc}</span>
+                      ) : (
+                        <span className="note-empty">—</span>
+                      )}
+                    </td>
+                  )}
                   <td>
                     {isEditing ? (
                       <input type="number" min="0" max="20" step="0.25" value={editValue}
@@ -285,20 +395,24 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
                   {peutModifier && (
                     <td>
                       <div className="note-actions">
+                        {selectedType === 'trimestre' && canEnterNew && moyenneCalc !== null && (
+                          <button type="button" className="btn-icon btn-calc" title="Appliquer la moyenne calculée"
+                            onClick={() => handleApplyCalculatedTrimestre(eleve.id)}>📊</button>
+                        )}
                         {existingNote?.id && !isEditing && (
-                          <button className="btn-icon btn-edit" onClick={() => handleStartEdit(existingNote)}
+                          <button type="button" className="btn-icon btn-edit" onClick={() => handleStartEdit(existingNote)}
                             disabled={savingId !== null} title="Modifier">✏️</button>
                         )}
                         {isEditing ? (
                           <>
-                            <button className="btn-icon btn-save" onClick={() => handleSaveEdit(existingNote.id)}
+                            <button type="button" className="btn-icon btn-save" onClick={() => handleSaveEdit(existingNote.id)}
                               disabled={savingId === existingNote.id} title="Enregistrer">💾</button>
-                            <button className="btn-icon btn-cancel" onClick={handleCancelEdit}
+                            <button type="button" className="btn-icon btn-cancel" onClick={handleCancelEdit}
                               disabled={savingId === existingNote.id} title="Annuler">✕</button>
                           </>
                         ) : (
                           existingNote?.id && (
-                            <button className="btn-icon btn-delete"
+                            <button type="button" className="btn-icon btn-delete"
                               onClick={() => handleDeleteNote(existingNote.id, `${eleve.prenom} ${eleve.nom}`)}
                               disabled={savingId !== null} title="Supprimer">🗑️</button>
                           )
@@ -319,21 +433,59 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
     <div className="notes-entry-container">
       <div className="notes-header">
         <h2>Saisie des notes — {classe.nom}</h2>
-        {matieres.length > 0 && (
+        <div className="notes-filters">
+          {matieres.length > 0 && (
+            <div className="matiere-selector">
+              <label htmlFor="matiere-select">Matière</label>
+              <select id="matiere-select" value={selectedMatiere || ''}
+                onChange={(e) => handleMatiereChange(parseInt(e.target.value, 10))}>
+                {matieres.map((m) => (
+                  <option key={m.id} value={m.id}>{m.nom}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="matiere-selector">
-            <label htmlFor="matiere-select">Matière :</label>
-            <select id="matiere-select" value={selectedMatiere || ''}
-              onChange={(e) => handleMatiereChange(parseInt(e.target.value, 10))}>
-              {matieres.map((m) => (
-                <option key={m.id} value={m.id}>{m.nom}</option>
+            <label htmlFor="trimestre-select">Trimestre</label>
+            <select id="trimestre-select" value={selectedTrimestre}
+              onChange={(e) => handleTrimestreChange(parseInt(e.target.value, 10))}>
+              {TRIMESTRES.map((t) => (
+                <option key={t} value={t}>{t}er trimestre</option>
               ))}
             </select>
           </div>
-        )}
-        {peutModifier && (
-          <button className="btn btn-primary" onClick={handleSaveNotes} disabled={saving}>
-            {saving ? 'Sauvegarde...' : 'Enregistrer les notes'}
-          </button>
+          <div className="matiere-selector">
+            <label htmlFor="type-select">Évaluation</label>
+            <select id="type-select" value={selectedType}
+              onChange={(e) => handleTypeChange(e.target.value)}>
+              {EVAL_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="notes-header-actions">
+          {selectedMatiere && (
+            <button type="button" className="btn btn-secondary" onClick={handleExport} disabled={exporting}>
+              {exporting ? 'Export...' : 'Exporter CSV'}
+            </button>
+          )}
+          {peutModifier && (
+            <button type="button" className="btn btn-primary" onClick={handleSaveNotes} disabled={saving}>
+              {saving ? 'Sauvegarde...' : 'Enregistrer'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="notes-period-info">
+        <span className="notes-period-badge">
+          Trimestre {selectedTrimestre} — {evalTypeLabel(selectedType)}
+        </span>
+        {selectedType === 'trimestre' && (
+          <span className="notes-period-hint">
+            La moyenne calculée combine les 1ère et 2ème séquences (pondérées par coefficient).
+          </span>
         )}
       </div>
 
@@ -354,14 +506,14 @@ export default function NotesEntry({ classe, readOnlyMode = false }) {
         </div>
       )}
 
-      {peutModifier && dateFin && (
+      {peutModifier && dateFin && !isAdmin && (
         <div className="alert alert-success">
           <span>✅</span>
           Saisie ouverte du {dateDebut} au <strong>{dateFin}</strong>
         </div>
       )}
 
-      {!periodeInfo?.periode && !readOnlyMode && (
+      {!isAdmin && !periodeInfo?.periode && !readOnlyMode && (
         <div className="alert alert-error">
           <span>⚠️</span>
           Aucun délai configuré par l&apos;administrateur pour cette classe/matière.

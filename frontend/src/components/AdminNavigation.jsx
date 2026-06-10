@@ -24,13 +24,13 @@ const NAV_SECTIONS = [
     items: [
       { id: 'saisie-notes', icon: '📝', label: 'Saisie Notes' },
       { id: 'fenetre-notes', icon: '⏰', label: 'Délais de saisie' },
+      { id: 'bulletins', icon: '📄', label: 'Bulletins' },
     ],
   },
   {
     title: 'À venir',
     items: [
       { id: 'emploi-temps', icon: '🗓️', label: 'Emploi du Temps', disabled: true },
-      { id: 'bulletins', icon: '📄', label: 'Bulletins', disabled: true },
       { id: 'rapports', icon: '📊', label: 'Rapports', disabled: true },
       { id: 'parametres', icon: '⚙️', label: 'Paramètres', disabled: true },
     ],

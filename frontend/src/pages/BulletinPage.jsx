@@ -1,21 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchEleves, fetchBulletin } from '../api/api';
-
-function getMention(avg) {
-  if (avg >= 18) return { label: 'Félicitations', color: 'excellent', emoji: '🏆' };
-  if (avg >= 16) return { label: 'Très bien', color: 'excellent', emoji: '⭐' };
-  if (avg >= 14) return { label: 'Bien', color: 'bien', emoji: '👍' };
-  if (avg >= 12) return { label: 'Assez bien', color: 'bien', emoji: '✅' };
-  if (avg >= 10) return { label: 'Passable', color: 'passable', emoji: '📘' };
-  return { label: 'Insuffisant', color: 'insuffisant', emoji: '⚠️' };
-}
+import { fetchEleves_admin, fetchEleveBulletin, exportEleveBulletinCsv, exportEleveBulletinPdf } from '../api/api';
+import { TRIMESTRES } from '../utils/notes';
+import BulletinDetail from '../components/BulletinDetail';
 
 export default function BulletinPage() {
   const [eleves, setEleves] = useState([]);
   const [eleveId, setEleveId] = useState('');
+  const [trimestre, setTrimestre] = useState(1);
   const [bulletin, setBulletin] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingEleves, setLE] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -25,7 +20,7 @@ export default function BulletinPage() {
   }, []);
 
   useEffect(() => {
-    fetchEleves()
+    fetchEleves_admin()
       .then(setEleves)
       .catch(console.error)
       .finally(() => setLE(false));
@@ -37,36 +32,57 @@ export default function BulletinPage() {
     setError('');
     setBulletin(null);
     try {
-      const data = await fetchBulletin(parseInt(eleveId, 10));
-      if (data.error) setError(data.error);
-      else setBulletin(data);
+      const data = await fetchEleveBulletin(parseInt(eleveId, 10), trimestre);
+      setBulletin(data);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [eleveId]);
+  }, [eleveId, trimestre]);
 
   useEffect(() => {
     if (eleveId) handleLoad();
-  }, [eleveId, handleLoad]);
+  }, [eleveId, trimestre, handleLoad]);
 
-  const mention = bulletin ? getMention(bulletin.moyenne_generale) : null;
+  const handleExportCsv = async () => {
+    if (!eleveId) return;
+    try {
+      setExporting(true);
+      await exportEleveBulletinCsv(parseInt(eleveId, 10), trimestre);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!eleveId) return;
+    try {
+      setExporting(true);
+      await exportEleveBulletinPdf(parseInt(eleveId, 10), trimestre);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <>
       <div className="page-header">
         <div>
           <h1 className="page-title">Bulletins scolaires</h1>
-          <p className="page-subtitle">Consultez le relevé de notes complet d'un élève</p>
+          <p className="page-subtitle">Relevé par trimestre : séquences, coefficients et moyennes</p>
         </div>
       </div>
 
       <div className="page-body">
         <div className="card" style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ flex: 1 }}>
-              <label htmlFor="select-bulletin-eleve">Sélectionner un élève</label>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
+              <label htmlFor="select-bulletin-eleve">Élève</label>
               {loadingEleves ? (
                 <div style={{ height: 42, display: 'flex', alignItems: 'center' }}>
                   <div className="spinner" />
@@ -75,14 +91,14 @@ export default function BulletinPage() {
                 <select
                   id="select-bulletin-eleve"
                   value={eleveId}
-                  onChange={e => {
+                  onChange={(e) => {
                     setEleveId(e.target.value);
                     setBulletin(null);
                     setError('');
                   }}
                 >
                   <option value="">— Choisir un élève —</option>
-                  {eleves.map(el => (
+                  {eleves.map((el) => (
                     <option key={el.id} value={el.id}>
                       {el.prenom} {el.nom} ({el.matricule})
                     </option>
@@ -90,14 +106,26 @@ export default function BulletinPage() {
                 </select>
               )}
             </div>
+            <div className="form-group">
+              <label htmlFor="select-trimestre">Trimestre</label>
+              <select
+                id="select-trimestre"
+                value={trimestre}
+                onChange={(e) => setTrimestre(parseInt(e.target.value, 10))}
+              >
+                {TRIMESTRES.map((t) => (
+                  <option key={t} value={t}>{t}er trimestre</option>
+                ))}
+              </select>
+            </div>
             <button
-              id="view-bulletin-btn"
+              type="button"
               className="btn btn-primary"
               onClick={handleLoad}
               disabled={!eleveId || loading}
-              style={{ height: 42, whiteSpace: 'nowrap' }}
+              style={{ height: 42 }}
             >
-              {loading ? <span className="spinner" /> : '📋 Afficher le bulletin'}
+              {loading ? <span className="spinner" /> : 'Afficher'}
             </button>
           </div>
         </div>
@@ -109,91 +137,19 @@ export default function BulletinPage() {
         )}
 
         {bulletin && (
-          <div className="bulletin-card" style={{ animation: 'slideUp 0.25s ease' }}>
-            <div className="bulletin-header">
-              <div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>
-                  Bulletin de l'élève
-                </div>
-                <div className="bulletin-name">{bulletin.eleve}</div>
-              </div>
-              <div className="moyenne-badge">
-                <div className={`moyenne-value ${mention.color}`}>
-                  {bulletin.moyenne_generale}
-                </div>
-                <div className="moyenne-label">/ 20</div>
-                <div style={{ fontSize: 13, marginTop: 6, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  {mention.emoji} {mention.label}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ padding: 24 }}>
-              {bulletin.details_notes.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon">📝</div>
-                  <div className="empty-state-title">Aucune note enregistrée</div>
-                  <div className="empty-state-text">Ajoutez des notes depuis la page dédiée.</div>
-                </div>
-              ) : (
-                <div className="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Matière</th>
-                        <th>Note</th>
-                        <th>Mention</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bulletin.details_notes.map((n, i) => {
-                        const m = getMention(n.note);
-                        return (
-                          <tr key={i}>
-                            <td style={{ fontWeight: 500 }}>{n.matiere}</td>
-                            <td>
-                              <span
-                                style={{
-                                  fontWeight: 700,
-                                  fontSize: 16,
-                                  color: `var(--${m.color === 'excellent' ? 'success' : m.color === 'bien' ? 'accent-400' : m.color === 'passable' ? 'warning' : 'danger'})`,
-                                }}
-                              >
-                                {n.note}
-                              </span>
-                              <span className="text-muted"> / 20</span>
-                            </td>
-                            <td>
-                              <span
-                                className={`badge badge-${
-                                  m.color === 'excellent'
-                                    ? 'green'
-                                    : m.color === 'bien'
-                                    ? 'blue'
-                                    : m.color === 'passable'
-                                    ? 'orange'
-                                    : 'red'
-                                }`}
-                              >
-                                {m.emoji} {m.label}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
+          <BulletinDetail
+            bulletin={bulletin}
+            onExportCsv={handleExportCsv}
+            onExportPdf={handleExportPdf}
+            exporting={exporting}
+          />
         )}
 
         {!bulletin && !error && !loading && (
           <div className="empty-state card">
             <div className="empty-state-icon">📋</div>
             <div className="empty-state-title">Aucun bulletin affiché</div>
-            <div className="empty-state-text">Sélectionnez un élève pour consulter son bulletin.</div>
+            <div className="empty-state-text">Sélectionnez un élève et un trimestre.</div>
           </div>
         )}
       </div>

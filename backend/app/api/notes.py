@@ -1,11 +1,14 @@
 """
 Endpoints Notes — CRUD complet pour professeurs et administrateurs.
 """
+import csv
+import io
 from datetime import datetime, date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
@@ -18,6 +21,13 @@ from app.models.school import (
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
+VALID_TYPES = {"sequence_1", "sequence_2", "trimestre"}
+TYPE_LABELS = {
+    "sequence_1": "1ère séquence",
+    "sequence_2": "2ème séquence",
+    "trimestre": "Note trimestrielle",
+}
+
 
 # ──────────────────────────────────────────────────────────
 # Schémas Pydantic
@@ -29,12 +39,30 @@ class NoteCreate(BaseModel):
     valeur: float
     coefficient: Optional[float] = 1.0
     commentaire: Optional[str] = None
+    trimestre: int = 1
+    type_evaluation: str = "sequence_1"
+
+    @field_validator("trimestre")
+    @classmethod
+    def validate_trimestre(cls, v: int) -> int:
+        if v not in (1, 2, 3):
+            raise ValueError("Le trimestre doit être 1, 2 ou 3")
+        return v
+
+    @field_validator("type_evaluation")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        if v not in VALID_TYPES:
+            raise ValueError("type_evaluation invalide")
+        return v
 
 
 class NoteUpdate(BaseModel):
     valeur: Optional[float] = None
     coefficient: Optional[float] = None
     commentaire: Optional[str] = None
+    trimestre: Optional[int] = None
+    type_evaluation: Optional[str] = None
 
 
 class NoteResponse(BaseModel):
@@ -45,6 +73,8 @@ class NoteResponse(BaseModel):
     valeur: float
     coefficient: float
     commentaire: Optional[str]
+    trimestre: int
+    type_evaluation: str
     date_creation: datetime
     date_saisie: datetime
 
@@ -91,9 +121,43 @@ def _note_to_response(note: Note) -> dict:
         "valeur": note.valeur,
         "coefficient": note.coefficient,
         "commentaire": note.description,
+        "trimestre": getattr(note, "trimestre", 1) or 1,
+        "type_evaluation": getattr(note, "type_evaluation", "sequence_1") or "sequence_1",
         "date_creation": note.date_creation,
         "date_saisie": note.date_saisie,
     }
+
+
+def _calc_moyenne_trimestre(seq1: Optional[Note], seq2: Optional[Note]) -> Optional[float]:
+    if not seq1 or not seq2:
+        return None
+    c1 = seq1.coefficient or 1.0
+    c2 = seq2.coefficient or 1.0
+    total_coef = c1 + c2
+    if total_coef <= 0:
+        return None
+    return round((seq1.valeur * c1 + seq2.valeur * c2) / total_coef, 2)
+
+
+def _find_note(
+    db: Session,
+    eleve_id: int,
+    matiere_id: int,
+    trimestre: int,
+    type_evaluation: str,
+    professeur_id: Optional[int] = None,
+) -> Optional[Note]:
+    query = db.query(Note).filter(
+        and_(
+            Note.eleve_id == eleve_id,
+            Note.matiere_id == matiere_id,
+            Note.trimestre == trimestre,
+            Note.type_evaluation == type_evaluation,
+        )
+    )
+    if professeur_id is not None:
+        query = query.filter(Note.professeur_id == professeur_id)
+    return query.first()
 
 
 def _verifier_periode_saisie(db: Session, classe_id: int, matiere_id: int) -> SaisieVerificationResponse:
@@ -160,6 +224,8 @@ def list_notes(
     eleve_id: Optional[int] = None,
     classe_id: Optional[int] = None,
     matiere_id: Optional[int] = None,
+    trimestre: Optional[int] = None,
+    type_evaluation: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
 ):
@@ -174,6 +240,12 @@ def list_notes(
         query = query.filter(Note.eleve_id == eleve_id)
     if matiere_id:
         query = query.filter(Note.matiere_id == matiere_id)
+    if trimestre:
+        query = query.filter(Note.trimestre == trimestre)
+    if type_evaluation:
+        if type_evaluation not in VALID_TYPES:
+            raise HTTPException(status_code=400, detail="type_evaluation invalide")
+        query = query.filter(Note.type_evaluation == type_evaluation)
 
     if role == "professeur":
         query = query.filter(Note.professeur_id == professeur_id)
@@ -184,7 +256,7 @@ def list_notes(
         eleves_classe = db.query(Eleve.id).filter(Eleve.classe_id == classe_id).subquery()
         query = query.filter(Note.eleve_id.in_(eleves_classe))
 
-    notes = query.order_by(Note.date_saisie.desc()).all()
+    notes = query.order_by(Note.trimestre, Note.type_evaluation, Note.date_saisie.desc()).all()
     return [_note_to_response(n) for n in notes]
 
 
@@ -239,13 +311,14 @@ def create_note(
 
     effective_professeur_id = professeur_id if role == "professeur" else attribution.professeur_id
 
-    existing_note = db.query(Note).filter(
-        and_(
-            Note.eleve_id == note_data.eleve_id,
-            Note.matiere_id == note_data.matiere_id,
-            Note.professeur_id == effective_professeur_id,
-        )
-    ).first()
+    existing_note = _find_note(
+        db,
+        note_data.eleve_id,
+        note_data.matiere_id,
+        note_data.trimestre,
+        note_data.type_evaluation,
+        professeur_id=effective_professeur_id,
+    )
 
     if existing_note:
         existing_note.valeur = note_data.valeur
@@ -260,6 +333,8 @@ def create_note(
         eleve_id=note_data.eleve_id,
         matiere_id=note_data.matiere_id,
         professeur_id=effective_professeur_id,
+        trimestre=note_data.trimestre,
+        type_evaluation=note_data.type_evaluation,
         valeur=note_data.valeur,
         coefficient=note_data.coefficient,
         description=note_data.commentaire,
@@ -409,6 +484,87 @@ def verifier_periode(
 ):
     """Vérifie si la saisie est autorisée pour une classe/matière."""
     return _verifier_periode_saisie(db, classe_id, matiere_id)
+
+
+@router.get("/export/csv")
+def export_notes_csv(
+    classe_id: int,
+    matiere_id: int,
+    trimestre: Optional[int] = None,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_tenant_session),
+):
+    """Exporte les notes d'une classe/matière au format CSV."""
+    _require_professor_or_admin(current_user)
+    role = current_user.get("role")
+    professeur_id = current_user.get("id")
+
+    classe = db.query(Classe).filter(Classe.id == classe_id).first()
+    matiere = db.query(Matiere).filter(Matiere.id == matiere_id).first()
+    if not classe or not matiere:
+        raise HTTPException(status_code=404, detail="Classe ou matière introuvable")
+
+    eleves = db.query(Eleve).filter(Eleve.classe_id == classe_id).order_by(Eleve.nom, Eleve.prenom).all()
+    if not eleves:
+        raise HTTPException(status_code=404, detail="Aucun élève dans cette classe")
+
+    trimestres = [trimestre] if trimestre else [1, 2, 3]
+
+    query = db.query(Note).filter(
+        and_(
+            Note.matiere_id == matiere_id,
+            Note.eleve_id.in_([e.id for e in eleves]),
+        )
+    )
+    if trimestre:
+        query = query.filter(Note.trimestre == trimestre)
+    if role == "professeur":
+        query = query.filter(Note.professeur_id == professeur_id)
+
+    all_notes = query.all()
+    notes_index = {}
+    for n in all_notes:
+        notes_index[(n.eleve_id, n.trimestre, n.type_evaluation)] = n
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow([
+        "Nom", "Prénom", "Matricule", "Classe", "Matière", "Trimestre",
+        "Note 1ère séq.", "Coef. 1ère séq.",
+        "Note 2ème séq.", "Coef. 2ème séq.",
+        "Note trimestrielle", "Coef. trim.",
+        "Moyenne calculée",
+    ])
+
+    for eleve in eleves:
+        for tri in trimestres:
+            seq1 = notes_index.get((eleve.id, tri, "sequence_1"))
+            seq2 = notes_index.get((eleve.id, tri, "sequence_2"))
+            trim_note = notes_index.get((eleve.id, tri, "trimestre"))
+            moyenne = _calc_moyenne_trimestre(seq1, seq2)
+            writer.writerow([
+                eleve.nom,
+                eleve.prenom,
+                eleve.matricule,
+                classe.nom,
+                matiere.nom,
+                tri,
+                seq1.valeur if seq1 else "",
+                seq1.coefficient if seq1 else "",
+                seq2.valeur if seq2 else "",
+                seq2.coefficient if seq2 else "",
+                trim_note.valeur if trim_note else "",
+                trim_note.coefficient if trim_note else "",
+                moyenne if moyenne is not None else "",
+            ])
+
+    output.seek(0)
+    filename = f"notes_{classe.nom}_{matiere.code}_T{trimestre or 'all'}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ──────────────────────────────────────────────────────────

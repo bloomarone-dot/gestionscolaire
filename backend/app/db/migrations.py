@@ -16,6 +16,11 @@ SCHOOL_COLUMN_MIGRATIONS = [
     ("secondary_color", "VARCHAR(7) DEFAULT '#f59e0b'"),
 ]
 
+NOTE_COLUMN_MIGRATIONS = [
+    ("trimestre", "INTEGER DEFAULT 1"),
+    ("type_evaluation", "VARCHAR(20) DEFAULT 'sequence_1'"),
+]
+
 PERIODE_NOTE_COLUMNS = [
     ("classe_id", "INTEGER"),
     ("matiere_id", "INTEGER"),
@@ -44,6 +49,20 @@ def run_master_migrations(engine: Engine) -> None:
                 )
 
         conn.commit()
+
+
+def _migrate_notes_columns(conn) -> None:
+    existing_notes = {
+        row[1]
+        for row in conn.execute(text("PRAGMA table_info(notes)")).fetchall()
+    }
+    if "id" not in existing_notes:
+        return
+    for column_name, column_type in NOTE_COLUMN_MIGRATIONS:
+        if column_name not in existing_notes:
+            conn.execute(
+                text(f"ALTER TABLE notes ADD COLUMN {column_name} {column_type}")
+            )
 
 
 def run_tenant_migrations(engine: Engine) -> None:
@@ -76,4 +95,5 @@ def run_tenant_migrations(engine: Engine) -> None:
                         text(f"ALTER TABLE periodes_saisie_notes ADD COLUMN {column_name} {column_type}")
                     )
 
+        _migrate_notes_columns(conn)
         conn.commit()

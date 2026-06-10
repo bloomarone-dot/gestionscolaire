@@ -28,10 +28,60 @@
 .notes-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
+}
+
+.notes-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.notes-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.notes-period-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.notes-period-badge {
+  display: inline-flex;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: var(--success);
+}
+
+.notes-period-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.moyenne-calc-cell {
+  font-weight: 600;
+}
+
+.moyenne-calc-value {
+  color: var(--accent-400);
+}
+
+.btn-calc {
+  font-size: 0.9rem;
 }
 
 .notes-header h2 {

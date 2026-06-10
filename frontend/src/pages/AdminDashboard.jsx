@@ -10,6 +10,7 @@ import ElevesList from '../components/ElevesList';
 import AdminStatsCards from '../components/AdminStatsCards';
 import AdminNotesPage from './AdminNotesPage';
 import AdminPeriodeSaisiePage from './AdminPeriodeSaisiePage';
+import AdminBulletinsPage from './AdminBulletinsPage';
 import * as api from '../api/api';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import '../styles/admin-dashboard.css';
@@ -122,6 +123,7 @@ export default function AdminDashboard() {
           {activeTab === 'eleves' && <ElevesList />}
           {activeTab === 'saisie-notes' && <AdminNotesPage />}
           {activeTab === 'fenetre-notes' && <AdminPeriodeSaisiePage />}
+          {activeTab === 'bulletins' && <AdminBulletinsPage />}
         </div>
       </div>
     </div>

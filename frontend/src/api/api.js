@@ -82,14 +82,41 @@ export async function addNote(eleve_id, matiere_id, valeur, justification) {
   );
 }
 
-export async function fetchNotes({ eleve_id, classe_id, matiere_id } = {}) {
+export async function fetchNotes({ eleve_id, classe_id, matiere_id, trimestre, type_evaluation } = {}) {
   const params = new URLSearchParams();
   if (eleve_id) params.set('eleve_id', String(eleve_id));
   if (classe_id) params.set('classe_id', String(classe_id));
   if (matiere_id) params.set('matiere_id', String(matiere_id));
+  if (trimestre) params.set('trimestre', String(trimestre));
+  if (type_evaluation) params.set('type_evaluation', type_evaluation);
   const url = params.toString() ? `/notes/?${params}` : '/notes/';
   const res = await fetch(url, { headers: getHeaders() });
   return handleResponse(res);
+}
+
+export async function exportNotesCsv(classeId, matiereId, trimestre = null) {
+  const params = new URLSearchParams({
+    classe_id: String(classeId),
+    matiere_id: String(matiereId),
+  });
+  if (trimestre) params.set('trimestre', String(trimestre));
+  const res = await fetch(`/notes/export/csv?${params}`, { headers: getHeaders() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Erreur export' }));
+    throw new Error(formatApiError(err.detail));
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match?.[1] || `notes_export.csv`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 export async function updateNote(noteId, updates, justification) {
@@ -151,35 +178,98 @@ export async function deletePeriodeSaisie(periodeId) {
 }
 
 // ── Bulletin ──────────────────────────────────────────────
-export async function fetchBulletin(eleve_id) {
-  const [eleves, notes, matieres] = await Promise.all([
-    fetchEleves_admin(),
-    fetchNotes({ eleve_id }),
-    fetchMatieres(),
-  ]);
-
-  const eleve = eleves.find((e) => e.id === eleve_id);
-  if (!eleve) {
-    return { error: 'Élève non trouvé' };
+async function downloadFileResponse(res, fallbackName) {
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Erreur export' }));
+    throw new Error(formatApiError(err.detail));
   }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match?.[1] || fallbackName;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
-  const matiereMap = Object.fromEntries(matieres.map((m) => [m.id, m.nom]));
-  const details_notes = notes.map((n) => ({
-    matiere: matiereMap[n.matiere_id] || '—',
-    note: n.valeur,
-  }));
+export async function fetchEleveBulletin(eleveId, trimestre = 1) {
+  const res = await fetch(`/bulletins/eleve/${eleveId}?trimestre=${trimestre}`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
 
-  const moyenne_generale = details_notes.length
-    ? Math.round(
-        (details_notes.reduce((sum, item) => sum + item.note, 0) / details_notes.length) * 100,
-      ) / 100
-    : 0;
+export async function fetchClasseBulletins(classeId, trimestre = 1) {
+  const res = await fetch(`/bulletins/classe/${classeId}?trimestre=${trimestre}`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
 
-  return {
-    eleve: `${eleve.nom} ${eleve.prenom}`,
-    moyenne_generale,
-    details_notes,
-  };
+export async function fetchBulletin(eleve_id, trimestre = 1) {
+  try {
+    return await fetchEleveBulletin(eleve_id, trimestre);
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+export async function exportEleveBulletinCsv(eleveId, trimestre = 1) {
+  const res = await fetch(`/bulletins/eleve/${eleveId}/export/csv?trimestre=${trimestre}`, {
+    headers: getHeaders(),
+  });
+  return downloadFileResponse(res, `bulletin_T${trimestre}.csv`);
+}
+
+export async function exportEleveBulletinPdf(eleveId, trimestre = 1) {
+  const res = await fetch(`/bulletins/eleve/${eleveId}/export/pdf?trimestre=${trimestre}`, {
+    headers: getHeaders(),
+  });
+  return downloadFileResponse(res, `bulletin_T${trimestre}.pdf`);
+}
+
+export async function exportClasseBulletinsCsv(classeId, trimestre = 1) {
+  const res = await fetch(`/bulletins/classe/${classeId}/export/csv?trimestre=${trimestre}`, {
+    headers: getHeaders(),
+  });
+  return downloadFileResponse(res, `bulletins_T${trimestre}.csv`);
+}
+
+export async function exportClasseBulletinsXlsx(classeId, trimestre = 1) {
+  const res = await fetch(`/bulletins/classe/${classeId}/export/xlsx?trimestre=${trimestre}`, {
+    headers: getHeaders(),
+  });
+  return downloadFileResponse(res, `bulletins_T${trimestre}.xlsx`);
+}
+
+export async function downloadBulletinImportTemplate() {
+  const res = await fetch('/bulletins/import/template.xlsx', {
+    headers: getHeaders(),
+  });
+  return downloadFileResponse(res, 'modele_import_bulletins.xlsx');
+}
+
+export async function importBulletinsXlsx(classeId, trimestre, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const headers = {};
+  const token = localStorage.getItem('access_token');
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const selectedSchool = JSON.parse(localStorage.getItem('selectedSchool') || 'null');
+  if (user?.role === 'superadmin' && selectedSchool?.id) {
+    headers['X-School-Id'] = String(selectedSchool.id);
+  }
+  const res = await fetch(
+    `/bulletins/import/xlsx?classe_id=${classeId}&trimestre=${trimestre}`,
+    { method: 'POST', headers, body: formData },
+  );
+  return handleResponse(res);
 }
 
 // ── Établissements ────────────────────────────────────────
@@ -368,20 +458,18 @@ export async function getProfessorStats() {
   return handleResponse(res);
 }
 
-export async function getClassNotes(classeId, matiereId = null) {
-  let url = `/professor/classes/${classeId}/notes`;
-  if (matiereId) {
-    url += `?matiere_id=${matiereId}`;
-  }
-  const res = await fetch(url, { headers: getHeaders() });
+export async function getClassNotes(classeId, matiereId = null, trimestre = null, type_evaluation = null) {
+  const params = new URLSearchParams();
+  if (matiereId) params.set('matiere_id', String(matiereId));
+  if (trimestre) params.set('trimestre', String(trimestre));
+  if (type_evaluation) params.set('type_evaluation', type_evaluation);
+  const query = params.toString() ? `?${params}` : '';
+  const res = await fetch(`/professor/classes/${classeId}/notes${query}`, { headers: getHeaders() });
   return handleResponse(res);
 }
 
-export async function getEleveBulletin(eleveId) {
-  const res = await fetch(`/professor/bulletins/${eleveId}`, {
-    headers: getHeaders()
-  });
-  return handleResponse(res);
+export async function getEleveBulletin(eleveId, trimestre = 1) {
+  return fetchEleveBulletin(eleveId, trimestre);
 }
 
 export async function generateBulletin(eleveId) {

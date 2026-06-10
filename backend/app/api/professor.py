@@ -12,7 +12,7 @@ from app.models.school import (
     Professeur, Classe, Matiere, AttributionProfesseur,
     Eleve, Note, Bulletin, AnneeScolaire
 )
-from app.api.notes import _verifier_periode_saisie
+from app.api.notes import _verifier_periode_saisie, _find_note, VALID_TYPES
 
 router = APIRouter(prefix="/professor", tags=["Professor"])
 
@@ -25,6 +25,8 @@ def _note_to_response(note: Note) -> dict:
         "valeur": note.valeur,
         "coefficient": note.coefficient,
         "commentaire": note.description,
+        "trimestre": getattr(note, "trimestre", 1) or 1,
+        "type_evaluation": getattr(note, "type_evaluation", "sequence_1") or "sequence_1",
         "date_creation": note.date_creation,
         "professeur_id": note.professeur_id,
     }
@@ -67,6 +69,8 @@ class NoteCreate(BaseModel):
     valeur: float
     coefficient: Optional[float] = 1.0
     commentaire: Optional[str] = None
+    trimestre: int = 1
+    type_evaluation: str = "sequence_1"
 
 
 class NoteResponse(BaseModel):
@@ -76,6 +80,8 @@ class NoteResponse(BaseModel):
     valeur: float
     coefficient: float
     commentaire: Optional[str]
+    trimestre: int
+    type_evaluation: str
     date_creation: datetime
     professeur_id: int
 
@@ -172,6 +178,10 @@ async def create_note(
 
     if note_data.valeur < 0 or note_data.valeur > 20:
         raise HTTPException(status_code=400, detail="Note doit être entre 0 et 20")
+    if note_data.trimestre not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="Trimestre invalide (1, 2 ou 3)")
+    if note_data.type_evaluation not in VALID_TYPES:
+        raise HTTPException(status_code=400, detail="Type d'évaluation invalide")
 
     attribution = db.query(AttributionProfesseur).filter(
         and_(
@@ -201,13 +211,14 @@ async def create_note(
             detail=f"Délai de saisie dépassé{fin}. Contactez l'administrateur.",
         )
 
-    existing_note = db.query(Note).filter(
-        and_(
-            Note.eleve_id == note_data.eleve_id,
-            Note.matiere_id == note_data.matiere_id,
-            Note.professeur_id == professeur_id,
-        )
-    ).first()
+    existing_note = _find_note(
+        db,
+        note_data.eleve_id,
+        note_data.matiere_id,
+        note_data.trimestre,
+        note_data.type_evaluation,
+        professeur_id=professeur_id,
+    )
 
     if existing_note:
         existing_note.valeur = note_data.valeur
@@ -222,6 +233,8 @@ async def create_note(
         eleve_id=note_data.eleve_id,
         matiere_id=note_data.matiere_id,
         professeur_id=professeur_id,
+        trimestre=note_data.trimestre,
+        type_evaluation=note_data.type_evaluation,
         valeur=note_data.valeur,
         coefficient=note_data.coefficient,
         description=note_data.commentaire,
@@ -239,6 +252,8 @@ async def create_note(
 async def get_class_notes(
     classe_id: int,
     matiere_id: Optional[int] = None,
+    trimestre: Optional[int] = None,
+    type_evaluation: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_tenant_session),
 ):
@@ -259,8 +274,14 @@ async def get_class_notes(
 
     if matiere_id:
         query = query.filter(Note.matiere_id == matiere_id)
+    if trimestre:
+        query = query.filter(Note.trimestre == trimestre)
+    if type_evaluation:
+        if type_evaluation not in VALID_TYPES:
+            raise HTTPException(status_code=400, detail="type_evaluation invalide")
+        query = query.filter(Note.type_evaluation == type_evaluation)
 
-    notes = query.all()
+    notes = query.order_by(Note.trimestre, Note.type_evaluation).all()
     return [_note_to_response(n) for n in notes]
 
 

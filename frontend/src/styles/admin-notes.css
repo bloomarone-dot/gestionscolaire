@@ -13,7 +13,14 @@
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-notes-intro {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
   margin: 0 0 1.5rem 0;
+  max-width: 720px;
 }
 
 .admin-notes-filters,
