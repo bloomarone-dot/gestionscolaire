@@ -1,0 +1,152 @@
+.prof-bulletins {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.prof-bulletins-steps {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bulletin-step {
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.bulletin-step.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--success);
+}
+
+.bulletin-step.done {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--accent-400);
+}
+
+.prof-bulletins-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.5rem;
+  min-height: 400px;
+}
+
+.prof-bulletins-sidebar {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+
+.prof-bulletins-sidebar h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.bulletin-classe-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.bulletin-classe-btn {
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bulletin-classe-btn small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bulletin-classe-btn:hover,
+.bulletin-classe-btn.active {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--text-primary);
+}
+
+.prof-bulletins-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.eleves-picker h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.eleves-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.eleve-chip {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.eleve-chip:hover,
+.eleve-chip.active {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: var(--accent-400);
+}
+
+.bulletin-card-animated {
+  animation: heroFadeIn 0.4s ease-out;
+}
+
+.bulletin-body {
+  padding: 1rem 1.5rem 1.5rem;
+}
+
+.note-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.note-badge.excellent { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+.note-badge.bien { background: rgba(245, 158, 11, 0.15); color: var(--accent-400); }
+.note-badge.passable { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+.note-badge.insuffisant { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+@media (max-width: 768px) {
+  .prof-bulletins-layout {
+    grid-template-columns: 1fr;
+  }
+}

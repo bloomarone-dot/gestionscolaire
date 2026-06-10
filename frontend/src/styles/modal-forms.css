@@ -1,0 +1,84 @@
+/* ======================================================
+   Modal Forms Styles
+   ====================================================== */
+
+.modal-md {
+  max-width: 550px;
+}
+
+.modal-lg {
+  max-width: 720px;
+}
+
+.attribution-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.attribution-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.attribution-card.selected {
+  border-color: var(--primary-500);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.attribution-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+}
+
+.matiere-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.chip.checked {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: var(--primary-500);
+  color: var(--primary-300);
+}
+
+.chip-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .modal-md {
+    max-width: 92vw;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .attribution-grid {
+    grid-template-columns: 1fr;
+  }
+}

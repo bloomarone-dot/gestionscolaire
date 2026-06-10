@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+backend/venv/
+backend/venv_linux/
+backend/.run_seed_venv/
+
+# Bases de données locales
+*.db
+*.sqlite
+*.sqlite3
+tenants/
+backend/tenants/
+data/
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+
+# Environnement
+.env
+.env.*
+!.env.example
+
+# IDE / outils
+.vscode/
+.idea/
+.kilocode/
+.cursor/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
