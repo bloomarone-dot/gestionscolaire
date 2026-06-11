@@ -14,6 +14,7 @@ import AdminBulletinsPage from './AdminBulletinsPage';
 import AdminBulletinSettingsPage from './AdminBulletinSettingsPage';
 import * as api from '../api/api';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
+import { loadAdminWorkspace, saveAdminWorkspace } from '../utils/draftStorage';
 import '../styles/admin-dashboard.css';
 import '../styles/dashboard-shared.css';
 
@@ -37,7 +38,7 @@ const ADMIN_SETUP_STEPS = [
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('accueil');
+  const [activeTab, setActiveTab] = useState(() => loadAdminWorkspace()?.activeTab || 'accueil');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -62,6 +63,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadStats();
   }, [loadStats]);
+
+  useEffect(() => {
+    saveAdminWorkspace(activeTab);
+  }, [activeTab]);
 
   useSchoolBranding(stats);
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import * as api from '../../api/api';
 import CreateSchoolModal from '../../components/CreateSchoolModal';
 import SchoolDetailModal from '../../components/SchoolDetailModal';
+import CitySelect from '../../components/CitySelect';
 
 export default function SuperAdminSchoolsPage() {
   const [schools, setSchools] = useState([]);
@@ -227,7 +228,7 @@ function EditSchoolModal({ school, onClose, onSaved }) {
 
   const REQUIRED_FIELDS = new Set([
     'name', 'email', 'phone', 'address', 'city', 'postal_code',
-    'directeur_first_name', 'directeur_last_name',
+    'directeur_first_name',
   ]);
 
   const FIELD_LABELS = {
@@ -237,8 +238,8 @@ function EditSchoolModal({ school, onClose, onSaved }) {
     address: 'Adresse',
     city: 'Ville',
     postal_code: 'Code postal',
-    directeur_first_name: 'Prénom directeur',
-    directeur_last_name: 'Nom directeur',
+    directeur_first_name: 'Nom directeur',
+    directeur_last_name: 'Prénom directeur',
     directeur_email: 'Email directeur',
     directeur_phone: 'Téléphone directeur',
   };
@@ -270,12 +271,21 @@ function EditSchoolModal({ school, onClose, onSaved }) {
             <div className="sa-empty">Chargement...</div>
           ) : ['name', 'email', 'phone', 'address', 'city', 'postal_code', 'directeur_first_name', 'directeur_last_name', 'directeur_email', 'directeur_phone'].map((field) => (
             <div key={field} className="form-group">
-              <label>{FIELD_LABELS[field]}</label>
-              <input
-                value={form[field]}
-                onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-                required={REQUIRED_FIELDS.has(field)}
-              />
+              <label>{FIELD_LABELS[field]}{REQUIRED_FIELDS.has(field) ? ' *' : ''}</label>
+              {field === 'city' ? (
+                <CitySelect
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  required={REQUIRED_FIELDS.has(field)}
+                />
+              ) : (
+                <input
+                  type={field.includes('email') ? 'email' : field === 'phone' || field.includes('phone') ? 'tel' : 'text'}
+                  value={form[field]}
+                  onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+                  required={REQUIRED_FIELDS.has(field)}
+                />
+              )}
             </div>
           ))}
           <div className="modal-actions">

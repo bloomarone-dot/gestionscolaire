@@ -9,6 +9,7 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
     prenom: '',
     email: '',
     phone: '',
+    phone2: '',
     specialite: '',
     matricule: '',
     username: '',
@@ -21,6 +22,7 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
   const [selectedMatieresByClass, setSelectedMatieresByClass] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
   useEffect(() => {
     let cancelled = false;
     Promise.all([api.fetchClasses(), api.fetchMatieres()])
@@ -33,9 +35,7 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Impossible de charger les classes/matières');
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const handleChange = (e) => {
@@ -69,10 +69,12 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
     e.preventDefault();
     setError('');
 
-    const requiredFields = ['nom', 'prenom', 'email', 'matricule'];
-    const missing = requiredFields.filter((field) => !formData[field]?.trim());
-    if (missing.length > 0) {
-      setError(`Champs obligatoires manquants : ${missing.join(', ')}`);
+    if (!formData.nom?.trim()) {
+      setError('Le nom est obligatoire.');
+      return;
+    }
+    if (!formData.matricule?.trim()) {
+      setError('Le matricule est obligatoire.');
       return;
     }
 
@@ -88,7 +90,7 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
               professeur_id: created.id,
               classe_id: classId,
               matiere_id: matiereId,
-            })
+            }),
           );
         });
       });
@@ -110,14 +112,14 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
     [classes, formData.section],
   );
 
-  const canSubmit = !loading && formData.nom && formData.prenom && formData.email && formData.matricule;
+  const canSubmit = !loading && formData.nom?.trim() && formData.matricule?.trim();
 
   return (
     <div className="modal-overlay">
       <div className="modal modal-lg">
         <div className="modal-header">
           <h2>Créer un professeur</h2>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button type="button" className="close-btn" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -127,44 +129,45 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
             <h3>Identité</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Prénom *</label>
-                <input type="text" name="prenom" value={formData.prenom} onChange={handleChange} required />
-              </div>
-              <div className="form-group">
                 <label>Nom *</label>
                 <input type="text" name="nom" value={formData.nom} onChange={handleChange} required />
+              </div>
+              <div className="form-group">
+                <label>Prénom</label>
+                <input type="text" name="prenom" value={formData.prenom} onChange={handleChange} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Email *</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+                <label>Email</label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Téléphone</label>
+                <label>Téléphone 1</label>
                 <input type="tel" name="phone" value={formData.phone} onChange={handleChange} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
+                <label>Téléphone 2</label>
+                <input type="tel" name="phone2" value={formData.phone2} onChange={handleChange} />
+              </div>
+              <div className="form-group">
                 <label>Matricule *</label>
                 <input type="text" name="matricule" value={formData.matricule} onChange={handleChange} required />
               </div>
-              <div className="form-group">
-                <label>Spécialité</label>
-                <input type="text" name="specialite" value={formData.specialite} onChange={handleChange} />
-              </div>
+            </div>
+            <div className="form-group">
+              <label>Spécialité</label>
+              <input type="text" name="specialite" value={formData.specialite} onChange={handleChange} />
             </div>
             <div className="form-group">
               <label>Section d&apos;enseignement *</label>
               <select name="section" value={formData.section} onChange={handleChange} required>
                 {PROF_SECTION_OPTIONS.map((s) => (
-                  <option key={s.value} value={s.value}>{s.flag} {s.label}</option>
+                  <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
-              <p className="form-section-hint">
-                Le professeur ne pourra être attribué qu&apos;aux classes de sa section (sauf « les deux »).
-              </p>
             </div>
           </div>
 
@@ -172,8 +175,8 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
             <h3>Compte</h3>
             <div className="form-row">
               <div className="form-group">
-                <label>Nom d'utilisateur</label>
-                <input type="text" name="username" value={formData.username} onChange={handleChange} />
+                <label>Nom d&apos;utilisateur</label>
+                <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder="Par défaut : matricule" />
               </div>
               <div className="form-group">
                 <label>Mot de passe</label>
@@ -184,10 +187,8 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
 
           <div className="form-section">
             <h3>Attribution classes / matières</h3>
-            <p className="form-section-hint">Cochez les classes puis les matières à attribuer à ce professeur.</p>
-
             {visibleClasses.length === 0 ? (
-              <div className="form-error">Aucune classe compatible avec cette section. Créez une classe d&apos;abord.</div>
+              <div className="form-error">Aucune classe compatible avec cette section.</div>
             ) : (
               <div className="attribution-grid">
                 {visibleClasses.map((classe) => {
@@ -201,7 +202,7 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
                           checked={classChecked}
                           onChange={() => handleClassToggle(classe.id)}
                         />
-                        <span>{classe.nom} — {classe.section === 'anglophone' ? '🇬🇧 EN' : '🇫🇷 FR'}</span>
+                        <span>{classe.nom} — {classe.section === 'anglophone' ? 'Anglophone' : 'Francophone'}</span>
                       </label>
                       {classChecked && (
                         <div className="matiere-chips">
@@ -218,9 +219,6 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
                               </label>
                             );
                           })}
-                          {classMatieres.length === 0 && (
-                            <span className="chip-empty">Aucune matière sélectionnée</span>
-                          )}
                         </div>
                       )}
                     </div>

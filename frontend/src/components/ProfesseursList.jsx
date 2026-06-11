@@ -1,15 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import CreateProfesseurModal from './CreateProfesseurModal';
+import ResetCredentialsModal from './ResetCredentialsModal';
 import { getSectionLabel } from '../utils/sections';
 import AttributeProfesseurModal from './AttributeProfesseurModal';
 import * as api from '../api/api';
 import '../styles/professeurs-list.css';
+
+function formatEmail(email) {
+  return email?.includes('@edusaas.local') ? '—' : (email || '—');
+}
 
 export default function ProfesseursList() {
   const [professeurs, setProfesseurs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAttributeModal, setShowAttributeModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
   const [selectedProf, setSelectedProf] = useState(null);
 
   const loadProfesseurs = useCallback(async () => {
@@ -76,13 +82,25 @@ export default function ProfesseursList() {
 
               <div className="prof-info">
                 <p><strong>Matricule:</strong> {prof.matricule}</p>
-                <p><strong>Email:</strong> {prof.email}</p>
-                {prof.phone && <p><strong>Téléphone:</strong> {prof.phone}</p>}
+                <p><strong>Identifiant:</strong> {prof.username || prof.matricule}</p>
+                <p><strong>Email:</strong> {formatEmail(prof.email)}</p>
+                {prof.phone && <p><strong>Téléphone 1:</strong> {prof.phone}</p>}
+                {prof.phone2 && <p><strong>Téléphone 2:</strong> {prof.phone2}</p>}
                 {prof.specialite && <p><strong>Spécialité:</strong> {prof.specialite}</p>}
                 <p><strong>Section:</strong> {getSectionLabel(prof.section || 'francophone')}</p>
               </div>
 
               <div className="prof-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setSelectedProf(prof);
+                    setShowResetModal(true);
+                  }}
+                >
+                  Réinitialiser identifiants
+                </button>
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => {
@@ -109,6 +127,19 @@ export default function ProfesseursList() {
         <CreateProfesseurModal
           onClose={() => setShowCreateModal(false)}
           onCreated={handleProfesseurCreated}
+        />
+      )}
+
+      {showResetModal && selectedProf && (
+        <ResetCredentialsModal
+          title="Réinitialiser les identifiants"
+          subtitle={`Professeur : ${selectedProf.prenom || ''} ${selectedProf.nom}`.trim()}
+          currentUsername={selectedProf.username || selectedProf.matricule}
+          onClose={() => {
+            setShowResetModal(false);
+            setSelectedProf(null);
+          }}
+          onSubmit={(payload) => api.resetProfesseurCredentials(selectedProf.id, payload)}
         />
       )}
 

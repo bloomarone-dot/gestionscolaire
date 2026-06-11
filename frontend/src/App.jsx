@@ -15,6 +15,7 @@ import SuperAdminSettingsPage from './pages/superadmin/SuperAdminSettingsPage';
 import ElevesPage from './pages/ElevesPage';
 import NotesPage from './pages/NotesPage';
 import BulletinPage from './pages/BulletinPage';
+import OfflineBanner from './components/OfflineBanner';
 
 function ProtectedLayout({ children }) {
   const { isAuthenticated, user } = useAuth();
@@ -103,6 +104,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
+        <OfflineBanner />
       </AuthProvider>
     </BrowserRouter>
   );

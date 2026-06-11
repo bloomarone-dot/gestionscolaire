@@ -7,13 +7,15 @@ import ProfessorHeader from '../components/ProfessorHeader';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import NotesEntry from '../components/NotesEntry';
 import ProfessorMesEleves from '../components/ProfessorMesEleves';
+import { loadProfessorWorkspace, saveProfessorWorkspace } from '../utils/draftStorage';
 import '../styles/professor-dashboard.css';
 import '../styles/professor-workspace.css';
 
 export default function ProfessorDashboard() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('accueil');
+  const savedWorkspace = loadProfessorWorkspace();
+  const [activeSection, setActiveSection] = useState(savedWorkspace?.activeSection || 'accueil');
   const [enseignements, setEnseignements] = useState([]);
   const [selectedClasse, setSelectedClasse] = useState(null);
   const [selectedMatiere, setSelectedMatiere] = useState(null);
@@ -42,7 +44,18 @@ export default function ProfessorDashboard() {
       .then((data) => {
         const mats = data.matieres || [];
         setEnseignements(mats);
-        if (mats.length > 0 && mats[0].classes?.length > 0) {
+        const ws = loadProfessorWorkspace();
+        if (ws?.matiereId && ws?.classeId) {
+          const mat = mats.find((m) => m.id === ws.matiereId);
+          const cls = mat?.classes?.find((c) => c.id === ws.classeId);
+          if (mat && cls) {
+            setSelectedMatiere(mat);
+            setSelectedClasse(cls);
+            setActiveSection(ws.activeSection || 'notes');
+            return;
+          }
+        }
+        if (mats.length > 0 && mats[0].classes?.length > 0 && !ws) {
           setSelectedMatiere(mats[0]);
           setSelectedClasse(mats[0].classes[0]);
           setActiveSection('notes');
@@ -50,6 +63,15 @@ export default function ProfessorDashboard() {
       })
       .catch(console.error);
   }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'professeur') return;
+    saveProfessorWorkspace({
+      activeSection,
+      matiereId: selectedMatiere?.id || null,
+      classeId: selectedClasse?.id || null,
+    });
+  }, [activeSection, selectedMatiere, selectedClasse, isAuthenticated, user]);
 
   const handleSelectTeaching = (classe, matiere) => {
     setSelectedClasse(classe);

@@ -172,6 +172,7 @@ class Professeur(Base):
     prenom = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     phone = Column(String(20), nullable=True)
+    phone2 = Column(String(20), nullable=True)
     specialite = Column(String(100), nullable=True)  # Ex: "Mathématiques"
     
     # Identifiants

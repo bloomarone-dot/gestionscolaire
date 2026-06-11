@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as api from '../api/api';
 import '../styles/admin-bulletin-settings.css';
 
-const MAX_LOGO_SIZE = 500 * 1024;
+import { compressImageFile } from '../utils/imageCompress';
 
 const DEFAULT_DELEGATION_EN = `REPUBLIC OF CAMEROON
 Peace – Work – Fatherland
@@ -71,16 +71,16 @@ export default function AdminBulletinSettingsPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > MAX_LOGO_SIZE) {
-      setError('Logo trop volumineux (max 500 Ko)');
-      return;
+    try {
+      setError('');
+      const dataUrl = await compressImageFile(file);
+      setForm((prev) => ({ ...prev, logo_url: dataUrl }));
+    } catch (err) {
+      setError(err.message || 'Impossible de traiter l\'image');
     }
-    const reader = new FileReader();
-    reader.onload = () => setForm((prev) => ({ ...prev, logo_url: reader.result }));
-    reader.readAsDataURL(file);
   };
 
   const handleSaveSettings = async (e) => {

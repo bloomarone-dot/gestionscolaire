@@ -41,7 +41,7 @@ export default function ElevesList() {
       const matchSearch =
         !search ||
         e.nom.toLowerCase().includes(search.toLowerCase()) ||
-        e.prenom.toLowerCase().includes(search.toLowerCase()) ||
+        (e.prenom || '').toLowerCase().includes(search.toLowerCase()) ||
         e.matricule.toLowerCase().includes(search.toLowerCase());
       const matchClasse = !filterClasse || String(e.classe_id) === filterClasse;
       const matchSection = !filterSection || e.section === filterSection;
@@ -355,12 +355,11 @@ function EleveModal({ eleve, classes, onClose, onSaved }) {
               />
             </div>
             <div className="form-group">
-              <label>Prénom *</label>
+              <label>Prénom</label>
               <input
                 value={form.prenom}
                 onChange={(e) => setForm({ ...form, prenom: e.target.value })}
-                required
-                placeholder="Prénom"
+                placeholder="Prénom (facultatif)"
               />
             </div>
           </div>
@@ -385,7 +384,7 @@ function EleveModal({ eleve, classes, onClose, onSaved }) {
               required
             >
               {SECTION_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>{s.flag} {s.label}</option>
+                <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
             <small className="form-section-hint">Détermine la langue du bulletin et les classes disponibles.</small>

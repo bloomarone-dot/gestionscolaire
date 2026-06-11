@@ -28,17 +28,20 @@ class SchoolCreate(BaseModel):
     city: str
     postal_code: str
     directeur_first_name: str
-    directeur_last_name: str
+    directeur_last_name: Optional[str] = ""
     directeur_email: Optional[EmailStr] = None
     directeur_phone: Optional[str] = None
+    directeur_phone2: Optional[str] = None
     logo_url: Optional[str] = None
     primary_color: Optional[str] = "#10b981"
     secondary_color: Optional[str] = "#f59e0b"
     admin_username: str
-    admin_email: EmailStr
+    admin_email: Optional[EmailStr] = None
     admin_password: str
     admin_first_name: str
-    admin_last_name: str
+    admin_last_name: Optional[str] = ""
+    admin_phone: Optional[str] = None
+    admin_phone2: Optional[str] = None
     # Connexion SQL Server dédiée (une base par établissement — style Sage 100)
     use_default_db_server: bool = True
     db_host: Optional[str] = None
@@ -216,14 +219,28 @@ def create_school(
         )
     
     try:
+        from app.services.account_helpers import optional_email
+
+        admin_email = optional_email(
+            school_data.admin_email,
+            school_data.admin_username,
+            prefix="admin",
+        )
+        existing_admin_email = db.query(Admin).filter(Admin.email == admin_email).first()
+        if existing_admin_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cet email admin est déjà utilisé",
+            )
+
         # 1. Créer l'admin de l'établissement
         admin = Admin(
             username=school_data.admin_username,
-            email=school_data.admin_email,
+            email=admin_email,
             hashed_password=hash_password(school_data.admin_password),
             first_name=school_data.admin_first_name,
-            last_name=school_data.admin_last_name,
-            role="admin"
+            last_name=(school_data.admin_last_name or "").strip(),
+            role="admin",
         )
         db.add(admin)
         db.flush()  # Récupérer l'ID de l'admin

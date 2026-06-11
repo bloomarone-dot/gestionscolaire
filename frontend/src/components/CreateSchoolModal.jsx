@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import * as api from '../api/api';
+import CitySelect from './CitySelect';
+import { compressImageFile } from '../utils/imageCompress';
 import '../styles/create-school-modal.css';
-
-const MAX_LOGO_SIZE = 500 * 1024;
 
 export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
   const [formData, setFormData] = useState({
@@ -67,25 +67,16 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
     }
   };
 
-  const handleLogoChange = (e) => {
+  const handleLogoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setError('Veuillez sélectionner une image (PNG, JPG, SVG…).');
-      return;
-    }
-    if (file.size > MAX_LOGO_SIZE) {
-      setError('Le logo ne doit pas dépasser 500 Ko.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev) => ({ ...prev, logo_url: reader.result }));
+    try {
       setError('');
-    };
-    reader.readAsDataURL(file);
+      const dataUrl = await compressImageFile(file);
+      setFormData((prev) => ({ ...prev, logo_url: dataUrl }));
+    } catch (err) {
+      setError(err.message || 'Impossible de traiter l\'image');
+    }
   };
 
   const getDbPayload = () => {
@@ -213,13 +204,11 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
               </div>
               <div className="form-group">
                 <label>Ville *</label>
-                <input
-                  type="text"
+                <CitySelect
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
                   required
-                  placeholder="Yaoundé"
                 />
               </div>
             </div>
@@ -446,25 +435,24 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
             <p className="form-section-hint">Identité du directeur (distincte du compte administrateur IT)</p>
             <div className="form-row">
               <div className="form-group">
-                <label>Prénom *</label>
+                <label>Nom *</label>
                 <input
                   type="text"
                   name="directeur_first_name"
                   value={formData.directeur_first_name}
                   onChange={handleChange}
                   required
-                  placeholder="Marie"
+                  placeholder="Nom du directeur"
                 />
               </div>
               <div className="form-group">
-                <label>Nom *</label>
+                <label>Prénom</label>
                 <input
                   type="text"
                   name="directeur_last_name"
                   value={formData.directeur_last_name}
                   onChange={handleChange}
-                  required
-                  placeholder="Martin"
+                  placeholder="Prénom (facultatif)"
                 />
               </div>
             </div>
@@ -497,25 +485,24 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
             <p className="form-section-hint">Compte de connexion pour la gestion de la plateforme</p>
             <div className="form-row">
               <div className="form-group">
-                <label>Prénom *</label>
+                <label>Nom *</label>
                 <input
                   type="text"
                   name="admin_first_name"
                   value={formData.admin_first_name}
                   onChange={handleChange}
                   required
-                  placeholder="Jean"
+                  placeholder="Nom de l'administrateur"
                 />
               </div>
               <div className="form-group">
-                <label>Nom *</label>
+                <label>Prénom</label>
                 <input
                   type="text"
                   name="admin_last_name"
                   value={formData.admin_last_name}
                   onChange={handleChange}
-                  required
-                  placeholder="Dupont"
+                  placeholder="Prénom (facultatif)"
                 />
               </div>
             </div>
@@ -533,14 +520,13 @@ export default function CreateSchoolModal({ onClose, onSchoolCreated }) {
                 />
               </div>
               <div className="form-group">
-                <label>Email *</label>
+                <label>Email</label>
                 <input
                   type="email"
                   name="admin_email"
                   value={formData.admin_email}
                   onChange={handleChange}
-                  required
-                  placeholder="admin@lycee.com"
+                  placeholder="admin@lycee.com (facultatif)"
                 />
               </div>
             </div>

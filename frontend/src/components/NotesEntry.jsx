@@ -17,6 +17,12 @@ import {
   getSectionLabel,
 } from '../utils/sections';
 import { formatLocalDate } from '../utils/dates';
+import {
+  notesDraftKey,
+  saveNotesDraft,
+  loadNotesDraft,
+  clearNotesDraft,
+} from '../utils/draftStorage';
 import '../styles/notes-entry.css';
 import '../styles/professor-workspace.css';
 
@@ -111,14 +117,24 @@ export default function NotesEntry({
       notesData.forEach((note) => {
         notesMapData[note.eleve_id] = { ...note, matiere_id: note.matiere_id };
       });
-      setNotesMap(notesMapData);
+      const draftKey = notesDraftKey(classe.id, matiereId, trimestre, typeEval);
+      const draft = loadNotesDraft(draftKey);
+      const merged = draft ? { ...notesMapData, ...draft } : notesMapData;
+      setNotesMap(merged);
       setSavedSnapshot(notesMapData);
       setTrimestreNotes(allNotes || []);
       if (!isAdmin) setPeriodeInfo(verificationPeriode);
     } catch (err) {
       console.error('Erreur:', err);
-      setError(err.message || 'Erreur lors du chargement des notes');
-      setNotesMap({});
+      const draftKey = notesDraftKey(classe.id, matiereId, trimestre, typeEval);
+      const draft = loadNotesDraft(draftKey);
+      if (draft) {
+        setNotesMap(draft);
+        setError('Hors ligne — brouillon local restauré. Reconnectez-vous pour enregistrer.');
+      } else {
+        setError(err.message || 'Erreur lors du chargement des notes');
+        setNotesMap({});
+      }
       setTrimestreNotes([]);
       if (!isAdmin) setPeriodeInfo({ peut_saisir: false, raison: err.message });
     } finally {
@@ -202,7 +218,12 @@ export default function NotesEntry({
   const handleNoteChange = (eleveId, field, value) => {
     setNotesMap((prev) => {
       const existing = prev[eleveId] || { eleve_id: eleveId };
-      return { ...prev, [eleveId]: { ...existing, eleve_id: eleveId, [field]: value } };
+      const next = { ...prev, [eleveId]: { ...existing, eleve_id: eleveId, [field]: value } };
+      if (classe && selectedMatiere) {
+        const draftKey = notesDraftKey(classe.id, selectedMatiere, selectedTrimestre, selectedType);
+        saveNotesDraft(draftKey, next);
+      }
+      return next;
     });
   };
 
@@ -291,6 +312,9 @@ export default function NotesEntry({
         throw new Error(`${errors.length} note(s) non enregistrée(s): ${errors[0]}`);
       }
       await reloadCurrent();
+      if (classe && selectedMatiere) {
+        clearNotesDraft(notesDraftKey(classe.id, selectedMatiere, selectedTrimestre, selectedType));
+      }
       const total = newNotes.length + existingNotes.length;
       setSuccess(`${total} note(s) enregistrée(s) — ${evalTypeLabel(selectedType, classSection)}, ${getTrimestreLabel(selectedTrimestre, classSection)}`);
     } catch (err) {

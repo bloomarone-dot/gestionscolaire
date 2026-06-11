@@ -1,11 +1,11 @@
 export const SECTION_OPTIONS = [
-  { value: 'francophone', label: 'Francophone', flag: '🇫🇷' },
-  { value: 'anglophone', label: 'Anglophone', flag: '🇬🇧' },
+  { value: 'francophone', label: 'Francophone' },
+  { value: 'anglophone', label: 'Anglophone' },
 ];
 
 export const PROF_SECTION_OPTIONS = [
   ...SECTION_OPTIONS,
-  { value: 'les_deux', label: 'Les deux sections', flag: '🌐' },
+  { value: 'les_deux', label: 'Les deux sections' },
 ];
 
 export function getSectionLang(section) {
@@ -14,7 +14,7 @@ export function getSectionLang(section) {
 
 export function getSectionLabel(section) {
   const found = PROF_SECTION_OPTIONS.find((s) => s.value === section);
-  return found ? `${found.flag} ${found.label}` : section || 'Francophone';
+  return found ? found.label : section || 'Francophone';
 }
 
 export function classMatchesProfSection(profSection, classSection) {

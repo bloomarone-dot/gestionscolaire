@@ -49,6 +49,7 @@ TENANT_COLUMN_MIGRATIONS = {
     ],
     "professeurs": [
         ("section", "VARCHAR(20) DEFAULT 'francophone'"),
+        ("phone2", "VARCHAR(20)"),
     ],
 }
 

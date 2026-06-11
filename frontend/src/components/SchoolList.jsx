@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as api from '../api/api';
+import CitySelect from './CitySelect';
 import '../styles/school-cards.css';
 
 const EMPTY_EDIT = {
@@ -137,8 +138,7 @@ export default function SchoolList({ schools, onSchoolDeleted, onSchoolUpdated }
               </div>
               <div className="form-group">
                 <label>Ville</label>
-                <input
-                  type="text"
+                <CitySelect
                   value={editData.city}
                   onChange={(e) => setEditData({ ...editData, city: e.target.value })}
                 />

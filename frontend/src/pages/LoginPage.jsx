@@ -1,43 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import * as api from '../api/api';
 
 export default function LoginPage() {
   const { login, loginProfessor } = useAuth();
   const navigate = useNavigate();
-  const [userType, setUserType] = useState('admin'); // 'admin' ou 'professor'
+  const [userType, setUserType] = useState('admin');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [schoolId, setSchoolId] = useState('');
-  const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const loadSchools = useCallback(async () => {
-    try {
-      const data = await api.fetchSchoolsPublic();
-      setSchools(data);
-    } catch (err) {
-      console.error('Erreur chargement établissements:', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (userType === 'professor') {
-      loadSchools();
-    }
-  }, [userType, loadSchools]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!username || !password) {
       setError('Veuillez remplir tous les champs.');
-      return;
-    }
-
-    if (userType === 'professor' && !schoolId) {
-      setError('Veuillez sélectionner un établissement.');
       return;
     }
 
@@ -47,7 +24,7 @@ export default function LoginPage() {
       if (userType === 'admin') {
         await login(username, password);
       } else {
-        await loginProfessor(username, password, parseInt(schoolId));
+        await loginProfessor(username, password);
       }
       navigate('/');
     } catch (err) {
@@ -91,25 +68,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {userType === 'professor' && (
-            <div className="form-group">
-              <label htmlFor="school">Établissement</label>
-              <select
-                id="school"
-                value={schoolId}
-                onChange={e => setSchoolId(e.target.value)}
-                required
-              >
-                <option value="">-- Sélectionner un établissement --</option>
-                {schools.map(school => (
-                  <option key={school.id} value={school.id}>
-                    {school.name} ({school.city})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           <div className="form-group">
             <label htmlFor="username">Nom d'utilisateur</label>
             <input
@@ -145,6 +103,16 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {userType === 'professor' && (
+          <p className="text-muted text-sm mt-16" style={{ textAlign: 'center' }}>
+            Identifiant oublié ? Contactez l&apos;administrateur de votre établissement pour le réinitialiser.
+          </p>
+        )}
+        {userType === 'admin' && (
+          <p className="text-muted text-sm mt-16" style={{ textAlign: 'center' }}>
+            Identifiant oublié ? Contactez le super administrateur de la plateforme.
+          </p>
+        )}
         <p className="text-muted text-sm mt-16" style={{ textAlign: 'center' }}>
           EduSaaS — Gestion Scolaire © 2025
         </p>

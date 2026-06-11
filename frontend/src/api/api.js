@@ -463,15 +463,31 @@ export async function createAttribution(attributionData) {
   return handleResponse(res);
 }
 // ── Professeur (Professor Login & Data) ──────────────
-export async function loginProfessor(username, password, schoolId) {
+export async function loginProfessor(username, password, schoolId = null) {
+  const body = { username, password };
+  if (schoolId != null) body.school_id = schoolId;
   const res = await fetch('/auth/login-professor', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username,
-      password,
-      school_id: schoolId
-    })
+    body: JSON.stringify(body),
+  });
+  return handleResponse(res);
+}
+
+export async function resetProfesseurCredentials(profId, payload) {
+  const res = await fetch(`/admin/professeurs/${profId}/reset-credentials`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function resetAdminCredentials(adminId, payload) {
+  const res = await fetch(`/superadmin/admins/${adminId}/reset-credentials`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
   });
   return handleResponse(res);
 }

@@ -54,7 +54,7 @@ function CameroonBulletinView({ bulletin }) {
     <>
       <div className="bulletin-cameroon-meta">
         <span className="bulletin-section-badge">
-          {bulletin.section === 'anglophone' ? '🇬🇧 Anglophone' : '🇫🇷 Francophone'}
+          {bulletin.section === 'anglophone' ? 'Anglophone' : 'Francophone'}
         </span>
         <span>{bulletin.term_label}</span>
         {bulletin.classe_serie && bulletin.classe_serie !== '—' && (

@@ -25,9 +25,10 @@ router = APIRouter(prefix="/admin", tags=["Admin Management"])
 
 class ProfesseurCreate(BaseModel):
     nom: str
-    prenom: str
-    email: EmailStr
+    prenom: Optional[str] = ""
+    email: Optional[str] = None
     phone: Optional[str] = None
+    phone2: Optional[str] = None
     specialite: Optional[str] = None
     matricule: str
     username: Optional[str] = None
@@ -38,18 +39,25 @@ class ProfesseurCreate(BaseModel):
 class ProfesseurUpdate(BaseModel):
     nom: Optional[str] = None
     prenom: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
+    phone2: Optional[str] = None
     specialite: Optional[str] = None
     section: Optional[str] = None
+
+
+class ProfesseurResetCredentials(BaseModel):
+    username: Optional[str] = None
+    password: str
 
 
 class ProfesseurResponse(BaseModel):
     id: int
     nom: str
-    prenom: str
-    email: str
+    prenom: Optional[str] = ""
+    email: Optional[str] = ""
     phone: Optional[str] = None
+    phone2: Optional[str] = None
     specialite: Optional[str] = None
     matricule: str
     section: Optional[str] = "francophone"
@@ -94,7 +102,7 @@ class AnneeScolaireResponse(BaseModel):
 
 class EleveCreate(BaseModel):
     nom: str
-    prenom: str
+    prenom: Optional[str] = ""
     matricule: str
     classe_id: Optional[int] = None
     section: Optional[str] = None
@@ -110,7 +118,7 @@ class EleveUpdate(BaseModel):
 class EleveResponse(BaseModel):
     id: int
     nom: str
-    prenom: str
+    prenom: Optional[str] = ""
     matricule: str
     classe_id: Optional[int] = None
     date_inscription: datetime
@@ -309,32 +317,39 @@ def create_professeur(
             detail="Ce matricule existe déjà"
         )
     
-    # Vérifier si l'email existe
-    existing_email = db.query(Professeur).filter(Professeur.email == prof_data.email).first()
+    from app.services.account_helpers import optional_email
+    from app.services.sections import validate_section
+
+    resolved_email = optional_email(
+        prof_data.email,
+        prof_data.username or prof_data.matricule,
+        prefix="prof",
+    )
+    existing_email = db.query(Professeur).filter(Professeur.email == resolved_email).first()
     if existing_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cet email est déjà utilisé"
+            detail="Cet email est déjà utilisé",
         )
-    
-    from app.services.sections import validate_section
 
     try:
         try:
             prof_section = validate_section(prof_data.section, allow_both=True)
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        login_username = prof_data.username or prof_data.matricule
         professeur = Professeur(
-            nom=prof_data.nom,
-            prenom=prof_data.prenom,
-            email=prof_data.email,
+            nom=prof_data.nom.strip(),
+            prenom=(prof_data.prenom or "").strip(),
+            email=resolved_email,
             phone=prof_data.phone,
+            phone2=prof_data.phone2,
             specialite=prof_data.specialite,
             matricule=prof_data.matricule,
             section=prof_section,
-            username=prof_data.username or prof_data.email.split('@')[0],
+            username=login_username,
             hashed_password=hash_password(prof_data.password or "default123"),
-            is_active=True
+            is_active=True,
         )
         db.add(professeur)
         db.commit()
@@ -425,6 +440,40 @@ def update_professeur(
     db.commit()
     db.refresh(professeur)
     return professeur
+
+
+@router.post("/professeurs/{prof_id}/reset-credentials")
+def reset_professeur_credentials(
+    prof_id: int,
+    payload: ProfesseurResetCredentials,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_tenant_session),
+):
+    """Réinitialise identifiant / mot de passe d'un professeur (admin établissement)."""
+    from app.models.school import Professeur
+
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Non autorisé")
+
+    professeur = db.query(Professeur).filter(Professeur.id == prof_id).first()
+    if not professeur:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professeur non trouvé")
+
+    if payload.username and payload.username.strip():
+        taken = db.query(Professeur).filter(
+            Professeur.username == payload.username.strip(),
+            Professeur.id != prof_id,
+        ).first()
+        if taken:
+            raise HTTPException(status_code=400, detail="Cet identifiant est déjà utilisé")
+        professeur.username = payload.username.strip()
+
+    professeur.hashed_password = hash_password(payload.password)
+    db.commit()
+    return {
+        "message": "Identifiants du professeur mis à jour",
+        "username": professeur.username,
+    }
 
 
 def _purge_professeur_dependencies(db, professeur_id: int) -> None:
@@ -1158,7 +1207,7 @@ async def import_eleves(
     col_map = {}
     for i, row in enumerate(rows[:15]):
         candidate = _parse_eleve_header_row(list(row))
-        if "matricule" in candidate and "nom" in candidate and "prenom" in candidate:
+        if "matricule" in candidate and "nom" in candidate:
             header_idx = i
             col_map = candidate
             break
@@ -1166,7 +1215,7 @@ async def import_eleves(
     if header_idx is None:
         raise HTTPException(
             status_code=400,
-            detail="En-têtes requis : Matricule, Nom, Prénom (Classe, Section, Sexe, Redoublant optionnels)",
+            detail="En-têtes requis : Matricule, Nom (Prénom, Classe, Section, Sexe, Redoublant optionnels)",
         )
 
     classes_by_name = {
@@ -1189,9 +1238,9 @@ async def import_eleves(
         try:
             matricule = str(row[col_map["matricule"]]).strip().upper()
             nom = str(row[col_map["nom"]]).strip()
-            prenom = str(row[col_map["prenom"]]).strip()
-            if not matricule or not nom or not prenom:
-                errors.append(f"Ligne {line_no} : matricule, nom et prénom obligatoires")
+            prenom = str(row[col_map["prenom"]]).strip() if "prenom" in col_map and row[col_map["prenom"]] is not None else ""
+            if not matricule or not nom:
+                errors.append(f"Ligne {line_no} : matricule et nom obligatoires")
                 continue
 
             classe = default_classe

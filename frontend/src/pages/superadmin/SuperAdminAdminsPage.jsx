@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import * as api from '../../api/api';
+import ResetCredentialsModal from '../../components/ResetCredentialsModal';
 
 export default function SuperAdminAdminsPage() {
   const [admins, setAdmins] = useState([]);
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(null);
+  const [resetAdmin, setResetAdmin] = useState(null);
 
   useEffect(() => {
     Promise.all([api.fetchSuperAdminAdmins(), api.fetchSchools()])
@@ -35,12 +37,19 @@ export default function SuperAdminAdminsPage() {
     }
   };
 
+  const handleResetSuccess = (adminId, newUsername) => {
+    setAdmins((prev) =>
+      prev.map((a) => (a.id === adminId ? { ...a, username: newUsername || a.username } : a))
+    );
+    setResetAdmin(null);
+  };
+
   return (
     <div>
       <div className="sa-page-header">
         <h1 className="sa-page-title">Administrateurs</h1>
         <p className="sa-page-subtitle">
-          Consulter et assigner les administrateurs d'établissement
+          Consulter, assigner et réinitialiser les identifiants des administrateurs d&apos;établissement
         </p>
       </div>
 
@@ -69,7 +78,7 @@ export default function SuperAdminAdminsPage() {
                 <tr key={admin.id}>
                   <td>{admin.first_name} {admin.last_name}</td>
                   <td><code>{admin.username}</code></td>
-                  <td>{admin.email}</td>
+                  <td>{admin.email || '—'}</td>
                   <td>{admin.school_name || '—'}</td>
                   <td>
                     <span className={`sa-badge ${admin.is_active ? 'sa-badge-active' : 'sa-badge-inactive'}`}>
@@ -78,32 +87,55 @@ export default function SuperAdminAdminsPage() {
                   </td>
                   <td>{new Date(admin.created_at).toLocaleDateString('fr-FR')}</td>
                   <td>
-                    {assigning === admin.id ? (
-                      <select
-                        className="sa-filter-select"
-                        defaultValue={admin.school_id || ''}
-                        onChange={(e) => handleAssign(admin.id, e.target.value)}
-                      >
-                        <option value="">Choisir établissement...</option>
-                        {schools.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </select>
-                    ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                       <button
                         className="btn btn-secondary"
                         style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
-                        onClick={() => setAssigning(admin.id)}
+                        onClick={() => setResetAdmin(admin)}
                       >
-                        Assigner
+                        Réinitialiser identifiants
                       </button>
-                    )}
+                      {assigning === admin.id ? (
+                        <select
+                          className="sa-filter-select"
+                          defaultValue={admin.school_id || ''}
+                          onChange={(e) => handleAssign(admin.id, e.target.value)}
+                        >
+                          <option value="">Choisir établissement...</option>
+                          {schools.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
+                          onClick={() => setAssigning(admin.id)}
+                        >
+                          Assigner
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {resetAdmin && (
+        <ResetCredentialsModal
+          title="Réinitialiser les identifiants admin"
+          subtitle={`${resetAdmin.first_name || ''} ${resetAdmin.last_name || ''}`.trim() || resetAdmin.username}
+          currentUsername={resetAdmin.username}
+          onClose={() => setResetAdmin(null)}
+          onSubmit={async (payload) => {
+            const result = await api.resetAdminCredentials(resetAdmin.id, payload);
+            handleResetSuccess(resetAdmin.id, result.username);
+            return result;
+          }}
+        />
       )}
     </div>
   );

@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
     return userData;
   }, []);
 
-  const loginProfessor = useCallback(async (username, password, schoolId) => {
+  const loginProfessor = useCallback(async (username, password, schoolId = null) => {
     const data = await apiLoginProfessor(username, password, schoolId);
     const userData = {
       id: data.id,

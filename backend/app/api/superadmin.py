@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth.security import get_current_user
+from app.auth.security import get_current_user, hash_password
 from app.db.connection import get_db_session
 from app.db.multi_tenant import tenant_manager, tenant_schema_name
 from app.models.school import School, Admin, ActivityLog, Eleve, Professeur
@@ -27,6 +27,11 @@ def _require_superadmin(current_user: dict):
 
 class AdminAssignRequest(BaseModel):
     school_id: int
+
+
+class AdminResetCredentials(BaseModel):
+    username: Optional[str] = None
+    password: str
 
 
 class AdminResponse(BaseModel):
@@ -204,6 +209,41 @@ def assign_admin_to_school(
     db.commit()
 
     return {"message": "Administrateur assigné avec succès", "admin_id": admin.id, "school_id": school.id}
+
+
+@router.post("/admins/{admin_id}/reset-credentials")
+def reset_admin_credentials(
+    admin_id: int,
+    payload: AdminResetCredentials,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+):
+    """Réinitialise identifiant / mot de passe d'un admin d'établissement."""
+    _require_superadmin(current_user)
+
+    admin = db.query(Admin).filter(Admin.id == admin_id, Admin.role == "admin").first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Administrateur non trouvé")
+
+    if payload.username and payload.username.strip():
+        taken = db.query(Admin).filter(
+            Admin.username == payload.username.strip(),
+            Admin.id != admin_id,
+        ).first()
+        if taken:
+            raise HTTPException(status_code=400, detail="Cet identifiant est déjà utilisé")
+        admin.username = payload.username.strip()
+
+    admin.hashed_password = hash_password(payload.password)
+    log = ActivityLog(
+        admin_id=current_user.get("id"),
+        school_id=admin.school_id,
+        action="reset_admin_credentials",
+        description=f"Identifiants réinitialisés pour '{admin.username}'",
+    )
+    db.add(log)
+    db.commit()
+    return {"message": "Identifiants administrateur mis à jour", "username": admin.username}
 
 
 @router.get("/logs", response_model=List[ActivityLogResponse])
