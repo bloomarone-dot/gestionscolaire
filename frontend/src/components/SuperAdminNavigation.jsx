@@ -1,62 +1,39 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import '../styles/superadmin-layout.css';
+import { NavLink } from 'react-router-dom';
 
 const NAV_ITEMS = [
-  { to: '/superadmin/dashboard', icon: '🏠', label: 'Dashboard', end: true },
-  { to: '/superadmin/schools', icon: '🏛️', label: 'Établissements' },
-  { to: '/superadmin/admins', icon: '👤', label: 'Administrateurs' },
-  { to: '/superadmin/logs', icon: '📋', label: 'Logs & Activité' },
-  { to: '/superadmin/settings', icon: '⚙️', label: 'Paramètres' },
+  { to: '/superadmin/dashboard', icon: 'fa-tachometer-alt', label: 'Dashboard', end: true },
+  { to: '/superadmin/schools', icon: 'fa-building', label: 'Établissements' },
+  { to: '/superadmin/admins', icon: 'fa-user-shield', label: 'Administrateurs' },
+  { to: '/superadmin/logs', icon: 'fa-list-alt', label: 'Logs & Activité' },
+  { to: '/superadmin/settings', icon: 'fa-cog', label: 'Paramètres' },
 ];
 
 export default function SuperAdminNavigation() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
-    <aside className="sa-sidebar">
-      <div className="sa-sidebar-brand">
-        <span className="sa-brand-icon">🎓</span>
-        <div>
-          <div className="sa-brand-title">EduSaaS</div>
-          <div className="sa-brand-sub">Super Admin</div>
-        </div>
-      </div>
-
-      <nav className="sa-nav">
+    <nav className="mt-2">
+      <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+        <li className="nav-header">Super Admin</li>
         {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => `sa-nav-link ${isActive ? 'active' : ''}`}
-          >
-            <span className="sa-nav-icon">{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
+          <li key={item.to} className="nav-item">
+            <NavLink
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              <i className={`nav-icon fas ${item.icon}`} />
+              <p>{item.label}</p>
+            </NavLink>
+          </li>
         ))}
-      </nav>
-
-      <div className="sa-sidebar-footer">
-        <div className="sa-user-card">
-          <div className="sa-user-avatar">
-            {user?.first_name?.[0]}{user?.last_name?.[0]}
-          </div>
-          <div className="sa-user-info">
-            <div className="sa-user-name">{user?.first_name} {user?.last_name}</div>
-            <div className="sa-user-role">Super Administrateur</div>
-          </div>
-        </div>
-        <button type="button" className="sa-logout-btn" onClick={handleLogout}>
-          🚪 Déconnexion
-        </button>
-      </div>
-    </aside>
+      </ul>
+    </nav>
   );
 }
+
+export const SUPERADMIN_PAGE_TITLES = {
+  '/superadmin/dashboard': 'Tableau de bord',
+  '/superadmin/schools': 'Établissements',
+  '/superadmin/admins': 'Administrateurs',
+  '/superadmin/logs': 'Logs & activité',
+  '/superadmin/settings': 'Paramètres',
+};

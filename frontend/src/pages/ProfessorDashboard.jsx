@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api/api';
-import ProfessorNavigation from '../components/ProfessorNavigation';
-import ProfessorHeader from '../components/ProfessorHeader';
+import ProfessorNavigation, { PROFESSOR_PAGE_TITLES } from '../components/ProfessorNavigation';
+import AdminLTELayout from '../layouts/AdminLTELayout';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import NotesEntry from '../components/NotesEntry';
 import ProfessorMesEleves from '../components/ProfessorMesEleves';
 import { loadProfessorWorkspace, saveProfessorWorkspace } from '../utils/draftStorage';
-import '../styles/professor-dashboard.css';
 import '../styles/professor-workspace.css';
 
 export default function ProfessorDashboard() {
@@ -86,23 +85,30 @@ export default function ProfessorDashboard() {
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
   const profTitle = user.last_name ? `M. ${user.last_name}` : user.first_name || user.username;
 
+  const pageSubtitle = selectedClasse && selectedMatiere
+    ? `${selectedMatiere.nom} — ${selectedClasse.nom}`
+    : stats.school_name;
+
   return (
-    <div className="professor-dashboard">
-      <ProfessorNavigation
-        enseignements={enseignements}
-        selectedClasseId={selectedClasse?.id}
-        selectedMatiereId={selectedMatiere?.id}
-        onSelectTeaching={handleSelectTeaching}
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        schoolName={stats.school_name}
-        schoolLogo={stats.logo_url}
-      />
-
-      <div className="professor-content-area">
-        <ProfessorHeader schoolName={stats.school_name} />
-
-        <div className="professor-content">
+    <AdminLTELayout
+      brandTitle="EduSaaS"
+      brandSubtitle={stats.school_name || 'Espace Enseignant'}
+      brandLogo={stats.logo_url}
+      brandIcon="fa-chalkboard-teacher"
+      sidebar={(
+        <ProfessorNavigation
+          enseignements={enseignements}
+          selectedClasseId={selectedClasse?.id}
+          selectedMatiereId={selectedMatiere?.id}
+          onSelectTeaching={handleSelectTeaching}
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
+      )}
+      pageTitle={PROFESSOR_PAGE_TITLES[activeSection] || 'Espace enseignant'}
+      pageSubtitle={pageSubtitle}
+      adminlteKey={`${activeSection}-${selectedClasse?.id}-${selectedMatiere?.id}`}
+    >
           {activeSection === 'accueil' && (
             <div className="prof-workspace">
               <div className="prof-workspace-top">
@@ -177,8 +183,6 @@ export default function ProfessorDashboard() {
               <ProfessorMesEleves />
             </section>
           )}
-        </div>
-      </div>
-    </div>
+    </AdminLTELayout>
   );
 }

@@ -1,25 +1,30 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import SuperAdminNavigation from '../components/SuperAdminNavigation';
+import AdminLTELayout from './AdminLTELayout';
+import SuperAdminNavigation, { SUPERADMIN_PAGE_TITLES } from '../components/SuperAdminNavigation';
 import SuperAdminHeader from '../components/SuperAdminHeader';
-import '../styles/superadmin-layout.css';
 
 export default function SuperAdminLayout() {
   const { user } = useAuth();
+  const location = useLocation();
 
   if (!user || user.role !== 'superadmin') {
     return <Navigate to="/login" replace />;
   }
 
+  const pageTitle = SUPERADMIN_PAGE_TITLES[location.pathname] || 'Super Admin';
+
   return (
-    <div className="sa-layout">
-      <SuperAdminNavigation />
-      <div className="sa-content-area">
-        <SuperAdminHeader />
-        <main className="sa-main">
-          <Outlet />
-        </main>
-      </div>
-    </div>
+    <AdminLTELayout
+      brandTitle="EduSaaS"
+      brandSubtitle="Super Admin"
+      brandIcon="fa-graduation-cap"
+      sidebar={<SuperAdminNavigation />}
+      navbarExtra={<SuperAdminHeader />}
+      pageTitle={pageTitle}
+      adminlteKey={location.pathname}
+    >
+      <Outlet />
+    </AdminLTELayout>
   );
 }

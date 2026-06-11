@@ -1,0 +1,69 @@
+/* EduSaaS — thème AdminLTE (couleur établissement via --school-primary) */
+:root {
+  --adminlte-primary: var(--school-primary, #8b5cf6);
+  --adminlte-primary-dark: color-mix(in srgb, var(--adminlte-primary) 82%, #000);
+}
+
+body.layout-fixed {
+  background: #f4f6f9;
+  background-image: none;
+}
+
+.main-sidebar.sidebar-dark-primary {
+  background-color: var(--adminlte-primary-dark) !important;
+}
+
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active,
+.sidebar-dark-primary .nav-sidebar > .nav-item.menu-open > .nav-link {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.sidebar-dark-primary .nav-sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.brand-link {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.brand-link .brand-image {
+  max-height: 33px;
+  width: auto;
+  border-radius: 4px;
+}
+
+.content-wrapper {
+  background: #f4f6f9;
+}
+
+.content-wrapper .content {
+  padding: 0 0.5rem;
+}
+
+/* Compatibilité contenu existant dans AdminLTE */
+.content-wrapper .dashboard-accueil,
+.content-wrapper .prof-workspace,
+.content-wrapper .content-section,
+.content-wrapper .page-header,
+.content-wrapper .sa-page-header {
+  margin-bottom: 1rem;
+}
+
+.content-wrapper .modal-overlay {
+  z-index: 1050;
+}
+
+.content-wrapper .card,
+.content-wrapper .stat-card,
+.content-wrapper .quick-action-card,
+.content-wrapper .prof-welcome-card {
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 991.98px) {
+  .content-wrapper .content {
+    padding: 0;
+  }
+}

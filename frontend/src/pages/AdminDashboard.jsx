@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import AdminNavigation from '../components/AdminNavigation';
-import AdminHeader from '../components/AdminHeader';
+import AdminLTELayout from '../layouts/AdminLTELayout';
+import AdminNavigation, { ADMIN_PAGE_TITLES } from '../components/AdminNavigation';
 import DashboardHero from '../components/DashboardHero';
 import ProfesseursList from '../components/ProfesseursList';
 import ClassesList from '../components/ClassesList';
@@ -15,7 +15,6 @@ import AdminBulletinSettingsPage from './AdminBulletinSettingsPage';
 import * as api from '../api/api';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import { loadAdminWorkspace, saveAdminWorkspace } from '../utils/draftStorage';
-import '../styles/admin-dashboard.css';
 import '../styles/dashboard-shared.css';
 
 const ADMIN_QUICK_ACTIONS = [
@@ -80,18 +79,21 @@ export default function AdminDashboard() {
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
 
   return (
-    <div className="admin-dashboard">
-      <AdminNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        schoolName={schoolName}
-        schoolLogo={schoolLogo}
-      />
-
-      <div className="admin-content-area">
-        <AdminHeader schoolName={schoolName} />
-
-        <div className="admin-content">
+    <AdminLTELayout
+      brandTitle="Admin Panel"
+      brandSubtitle={schoolName}
+      brandLogo={schoolLogo}
+      brandIcon="fa-school"
+      sidebar={(
+        <AdminNavigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+      )}
+      pageTitle={ADMIN_PAGE_TITLES[activeTab] || 'Administration'}
+      pageSubtitle={schoolName}
+      adminlteKey={activeTab}
+    >
           {activeTab === 'accueil' && (
             <div className="dashboard-accueil">
               <section className="admin-setup-guide">
@@ -164,8 +166,6 @@ export default function AdminDashboard() {
           {activeTab === 'fenetre-notes' && <AdminPeriodeSaisiePage />}
           {activeTab === 'bulletins' && <AdminBulletinsPage />}
           {activeTab === 'bulletin-config' && <AdminBulletinSettingsPage />}
-        </div>
-      </div>
-    </div>
+    </AdminLTELayout>
   );
 }
