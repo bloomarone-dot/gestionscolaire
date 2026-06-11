@@ -10,8 +10,8 @@ const NAV_ITEMS = [
 
 export default function SuperAdminNavigation() {
   return (
-    <nav className="mt-1">
-      <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+    <nav className="sidebar-nav-menu">
+      <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
         <li className="nav-header">Plateforme</li>
         {NAV_ITEMS.map((item) => (
           <li key={item.to} className="nav-item">

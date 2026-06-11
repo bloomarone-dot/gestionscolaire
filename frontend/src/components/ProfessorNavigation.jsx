@@ -22,8 +22,8 @@ export default function ProfessorNavigation({
   };
 
   return (
-    <nav className="mt-1">
-      <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+    <nav className="sidebar-nav-menu">
+      <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
         <li className="nav-header">Navigation</li>
         <li className="nav-item">
           <a

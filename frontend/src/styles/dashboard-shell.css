@@ -428,6 +428,54 @@
   padding: 0;
 }
 
-.content-wrapper .content-section-flat .section-header {
-  margin-bottom: 1rem;
+@media (max-width: 991.98px) {
+  .content-wrapper .sa-grid-2,
+  .content-wrapper .quick-actions-grid,
+  .content-wrapper .admin-stats-grid,
+  .content-wrapper .professor-stats-grid,
+  .content-wrapper .sa-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .content-wrapper .sa-table-wrap,
+  .content-wrapper .table-responsive-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .content-wrapper .sa-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .content-wrapper .sa-search {
+    width: 100%;
+  }
+
+  .content-wrapper .dashboard-hero {
+    padding: 1.25rem;
+  }
+
+  .content-wrapper .dashboard-hero-content {
+    flex-direction: column;
+  }
+
+  .content-wrapper .dashboard-hero-actions {
+    width: 100%;
+  }
+
+  .content-wrapper .dashboard-hero-actions .btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .content-wrapper .sa-page-toolbar {
+    justify-content: stretch;
+  }
+
+  .content-wrapper .sa-page-toolbar .btn {
+    width: 100%;
+  }
 }

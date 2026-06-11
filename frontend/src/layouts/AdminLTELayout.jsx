@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import useAdminLTE from '../hooks/useAdminLTE';
+import useAdminLTE, { toggleSidebar, closeMobileSidebar } from '../hooks/useAdminLTE';
 import '../styles/dashboard-shell.css';
 
 export default function AdminLTELayout({
@@ -19,8 +20,8 @@ export default function AdminLTELayout({
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  useAdminLTE([adminlteKey, pageTitle]);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { handleContentClick } = useAdminLTE([adminlteKey, pageTitle]);
 
   const handleLogout = () => {
     logout();
@@ -32,19 +33,48 @@ export default function AdminLTELayout({
     || 'Utilisateur';
   const initials = `${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase() || '?';
 
+  const onPushMenu = (e) => {
+    e.preventDefault();
+    toggleSidebar();
+  };
+
+  const onOverlayClick = () => {
+    closeMobileSidebar();
+    setUserMenuOpen(false);
+  };
+
+  const onContentClick = () => {
+    handleContentClick();
+    setUserMenuOpen(false);
+  };
+
   return (
-    <div className="wrapper">
+    <div className="wrapper edusaas-app">
+      <div className="sidebar-overlay" onClick={onOverlayClick} aria-hidden="true" />
+
       <nav className="main-header navbar navbar-expand navbar-white navbar-light">
         <ul className="navbar-nav">
           <li className="nav-item">
-            <a className="nav-link" data-widget="pushmenu" href="#" role="button" onClick={(e) => e.preventDefault()}>
+            <button
+              type="button"
+              className="nav-link btn btn-link edusaas-pushmenu"
+              onClick={onPushMenu}
+              aria-label="Ouvrir ou fermer le menu"
+            >
               <i className="fas fa-bars" />
-            </a>
+            </button>
           </li>
+          {pageTitle && (
+            <li className="nav-item d-md-none">
+              <span className="nav-link font-weight-bold text-truncate edusaas-mobile-title">
+                {pageTitle}
+              </span>
+            </li>
+          )}
         </ul>
 
         {navbarExtra && (
-          <div className="navbar-nav flex-grow-1 justify-content-center px-2">
+          <div className="navbar-nav flex-grow-1 justify-content-center px-2 edusaas-navbar-extra">
             {navbarExtra}
           </div>
         )}
@@ -52,18 +82,24 @@ export default function AdminLTELayout({
         <ul className="navbar-nav ml-auto align-items-center">
           {roleLabel && (
             <li className="nav-item d-none d-md-block mr-2">
-              <span className="badge badge-light border" style={{ color: '#6d28d9', borderColor: '#ddd6fe' }}>
-                {roleLabel}
-              </span>
+              <span className="badge edusaas-role-badge">{roleLabel}</span>
             </li>
           )}
-          <li className="nav-item dropdown">
-            <a className="nav-link dropdown-toggle d-flex align-items-center" href="#" data-toggle="dropdown" onClick={(e) => e.preventDefault()}>
+          <li className={`nav-item dropdown ${userMenuOpen ? 'show' : ''}`}>
+            <button
+              type="button"
+              className="nav-link btn btn-link dropdown-toggle d-flex align-items-center edusaas-user-btn"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              aria-expanded={userMenuOpen}
+            >
               <span className="user-avatar mr-2 d-inline-flex">{initials}</span>
               <span className="d-none d-md-inline font-weight-bold">{fullName}</span>
-            </a>
-            <div className="dropdown-menu dropdown-menu-right shadow-sm">
+            </button>
+            <div className={`dropdown-menu dropdown-menu-right shadow ${userMenuOpen ? 'show' : ''}`}>
               <span className="dropdown-item-text text-muted small">{user?.username}</span>
+              {roleLabel && (
+                <span className="dropdown-item-text d-md-none small text-muted">{roleLabel}</span>
+              )}
               <div className="dropdown-divider" />
               <button type="button" className="dropdown-item text-danger" onClick={handleLogout}>
                 <i className="fas fa-sign-out-alt mr-2" />
@@ -74,7 +110,7 @@ export default function AdminLTELayout({
         </ul>
       </nav>
 
-      <aside className="main-sidebar sidebar-edusaas elevation-4">
+      <aside className="main-sidebar sidebar-light sidebar-edusaas elevation-1">
         <a href="/" className="brand-link" onClick={(e) => e.preventDefault()}>
           {brandLogo ? (
             <img src={brandLogo} alt="" className="brand-image" />
@@ -84,31 +120,36 @@ export default function AdminLTELayout({
             </span>
           )}
           <span className="brand-text">
-            {brandTitle}
+            <span className="brand-title">{brandTitle}</span>
             {brandSubtitle && <span className="brand-subtitle">{brandSubtitle}</span>}
           </span>
         </a>
 
         <div className="sidebar">
-          <div className="user-panel mt-2 pb-2 mb-2 d-flex">
-            <div className="image">
-              <span className="user-avatar">{initials}</span>
-            </div>
+          <div className="user-panel d-flex">
+            <span className="user-avatar">{initials}</span>
             <div className="info">
-              <a href="#" className="d-block" onClick={(e) => e.preventDefault()}>{fullName}</a>
-              {roleLabel && <small>{roleLabel}</small>}
+              <span className="user-name">{fullName}</span>
+              {roleLabel && <span className="user-role">{roleLabel}</span>}
             </div>
           </div>
 
-          {sidebar}
+          <div className="sidebar-menu-scroll">{sidebar}</div>
+
+          <div className="sidebar-bottom">
+            <button type="button" className="sidebar-logout-btn" onClick={handleLogout}>
+              <i className="fas fa-sign-out-alt" />
+              <span>Déconnexion</span>
+            </button>
+          </div>
         </div>
       </aside>
 
-      <div className="content-wrapper">
+      <div className="content-wrapper" onClick={onContentClick}>
         {pageTitle && (
-          <div className="content-header">
+          <div className="content-header d-none d-md-block">
             <div className="container-fluid">
-              <div className="row align-items-center mb-1">
+              <div className="row align-items-center">
                 <div className="col-sm-8">
                   <h1 className="m-0">{pageTitle}</h1>
                   {pageSubtitle && <p className="text-muted mb-0 mt-1">{pageSubtitle}</p>}
@@ -124,7 +165,12 @@ export default function AdminLTELayout({
         )}
 
         <section className="content">
-          <div className="container-fluid">{children}</div>
+          <div className="container-fluid">
+            {pageSubtitle && (
+              <p className="d-md-none edusaas-mobile-subtitle text-muted">{pageSubtitle}</p>
+            )}
+            {children}
+          </div>
         </section>
       </div>
 

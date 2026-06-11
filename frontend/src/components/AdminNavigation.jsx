@@ -40,8 +40,8 @@ export default function AdminNavigation({ activeTab, onTabChange }) {
   };
 
   return (
-    <nav className="mt-1">
-      <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+    <nav className="sidebar-nav-menu">
+      <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
         {NAV_SECTIONS.flatMap((section) => [
           <li key={`header-${section.title}`} className="nav-header">{section.title}</li>,
           ...section.items.map((tab) => (
