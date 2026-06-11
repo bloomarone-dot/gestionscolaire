@@ -3,10 +3,35 @@ import { login as apiLogin, loginProfessor as apiLoginProfessor } from '../api/a
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+function readStoredUser() {
+  try {
     const stored = localStorage.getItem('user');
     return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getAccessToken() {
+  const stored = localStorage.getItem('access_token');
+  if (stored) return stored;
+  const user = readStoredUser();
+  return user?.token || null;
+}
+
+function syncAccessToken(user) {
+  if (!user?.token) return;
+  const current = localStorage.getItem('access_token');
+  if (!current || current !== user.token) {
+    localStorage.setItem('access_token', user.token);
+  }
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    const parsed = readStoredUser();
+    syncAccessToken(parsed);
+    return parsed;
   });
 
   const [selectedSchool, setSelectedSchool] = useState(() => {
@@ -67,7 +92,7 @@ export function AuthProvider({ children }) {
       login,
       loginProfessor,
       logout,
-      isAuthenticated: !!user,
+      isAuthenticated: !!user && !!getAccessToken(),
       selectedSchool,
       switchSchool
     }}>

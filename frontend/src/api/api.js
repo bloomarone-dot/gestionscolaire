@@ -1,9 +1,20 @@
 // Service API — toutes les requêtes vers le backend FastAPI (proxy Vite → :8000)
 
+function getAccessToken() {
+  const stored = localStorage.getItem('access_token');
+  if (stored) return stored;
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    return user?.token || null;
+  } catch {
+    return null;
+  }
+}
+
 function getHeaders(auth = true) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
-    const token = localStorage.getItem('access_token');
+    const token = getAccessToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -25,7 +36,20 @@ function formatApiError(detail) {
   return detail || 'Erreur serveur';
 }
 
+function clearAuthSession() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('selectedSchool');
+}
+
 async function handleResponse(res) {
+  if (res.status === 401) {
+    clearAuthSession();
+    if (!window.location.pathname.startsWith('/login')) {
+      window.location.replace('/login');
+    }
+    throw new Error('Session expirée. Reconnectez-vous.');
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Erreur serveur' }));
     throw new Error(formatApiError(err.detail));
