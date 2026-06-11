@@ -155,7 +155,8 @@ img { max-width: 100%; display: block; }
   padding: 16px 12px 6px;
 }
 
-.nav-link {
+.app-layout .sidebar .nav-link,
+.sidebar-nav .nav-link {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -173,17 +174,20 @@ img { max-width: 100%; display: block; }
   position: relative;
 }
 
-.nav-link:hover {
+.app-layout .sidebar .nav-link:hover,
+.sidebar-nav .nav-link:hover {
   color: var(--text-primary);
   background: var(--primary-50);
 }
 
-.nav-link.active {
+.app-layout .sidebar .nav-link.active,
+.sidebar-nav .nav-link.active {
   color: var(--primary-600);
   background: var(--primary-50);
 }
 
-.nav-link.active::before {
+.app-layout .sidebar .nav-link.active::before,
+.sidebar-nav .nav-link.active::before {
   content: '';
   position: absolute;
   left: 0; top: 25%; bottom: 25%;
