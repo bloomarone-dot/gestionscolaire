@@ -519,7 +519,7 @@ select option { background: #ffffff; }
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.15s ease;

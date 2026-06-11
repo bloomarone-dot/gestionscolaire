@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import CreateProfesseurModal from './CreateProfesseurModal';
+import EditProfesseurModal from './EditProfesseurModal';
 import ResetCredentialsModal from './ResetCredentialsModal';
 import { getSectionLabel } from '../utils/sections';
 import AttributeProfesseurModal from './AttributeProfesseurModal';
@@ -14,6 +15,7 @@ export default function ProfesseursList() {
   const [professeurs, setProfesseurs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showAttributeModal, setShowAttributeModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [selectedProf, setSelectedProf] = useState(null);
@@ -96,6 +98,16 @@ export default function ProfesseursList() {
                   className="btn btn-secondary btn-sm"
                   onClick={() => {
                     setSelectedProf(prof);
+                    setShowEditModal(true);
+                  }}
+                >
+                  Modifier
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setSelectedProf(prof);
                     setShowResetModal(true);
                   }}
                 >
@@ -127,6 +139,21 @@ export default function ProfesseursList() {
         <CreateProfesseurModal
           onClose={() => setShowCreateModal(false)}
           onCreated={handleProfesseurCreated}
+        />
+      )}
+
+      {showEditModal && selectedProf && (
+        <EditProfesseurModal
+          professeur={selectedProf}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedProf(null);
+          }}
+          onSaved={() => {
+            setShowEditModal(false);
+            setSelectedProf(null);
+            loadProfesseurs();
+          }}
         />
       )}
 

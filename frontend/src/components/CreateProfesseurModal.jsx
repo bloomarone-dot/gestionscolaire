@@ -77,6 +77,10 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
       setError('Le matricule est obligatoire.');
       return;
     }
+    if (!formData.phone?.trim()) {
+      setError('Le téléphone 1 est obligatoire.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -112,11 +116,11 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
     [classes, formData.section],
   );
 
-  const canSubmit = !loading && formData.nom?.trim() && formData.matricule?.trim();
+  const canSubmit = !loading && formData.nom?.trim() && formData.matricule?.trim() && formData.phone?.trim();
 
   return (
-    <div className="modal-overlay">
-      <div className="modal modal-lg">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Créer un professeur</h2>
           <button type="button" className="close-btn" onClick={onClose}>✕</button>
@@ -143,8 +147,8 @@ export default function CreateProfesseurModal({ onClose, onCreated }) {
                 <input type="email" name="email" value={formData.email} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Téléphone 1</label>
-                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} />
+                <label>Téléphone 1 *</label>
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required placeholder="Ex: 6XX XX XX XX" />
               </div>
             </div>
             <div className="form-row">

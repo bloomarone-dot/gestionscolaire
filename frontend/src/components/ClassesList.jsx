@@ -2,18 +2,21 @@ import { useState, useEffect, useCallback } from 'react';
 import * as api from '../api/api';
 import '../styles/classes-list.css';
 
+const EMPTY_FORM = {
+  nom: '',
+  niveau: '',
+  capacite: 30,
+  salle: '',
+  section: 'francophone',
+  serie: '',
+};
+
 export default function ClassesList() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    nom: '',
-    niveau: '',
-    capacite: 30,
-    salle: '',
-    section: 'francophone',
-    serie: '',
-  });
+  const [showForm, setShowForm] = useState(false);
+  const [editingClasse, setEditingClasse] = useState(null);
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   const loadClasses = useCallback(async () => {
     try {
@@ -31,21 +34,49 @@ export default function ClassesList() {
     loadClasses();
   }, [loadClasses]);
 
+  const openCreate = () => {
+    setEditingClasse(null);
+    setFormData(EMPTY_FORM);
+    setShowForm(true);
+  };
+
+  const openEdit = (classe) => {
+    setEditingClasse(classe);
+    setFormData({
+      nom: classe.nom || '',
+      niveau: classe.niveau || '',
+      capacite: classe.capacite || 30,
+      salle: classe.salle || '',
+      section: classe.section || 'francophone',
+      serie: classe.serie || '',
+    });
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingClasse(null);
+    setFormData(EMPTY_FORM);
+  };
+
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      await api.createClasse(formData);
-      setFormData({ nom: '', niveau: '', capacite: 30, salle: '', section: 'francophone', serie: '' });
-      setShowCreateForm(false);
+      if (editingClasse) {
+        await api.updateClasse(editingClasse.id, formData);
+      } else {
+        await api.createClasse(formData);
+      }
+      closeForm();
       loadClasses();
     } catch (error) {
-      console.error('Erreur:', error);
+      alert(error.message || 'Erreur lors de l\'enregistrement');
     }
   };
 
@@ -54,7 +85,7 @@ export default function ClassesList() {
 
     try {
       await api.deleteClasse(classeId);
-      setClasses(classes.filter(c => c.id !== classeId));
+      setClasses(classes.filter((c) => c.id !== classeId));
     } catch (error) {
       alert(error.message || 'Erreur lors de la suppression');
     }
@@ -67,85 +98,59 @@ export default function ClassesList() {
           <h2>Gestion des Classes</h2>
           <p className="form-section-hint">Définissez la <strong>section</strong> (francophone / anglophone) pour le bulletin PDF.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreateForm(!showCreateForm)}>
+        <button type="button" className="btn btn-primary" onClick={openCreate}>
           + Ajouter une classe
         </button>
       </div>
 
-      {showCreateForm && (
-        <form onSubmit={handleSubmit} className="create-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label>Nom *</label>
-              <input
-                type="text"
-                name="nom"
-                value={formData.nom}
-                onChange={handleFormChange}
-                placeholder="Ex: 6A, 1S"
-                required
-              />
+      {showForm && (
+        <div className="modal-overlay" onClick={closeForm}>
+          <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{editingClasse ? `Modifier — ${editingClasse.nom}` : 'Nouvelle classe'}</h2>
+              <button type="button" className="close-btn" onClick={closeForm}>✕</button>
             </div>
-            <div className="form-group">
-              <label>Niveau *</label>
-              <input
-                type="text"
-                name="niveau"
-                value={formData.niveau}
-                onChange={handleFormChange}
-                placeholder="Ex: 6ème, 1ère"
-                required
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="school-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nom *</label>
+                  <input type="text" name="nom" value={formData.nom} onChange={handleFormChange} placeholder="Ex: 6A, 1S" required />
+                </div>
+                <div className="form-group">
+                  <label>Niveau *</label>
+                  <input type="text" name="niveau" value={formData.niveau} onChange={handleFormChange} placeholder="Ex: 6ème, 1ère" required />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Capacité</label>
+                  <input type="number" name="capacite" value={formData.capacite} onChange={handleFormChange} />
+                </div>
+                <div className="form-group">
+                  <label>Salle</label>
+                  <input type="text" name="salle" value={formData.salle} onChange={handleFormChange} placeholder="Ex: Salle 101" />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Section</label>
+                  <select name="section" value={formData.section} onChange={handleFormChange}>
+                    <option value="francophone">Francophone</option>
+                    <option value="anglophone">Anglophone</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Série</label>
+                  <input type="text" name="serie" value={formData.serie} onChange={handleFormChange} placeholder="Ex: ESP, MM" />
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="submit" className="btn btn-primary">{editingClasse ? 'Enregistrer' : 'Créer'}</button>
+                <button type="button" className="btn btn-secondary" onClick={closeForm}>Annuler</button>
+              </div>
+            </form>
           </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Capacité</label>
-              <input
-                type="number"
-                name="capacite"
-                value={formData.capacite}
-                onChange={handleFormChange}
-              />
-            </div>
-            <div className="form-group">
-              <label>Salle</label>
-              <input
-                type="text"
-                name="salle"
-                value={formData.salle}
-                onChange={handleFormChange}
-                placeholder="Ex: Salle 101"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Section</label>
-              <select name="section" value={formData.section} onChange={handleFormChange}>
-                <option value="francophone">Francophone</option>
-                <option value="anglophone">Anglophone</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Série</label>
-              <input
-                type="text"
-                name="serie"
-                value={formData.serie}
-                onChange={handleFormChange}
-                placeholder="Ex: ESP, MM"
-              />
-            </div>
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary btn-sm">Créer</button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreateForm(false)}>Annuler</button>
-          </div>
-        </form>
+        </div>
       )}
 
       {loading ? (
@@ -156,7 +161,7 @@ export default function ClassesList() {
         </div>
       ) : (
         <div className="classes-grid">
-          {classes.map(classe => (
+          {classes.map((classe) => (
             <div key={classe.id} className="classe-card">
               <h3>{classe.nom}</h3>
               <p><strong>Niveau:</strong> {classe.niveau}</p>
@@ -167,13 +172,14 @@ export default function ClassesList() {
                 {classe.serie ? ` · ${classe.serie}` : ''}
               </p>
               {classe.salle && <p><strong>Salle:</strong> {classe.salle}</p>}
-              <button
-                type="button"
-                className="btn btn-danger btn-sm"
-                onClick={() => handleDelete(classe.id)}
-              >
-                Supprimer
-              </button>
+              <div className="classe-card-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEdit(classe)}>
+                  Modifier
+                </button>
+                <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(classe.id)}>
+                  Supprimer
+                </button>
+              </div>
             </div>
           ))}
         </div>

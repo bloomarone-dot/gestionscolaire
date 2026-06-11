@@ -403,6 +403,15 @@ export async function createProfesseur(profData) {
   return handleResponse(res);
 }
 
+export async function updateProfesseur(profId, profData) {
+  const res = await fetch(`/admin/professeurs/${profId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(profData),
+  });
+  return handleResponse(res);
+}
+
 export async function deleteProfesseur(profId) {
   return deleteResource(`/admin/professeurs/${profId}`);
 }

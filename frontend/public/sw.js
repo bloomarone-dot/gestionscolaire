@@ -1,4 +1,4 @@
-const CACHE = 'edusaas-shell-v2';
+const CACHE = 'edusaas-shell-v3';
 const SHELL = ['/', '/index.html'];
 
 self.addEventListener('install', (event) => {

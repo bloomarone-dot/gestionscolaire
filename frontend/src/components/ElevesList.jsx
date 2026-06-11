@@ -157,19 +157,18 @@ export default function ElevesList() {
                   <td>{new Date(eleve.date_inscription).toLocaleDateString('fr-FR')}</td>
                   <td className="actions-cell">
                     <button
-                      className="action-btn edit-btn"
-                      title="Modifier"
+                      type="button"
+                      className="btn btn-secondary btn-sm list-action-btn"
                       onClick={() => { setEditingEleve(eleve); setShowModal(true); }}
                     >
-                      ✏️
+                      Modifier
                     </button>
                     <button
                       type="button"
-                      className="action-btn delete-btn"
-                      title="Supprimer"
+                      className="btn btn-danger btn-sm list-action-btn"
                       onClick={() => handleDelete(eleve.id, `${eleve.prenom} ${eleve.nom}`)}
                     >
-                      🗑️
+                      Supprimer
                     </button>
                   </td>
                 </tr>
@@ -310,6 +309,16 @@ function EleveModal({ eleve, classes, onClose, onSaved }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+    if (!form.nom?.trim()) {
+      setError('Le nom est obligatoire.');
+      setLoading(false);
+      return;
+    }
+    if (!form.prenom?.trim()) {
+      setError('Le prénom est obligatoire.');
+      setLoading(false);
+      return;
+    }
     try {
       const payload = {
         ...form,
@@ -336,7 +345,7 @@ function EleveModal({ eleve, classes, onClose, onSaved }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{isEdit ? `Modifier — ${eleve.prenom} ${eleve.nom}` : 'Inscrire un élève'}</h2>
           <button className="close-btn" onClick={onClose}>✕</button>
@@ -355,11 +364,12 @@ function EleveModal({ eleve, classes, onClose, onSaved }) {
               />
             </div>
             <div className="form-group">
-              <label>Prénom</label>
+              <label>Prénom *</label>
               <input
                 value={form.prenom}
                 onChange={(e) => setForm({ ...form, prenom: e.target.value })}
-                placeholder="Prénom (facultatif)"
+                required
+                placeholder="Prénom de l'élève"
               />
             </div>
           </div>

@@ -309,6 +309,17 @@ def create_professeur(
             detail="Seul un administrateur peut créer des professeurs"
         )
     
+    if not prof_data.nom or not prof_data.nom.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Le nom est obligatoire",
+        )
+    if not prof_data.phone or not str(prof_data.phone).strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Le téléphone 1 est obligatoire",
+        )
+
     # Vérifier si le matricule existe
     existing = db.query(Professeur).filter(Professeur.matricule == prof_data.matricule).first()
     if existing:
@@ -1416,6 +1427,35 @@ def get_admin_stats(
     total_notes = db.query(Note).count()
     annee_active = db.query(AnneeScolaire).filter(AnneeScolaire.is_active == True).first()
 
+    from app.services.bulletin_service import build_eleve_bulletin
+
+    class_success = []
+    trimestre_actif = 1
+    for classe in db.query(Classe).order_by(Classe.nom).all():
+        eleves = db.query(Eleve).filter(Eleve.classe_id == classe.id).all()
+        evaluated = 0
+        passed = 0
+        for eleve in eleves:
+            bulletin = build_eleve_bulletin(db, eleve.id, trimestre_actif)
+            has_notes = any(
+                d.get("moyenne_matiere") is not None
+                for d in bulletin.get("details_matieres", [])
+            )
+            if has_notes:
+                evaluated += 1
+                if bulletin.get("moyenne_generale", 0) >= 10:
+                    passed += 1
+        taux = round(passed / evaluated * 100, 1) if evaluated else None
+        class_success.append({
+            "classe_id": classe.id,
+            "classe_nom": classe.nom,
+            "effectif": len(eleves),
+            "eleves_evalues": evaluated,
+            "admis": passed,
+            "taux_reussite": taux,
+            "trimestre": trimestre_actif,
+        })
+
     school_name = None
     logo_url = None
     primary_color = "#10b981"
@@ -1436,6 +1476,7 @@ def get_admin_stats(
         "total_matieres": total_matieres,
         "total_notes": total_notes,
         "annee_scolaire": annee_active.annee if annee_active else None,
+        "class_success": class_success,
         "school_name": school_name,
         "school_id": school_id,
         "logo_url": logo_url,

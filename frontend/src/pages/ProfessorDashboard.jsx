@@ -7,6 +7,7 @@ import ProfessorNavigation, {
   PROFESSOR_PAGE_SUBTITLES,
 } from '../components/ProfessorNavigation';
 import AdminLTELayout from '../layouts/AdminLTELayout';
+import DashboardHero from '../components/DashboardHero';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import NotesEntry from '../components/NotesEntry';
 import ProfessorMesEleves from '../components/ProfessorMesEleves';
@@ -88,6 +89,10 @@ export default function ProfessorDashboard() {
     ? `${selectedMatiere.nom} — ${selectedClasse.nom}`
     : PROFESSOR_PAGE_SUBTITLES[activeSection] || stats.school_name;
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
+  const profName = user.first_name || user.username;
+
   return (
     <AdminLTELayout
       brandTitle="EduSaaS"
@@ -111,31 +116,22 @@ export default function ProfessorDashboard() {
     >
           {activeSection === 'accueil' && (
             <div className="dashboard-accueil prof-workspace">
-              <div className="professor-stats-grid">
-                <div className="stat-card stat-card-emerald">
-                  <div className="stat-icon">📚</div>
-                  <div className="stat-content">
-                    <div className="stat-number">{stats.total_classes}</div>
-                    <div className="stat-label">Classes assignées</div>
-                  </div>
-                </div>
-                <div className="stat-card stat-card-amber">
-                  <div className="stat-icon">👥</div>
-                  <div className="stat-content">
-                    <div className="stat-number">{stats.total_eleves}</div>
-                    <div className="stat-label">Élèves suivis</div>
-                  </div>
-                </div>
-                <div className="stat-card stat-card-emerald">
-                  <div className="stat-icon">📝</div>
-                  <div className="stat-content">
-                    <div className="stat-number">{stats.recent_notes}</div>
-                    <div className="stat-label">Notes enregistrées</div>
-                  </div>
-                </div>
-              </div>
+              <DashboardHero
+                greeting={greeting}
+                title={`${profName}, bienvenue !`}
+                subtitle={`Espace enseignant de ${stats.school_name || 'votre établissement'} — saisissez vos notes et consultez vos classes.`}
+                badge={stats.school_name || 'Espace Enseignant'}
+                stats={[
+                  { value: stats.total_classes, label: 'Classes' },
+                  { value: stats.total_eleves, label: 'Élèves' },
+                  { value: stats.recent_notes, label: 'Notes' },
+                ]}
+                actions={[
+                  { label: 'Saisir des notes', icon: '📝', onClick: () => setActiveSection('notes') },
+                ]}
+              />
               <div className="prof-welcome-card">
-                <h2>Choisissez une classe dans le menu</h2>
+                <h2>Comment commencer ?</h2>
                 <p>
                   Dépliez une matière dans « Mes enseignements » à gauche, sélectionnez votre classe,
                   puis saisissez les notes par séquence ou trimestre.

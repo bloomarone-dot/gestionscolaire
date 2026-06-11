@@ -3,11 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import AdminLTELayout from '../layouts/AdminLTELayout';
 import AdminNavigation, { ADMIN_PAGE_TITLES, ADMIN_PAGE_SUBTITLES } from '../components/AdminNavigation';
 import DashboardHero from '../components/DashboardHero';
+import ClassSuccessStats from '../components/ClassSuccessStats';
 import ProfesseursList from '../components/ProfesseursList';
 import ClassesList from '../components/ClassesList';
 import MatieresList from '../components/MatieresList';
 import ElevesList from '../components/ElevesList';
-import AdminStatsCards from '../components/AdminStatsCards';
 import AdminNotesPage from './AdminNotesPage';
 import AdminPeriodeSaisiePage from './AdminPeriodeSaisiePage';
 import AdminBulletinsPage from './AdminBulletinsPage';
@@ -97,32 +97,10 @@ export default function AdminDashboard() {
     >
           {activeTab === 'accueil' && (
             <div className="dashboard-accueil">
-              <section className="admin-setup-guide">
-                <h3>Configuration bulletin officiel</h3>
-                <p>Suivez ces étapes pour Royal Priesthood et les bulletins Cameroun :</p>
-                <ol className="admin-setup-steps">
-                  {ADMIN_SETUP_STEPS.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        className="admin-setup-step-btn"
-                        onClick={() => setActiveTab(item.id)}
-                      >
-                        <span className="admin-setup-step-num">{item.step}</span>
-                        <span>
-                          <strong>{item.label}</strong>
-                          <small>{item.hint}</small>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-
               <DashboardHero
                 greeting={greeting}
-                title={user.first_name}
-                subtitle={`Pilotage de ${schoolName} — bulletins officiels, élèves, professeurs et notes.`}
+                title={`${user.first_name || user.username}, bienvenue !`}
+                subtitle={`Espace administrateur de ${schoolName} — bulletins, élèves, professeurs et notes.`}
                 badge={schoolName}
                 stats={stats ? [
                   { value: stats.total_eleves, label: 'Élèves' },
@@ -135,6 +113,36 @@ export default function AdminDashboard() {
                   { label: 'Gérer les élèves', icon: '👥', variant: 'btn-secondary', onClick: () => setActiveTab('eleves') },
                 ]}
               />
+
+              <section className="admin-setup-compact">
+                <div className="admin-setup-compact-head">
+                  <strong>Configurer les bulletins</strong>
+                  <span>{ADMIN_SETUP_STEPS.length} étapes</span>
+                </div>
+                <div className="admin-setup-chips">
+                  {ADMIN_SETUP_STEPS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="admin-setup-chip"
+                      title={item.hint}
+                      onClick={() => setActiveTab(item.id)}
+                    >
+                      <span className="admin-setup-chip-num">{item.step}</span>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {loading ? (
+                <div className="page-loader"><div className="spinner" /></div>
+              ) : stats?.class_success ? (
+                <ClassSuccessStats
+                  classSuccess={stats.class_success}
+                  trimestre={stats.class_success[0]?.trimestre || 1}
+                />
+              ) : null}
 
               <div className="quick-actions-grid">
                 {ADMIN_QUICK_ACTIONS.map((action) => (
@@ -150,12 +158,6 @@ export default function AdminDashboard() {
                   </button>
                 ))}
               </div>
-
-              {loading ? (
-                <div className="page-loader"><div className="spinner" /></div>
-              ) : stats ? (
-                <AdminStatsCards stats={stats} />
-              ) : null}
             </div>
           )}
 
