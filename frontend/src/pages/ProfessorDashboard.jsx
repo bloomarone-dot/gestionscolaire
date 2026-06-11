@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../api/api';
-import ProfessorNavigation, { PROFESSOR_PAGE_TITLES } from '../components/ProfessorNavigation';
+import ProfessorNavigation, {
+  PROFESSOR_PAGE_TITLES,
+  PROFESSOR_PAGE_SUBTITLES,
+} from '../components/ProfessorNavigation';
 import AdminLTELayout from '../layouts/AdminLTELayout';
 import { useSchoolBranding } from '../hooks/useSchoolBranding';
 import NotesEntry from '../components/NotesEntry';
@@ -81,13 +84,9 @@ export default function ProfessorDashboard() {
     return <div className="unauthorized">Accès refusé</div>;
   }
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
-  const profTitle = user.last_name ? `M. ${user.last_name}` : user.first_name || user.username;
-
-  const pageSubtitle = selectedClasse && selectedMatiere
+  const pageSubtitle = activeSection === 'notes' && selectedClasse && selectedMatiere
     ? `${selectedMatiere.nom} — ${selectedClasse.nom}`
-    : stats.school_name;
+    : PROFESSOR_PAGE_SUBTITLES[activeSection] || stats.school_name;
 
   return (
     <AdminLTELayout
@@ -95,6 +94,7 @@ export default function ProfessorDashboard() {
       brandSubtitle={stats.school_name || 'Espace Enseignant'}
       brandLogo={stats.logo_url}
       brandIcon="fa-chalkboard-teacher"
+      roleLabel="Professeur"
       sidebar={(
         <ProfessorNavigation
           enseignements={enseignements}
@@ -110,13 +110,7 @@ export default function ProfessorDashboard() {
       adminlteKey={`${activeSection}-${selectedClasse?.id}-${selectedMatiere?.id}`}
     >
           {activeSection === 'accueil' && (
-            <div className="prof-workspace">
-              <div className="prof-workspace-top">
-                <div className="prof-greeting-block">
-                  <h1>{greeting} {profTitle} 👋</h1>
-                  <p>Bienvenue dans votre espace de saisie des notes.</p>
-                </div>
-              </div>
+            <div className="dashboard-accueil prof-workspace">
               <div className="professor-stats-grid">
                 <div className="stat-card stat-card-emerald">
                   <div className="stat-icon">📚</div>
@@ -152,12 +146,6 @@ export default function ProfessorDashboard() {
 
           {activeSection === 'notes' && (
             <>
-              <div className="prof-workspace-top">
-                <div className="prof-greeting-block">
-                  <h1>{greeting} {profTitle} 👋</h1>
-                  <p>Bienvenue dans votre espace de saisie des notes.</p>
-                </div>
-              </div>
               {selectedClasse && selectedMatiere ? (
                 <NotesEntry
                   classe={selectedClasse}

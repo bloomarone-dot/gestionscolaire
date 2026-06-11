@@ -3,9 +3,7 @@ import { useAuth } from '../context/AuthContext';
 const NAV_SECTIONS = [
   {
     title: "Vue d'ensemble",
-    items: [
-      { id: 'accueil', icon: 'fa-home', label: 'Accueil' },
-    ],
+    items: [{ id: 'accueil', icon: 'fa-home', label: 'Accueil' }],
   },
   {
     title: 'Gestion',
@@ -35,41 +33,36 @@ const NAV_SECTIONS = [
 ];
 
 export default function AdminNavigation({ activeTab, onTabChange }) {
-  const { user } = useAuth();
-
-  const handleTabClick = (tab) => {
+  const handleTabClick = (e, tab) => {
+    e.preventDefault();
     if (tab.disabled) return;
     onTabChange(tab.id);
   };
 
   return (
-    <nav className="mt-2">
+    <nav className="mt-1">
       <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
         {NAV_SECTIONS.flatMap((section) => [
           <li key={`header-${section.title}`} className="nav-header">{section.title}</li>,
           ...section.items.map((tab) => (
             <li key={tab.id} className="nav-item">
-              <button
-                type="button"
-                className={`nav-link text-left w-100 border-0 bg-transparent ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'disabled opacity-50' : ''}`}
-                onClick={() => handleTabClick(tab)}
-                disabled={tab.disabled}
+              <a
+                href="#"
+                className={`nav-link ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'disabled' : ''}`}
+                onClick={(e) => handleTabClick(e, tab)}
+                aria-disabled={tab.disabled || undefined}
               >
                 <i className={`nav-icon fas ${tab.icon}`} />
-                <p className="d-inline">
+                <p>
                   {tab.label}
                   {tab.badge && <span className="badge badge-info right">{tab.badge}</span>}
                   {tab.disabled && <span className="badge badge-secondary right">Bientôt</span>}
                 </p>
-              </button>
+              </a>
             </li>
           )),
         ])}
       </ul>
-      <div className="mt-3 px-3 text-white-50 small">
-        <i className="fas fa-user-shield mr-1" />
-        {user?.first_name} {user?.last_name}
-      </div>
     </nav>
   );
 }
@@ -84,4 +77,16 @@ export const ADMIN_PAGE_TITLES = {
   'fenetre-notes': 'Délais de saisie',
   bulletins: 'Bulletins',
   'bulletin-config': 'Configuration des bulletins',
+};
+
+export const ADMIN_PAGE_SUBTITLES = {
+  accueil: 'Pilotage de votre établissement',
+  professeurs: 'Comptes et attributions',
+  classes: 'Sections francophone et anglophone',
+  matieres: 'Groupes et coefficients',
+  eleves: 'Inscriptions et effectifs',
+  'saisie-notes': 'Consultation et correction des notes',
+  'fenetre-notes': 'Périodes autorisées pour les professeurs',
+  bulletins: 'Génération PDF officielle',
+  'bulletin-config': 'Logo, en-têtes et modèle Cameroun',
 };

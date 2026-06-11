@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AdminLTELayout from '../layouts/AdminLTELayout';
-import AdminNavigation, { ADMIN_PAGE_TITLES } from '../components/AdminNavigation';
+import AdminNavigation, { ADMIN_PAGE_TITLES, ADMIN_PAGE_SUBTITLES } from '../components/AdminNavigation';
 import DashboardHero from '../components/DashboardHero';
 import ProfesseursList from '../components/ProfesseursList';
 import ClassesList from '../components/ClassesList';
@@ -84,6 +84,7 @@ export default function AdminDashboard() {
       brandSubtitle={schoolName}
       brandLogo={schoolLogo}
       brandIcon="fa-school"
+      roleLabel="Administrateur"
       sidebar={(
         <AdminNavigation
           activeTab={activeTab}
@@ -91,7 +92,7 @@ export default function AdminDashboard() {
         />
       )}
       pageTitle={ADMIN_PAGE_TITLES[activeTab] || 'Administration'}
-      pageSubtitle={schoolName}
+      pageSubtitle={activeTab === 'accueil' ? schoolName : ADMIN_PAGE_SUBTITLES[activeTab]}
       adminlteKey={activeTab}
     >
           {activeTab === 'accueil' && (

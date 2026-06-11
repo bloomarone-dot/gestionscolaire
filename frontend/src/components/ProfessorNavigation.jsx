@@ -10,35 +10,37 @@ export default function ProfessorNavigation({
 }) {
   const [expandedMatieres, setExpandedMatieres] = useState({});
 
-  const toggleMatiere = (matiereId) => {
+  const toggleMatiere = (e, matiereId) => {
+    e.preventDefault();
     setExpandedMatieres((prev) => ({ ...prev, [matiereId]: !prev[matiereId] }));
   };
 
-  const handleSelect = (classe, matiere) => {
+  const handleSelect = (e, classe, matiere) => {
+    e.preventDefault();
     onSelectTeaching(classe, matiere);
     onSectionChange('notes');
   };
 
   return (
-    <nav className="mt-2">
+    <nav className="mt-1">
       <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
         <li className="nav-header">Navigation</li>
         <li className="nav-item">
-          <button
-            type="button"
-            className={`nav-link text-left w-100 border-0 bg-transparent ${activeSection === 'accueil' ? 'active' : ''}`}
-            onClick={() => onSectionChange('accueil')}
+          <a
+            href="#"
+            className={`nav-link ${activeSection === 'accueil' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); onSectionChange('accueil'); }}
           >
             <i className="nav-icon fas fa-home" />
             <p>Tableau de bord</p>
-          </button>
+          </a>
         </li>
 
         <li className="nav-header">Mes enseignements</li>
 
         {enseignements.length === 0 ? (
           <li className="nav-item">
-            <span className="nav-link text-muted">
+            <span className="nav-link disabled">
               <i className="nav-icon far fa-circle" />
               <p>Aucune attribution</p>
             </span>
@@ -51,36 +53,34 @@ export default function ProfessorNavigation({
             );
             return (
               <li key={matiere.id} className={`nav-item has-treeview ${isExpanded ? 'menu-open' : ''}`}>
-                <button
-                  type="button"
-                  className={`nav-link text-left w-100 border-0 bg-transparent ${hasActiveClass ? 'active' : ''}`}
-                  onClick={() => toggleMatiere(matiere.id)}
+                <a
+                  href="#"
+                  className={`nav-link ${hasActiveClass ? 'active' : ''}`}
+                  onClick={(e) => toggleMatiere(e, matiere.id)}
                 >
                   <i className="nav-icon fas fa-book" />
                   <p>
                     {matiere.nom}
                     <i className="right fas fa-angle-left" />
                   </p>
-                </button>
+                </a>
                 {isExpanded && (
                   <ul className="nav nav-treeview">
                     {matiere.classes?.map((classe) => (
                       <li key={classe.id} className="nav-item">
-                        <button
-                          type="button"
-                          className={`nav-link text-left w-100 border-0 bg-transparent ${
+                        <a
+                          href="#"
+                          className={`nav-link ${
                             selectedClasseId === classe.id && selectedMatiereId === matiere.id ? 'active' : ''
                           }`}
-                          onClick={() => handleSelect(classe, matiere)}
+                          onClick={(e) => handleSelect(e, classe, matiere)}
                         >
-                          <i className="nav-icon far fa-circle" />
+                          <i className="nav-icon far fa-dot-circle" />
                           <p>
                             {classe.nom}
-                            <span className="badge badge-light right">
-                              {classe.section === 'anglophone' ? 'EN' : 'FR'}
-                            </span>
+                            <span className="badge badge-light right">{classe.section === 'anglophone' ? 'EN' : 'FR'}</span>
                           </p>
-                        </button>
+                        </a>
                       </li>
                     ))}
                   </ul>
@@ -91,14 +91,14 @@ export default function ProfessorNavigation({
         )}
 
         <li className="nav-item">
-          <button
-            type="button"
-            className={`nav-link text-left w-100 border-0 bg-transparent ${activeSection === 'bulletins' ? 'active' : ''}`}
-            onClick={() => onSectionChange('bulletins')}
+          <a
+            href="#"
+            className={`nav-link ${activeSection === 'bulletins' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); onSectionChange('bulletins'); }}
           >
             <i className="nav-icon fas fa-users" />
             <p>Mes élèves</p>
-          </button>
+          </a>
         </li>
       </ul>
     </nav>
@@ -109,4 +109,10 @@ export const PROFESSOR_PAGE_TITLES = {
   accueil: 'Tableau de bord',
   notes: 'Saisie des notes',
   bulletins: 'Mes élèves',
+};
+
+export const PROFESSOR_PAGE_SUBTITLES = {
+  accueil: 'Bienvenue dans votre espace enseignant',
+  notes: 'Enregistrez les notes par séquence ou trimestre',
+  bulletins: 'Consultation des effectifs et résultats',
 };

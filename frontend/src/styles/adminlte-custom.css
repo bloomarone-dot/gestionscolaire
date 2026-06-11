@@ -1,69 +1,244 @@
-/* EduSaaS — thème AdminLTE (couleur établissement via --school-primary) */
+/* ======================================================
+   EduSaaS × AdminLTE — thème blanc & violet
+   ====================================================== */
+
 :root {
-  --adminlte-primary: var(--school-primary, #8b5cf6);
-  --adminlte-primary-dark: color-mix(in srgb, var(--adminlte-primary) 82%, #000);
+  --edusaas-violet: var(--school-primary, #8b5cf6);
+  --edusaas-violet-dark: #6d28d9;
+  --edusaas-violet-light: #ede9fe;
+  --edusaas-violet-soft: #f5f3ff;
+  --edusaas-surface: #ffffff;
+  --edusaas-bg: #f8fafc;
+  --edusaas-border: #e2e8f0;
+  --edusaas-text: #1e293b;
+  --edusaas-muted: #64748b;
 }
 
 body.layout-fixed {
-  background: #f4f6f9;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, sans-serif);
+  background: var(--edusaas-bg);
   background-image: none;
+  color: var(--edusaas-text);
 }
 
-.main-sidebar.sidebar-dark-primary {
-  background-color: var(--adminlte-primary-dark) !important;
+/* ── Navbar ── */
+.main-header.navbar {
+  background: var(--edusaas-surface) !important;
+  border-bottom: 1px solid var(--edusaas-border) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  min-height: 57px;
 }
 
-.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active,
-.sidebar-dark-primary .nav-sidebar > .nav-item.menu-open > .nav-link {
-  background-color: rgba(255, 255, 255, 0.18);
-  color: #fff;
+.main-header .nav-link {
+  color: var(--edusaas-text) !important;
 }
 
-.sidebar-dark-primary .nav-sidebar .nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.main-header .navbar-nav .nav-link[data-widget="pushmenu"] {
+  color: var(--edusaas-violet-dark) !important;
 }
 
-.brand-link {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+.badge-primary,
+.btn-primary {
+  background-color: var(--edusaas-violet) !important;
+  border-color: var(--edusaas-violet-dark) !important;
 }
 
-.brand-link .brand-image {
-  max-height: 33px;
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--edusaas-violet-dark) !important;
+  border-color: #5b21b6 !important;
+}
+
+.btn-secondary {
+  background: var(--edusaas-surface);
+  border-color: var(--edusaas-border);
+  color: var(--edusaas-text);
+}
+
+/* ── Sidebar violet ── */
+.main-sidebar.sidebar-edusaas {
+  background: linear-gradient(180deg, #5b21b6 0%, #7c3aed 55%, #6d28d9 100%) !important;
+  box-shadow: 2px 0 12px rgba(91, 33, 182, 0.15);
+}
+
+.sidebar-edusaas .brand-link {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  padding: 0.85rem 1rem;
+  display: flex !important;
+  align-items: center;
+  gap: 0.65rem;
+  text-align: left;
+  white-space: normal;
+}
+
+.sidebar-edusaas .brand-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-edusaas .brand-text {
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.sidebar-edusaas .brand-subtitle {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 0.15rem;
+}
+
+.sidebar-edusaas .brand-image {
+  max-height: 36px;
   width: auto;
-  border-radius: 4px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
+.sidebar-edusaas .brand-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--edusaas-violet-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-edusaas .user-panel {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-edusaas .user-panel .info a {
+  color: #fff !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.sidebar-edusaas .user-panel .info small {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-edusaas .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--edusaas-violet-dark);
+  font-weight: 800;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-edusaas .nav-header {
+  color: rgba(255, 255, 255, 0.55) !important;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.75rem 1rem 0.35rem;
+}
+
+.sidebar-edusaas .nav-sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.88) !important;
+  border-radius: 10px;
+  margin: 0.1rem 0.5rem;
+  padding: 0.55rem 0.85rem;
+  transition: background 0.15s ease;
+}
+
+.sidebar-edusaas .nav-sidebar .nav-link p {
+  color: inherit;
+  margin: 0;
+}
+
+.sidebar-edusaas .nav-sidebar .nav-link .nav-icon {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sidebar-edusaas .nav-sidebar .nav-link:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+}
+
+.sidebar-edusaas .nav-sidebar .nav-link.active,
+.sidebar-edusaas .nav-sidebar .nav-item.menu-open > .nav-link {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
+  box-shadow: inset 3px 0 0 #fff;
+}
+
+.sidebar-edusaas .nav-treeview {
+  padding-left: 0.25rem;
+}
+
+.sidebar-edusaas .nav-treeview .nav-link {
+  font-size: 0.88rem;
+  padding-left: 1.5rem !important;
+}
+
+.sidebar-edusaas .badge-info {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.sidebar-edusaas .badge-secondary {
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Content area ── */
 .content-wrapper {
-  background: #f4f6f9;
+  background: var(--edusaas-bg) !important;
 }
 
-.content-wrapper .content {
-  padding: 0 0.5rem;
+.content-header {
+  background: var(--edusaas-surface);
+  border-bottom: 1px solid var(--edusaas-border);
+  padding: 1rem 0 0.75rem;
+  margin-bottom: 0;
 }
 
-/* Compatibilité contenu existant dans AdminLTE */
-.content-wrapper .dashboard-accueil,
-.content-wrapper .prof-workspace,
-.content-wrapper .content-section,
-.content-wrapper .page-header,
-.content-wrapper .sa-page-header {
-  margin-bottom: 1rem;
+.content-header h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--edusaas-text);
+  letter-spacing: -0.02em;
 }
 
+.content-header .text-muted {
+  color: var(--edusaas-muted) !important;
+  font-size: 0.92rem;
+}
+
+.content-wrapper > .content {
+  padding: 1.25rem 0.5rem 1.5rem;
+}
+
+.content-wrapper .container-fluid {
+  max-width: 1440px;
+}
+
+.main-footer {
+  background: var(--edusaas-surface);
+  border-top: 1px solid var(--edusaas-border);
+  color: var(--edusaas-muted);
+  font-size: 0.85rem;
+  padding: 0.75rem 1.5rem;
+}
+
+/* Modales au-dessus d'AdminLTE */
 .content-wrapper .modal-overlay {
   z-index: 1050;
 }
 
-.content-wrapper .card,
-.content-wrapper .stat-card,
-.content-wrapper .quick-action-card,
-.content-wrapper .prof-welcome-card {
-  border-radius: 0.25rem;
-}
-
 @media (max-width: 991.98px) {
-  .content-wrapper .content {
-    padding: 0;
+  .content-wrapper > .content {
+    padding: 1rem 0;
   }
 }

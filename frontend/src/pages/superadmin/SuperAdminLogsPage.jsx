@@ -21,11 +21,6 @@ export default function SuperAdminLogsPage() {
 
   return (
     <div>
-      <div className="sa-page-header">
-        <h1 className="sa-page-title">Logs & Activité</h1>
-        <p className="sa-page-subtitle">Historique des actions sur la plateforme</p>
-      </div>
-
       {loading ? (
         <div className="sa-empty">Chargement...</div>
       ) : logs.length === 0 ? (

@@ -14,11 +14,6 @@ export default function SuperAdminSettingsPage() {
 
   return (
     <div>
-      <div className="sa-page-header">
-        <h1 className="sa-page-title">Paramètres</h1>
-        <p className="sa-page-subtitle">Configuration globale de la plateforme</p>
-      </div>
-
       {loading ? (
         <div className="sa-empty">Chargement...</div>
       ) : (

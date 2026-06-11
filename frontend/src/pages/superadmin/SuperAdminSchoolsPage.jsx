@@ -56,13 +56,10 @@ export default function SuperAdminSchoolsPage() {
 
   return (
     <div>
-      <div className="sa-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 className="sa-page-title">Établissements</h1>
-          <p className="sa-page-subtitle">Créer, consulter et gérer tous les établissements</p>
-        </div>
+      <div className="sa-page-toolbar">
         <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-          + Créer un établissement
+          <i className="fas fa-plus mr-1" />
+          Créer un établissement
         </button>
       </div>
 

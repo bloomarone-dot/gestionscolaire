@@ -46,13 +46,6 @@ export default function SuperAdminAdminsPage() {
 
   return (
     <div>
-      <div className="sa-page-header">
-        <h1 className="sa-page-title">Administrateurs</h1>
-        <p className="sa-page-subtitle">
-          Consulter, assigner et réinitialiser les identifiants des administrateurs d&apos;établissement
-        </p>
-      </div>
-
       {loading ? (
         <div className="sa-empty">Chargement...</div>
       ) : admins.length === 0 ? (

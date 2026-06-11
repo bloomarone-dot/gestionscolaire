@@ -30,13 +30,6 @@ export default function SuperAdminHome() {
 
   return (
     <div>
-      <div className="sa-page-header">
-        <h1 className="sa-page-title">Dashboard</h1>
-        <p className="sa-page-subtitle">
-          Bienvenue, {user?.first_name} ! Vue d'ensemble de la plateforme EduSaaS
-        </p>
-      </div>
-
       <div className="sa-stats-grid">
         <div className="sa-stat-card">
           <div className="sa-stat-icon">🏛️</div>

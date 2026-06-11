@@ -10,9 +10,9 @@ const NAV_ITEMS = [
 
 export default function SuperAdminNavigation() {
   return (
-    <nav className="mt-2">
+    <nav className="mt-1">
       <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-        <li className="nav-header">Super Admin</li>
+        <li className="nav-header">Plateforme</li>
         {NAV_ITEMS.map((item) => (
           <li key={item.to} className="nav-item">
             <NavLink
@@ -36,4 +36,12 @@ export const SUPERADMIN_PAGE_TITLES = {
   '/superadmin/admins': 'Administrateurs',
   '/superadmin/logs': 'Logs & activité',
   '/superadmin/settings': 'Paramètres',
+};
+
+export const SUPERADMIN_PAGE_SUBTITLES = {
+  '/superadmin/dashboard': "Vue d'ensemble de la plateforme EduSaaS",
+  '/superadmin/schools': 'Créer, consulter et gérer les établissements',
+  '/superadmin/admins': 'Comptes administrateurs et réinitialisation',
+  '/superadmin/logs': 'Historique des actions sur la plateforme',
+  '/superadmin/settings': 'Configuration globale du système',
 };

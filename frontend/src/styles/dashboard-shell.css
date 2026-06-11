@@ -1,0 +1,433 @@
+/* ======================================================
+   Contenu des dashboards (inside AdminLTE content-wrapper)
+   Thème blanc & violet cohérent
+   ====================================================== */
+
+.content-wrapper .dashboard-accueil,
+.content-wrapper .prof-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Hero accueil admin ── */
+.content-wrapper .dashboard-hero {
+  background: linear-gradient(135deg, #ffffff 0%, var(--edusaas-violet-soft, #f5f3ff) 100%);
+  border: 1px solid #ddd6fe;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 24px rgba(124, 58, 237, 0.08);
+}
+
+.content-wrapper .dashboard-hero-bg {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.12), transparent 50%),
+    radial-gradient(circle at 0% 100%, rgba(167, 139, 250, 0.1), transparent 45%);
+}
+
+.content-wrapper .dashboard-hero-greeting {
+  color: var(--edusaas-violet-dark, #6d28d9);
+}
+
+.content-wrapper .dashboard-hero-title {
+  background: linear-gradient(135deg, #5b21b6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.content-wrapper .dashboard-hero-subtitle {
+  color: var(--edusaas-muted, #64748b);
+}
+
+.content-wrapper .dashboard-hero-badge {
+  background: var(--edusaas-violet-light, #ede9fe);
+  border: 1px solid #c4b5fd;
+  color: var(--edusaas-violet-dark, #6d28d9);
+}
+
+.content-wrapper .dashboard-hero-stat {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e9d5ff;
+}
+
+.content-wrapper .dashboard-hero-stat-value {
+  background: linear-gradient(135deg, #6d28d9, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Actions rapides ── */
+.content-wrapper .quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.content-wrapper .quick-action-card {
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.content-wrapper .quick-action-card:hover {
+  border-color: #c4b5fd;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.12);
+  transform: translateY(-2px);
+}
+
+/* ── Guide configuration admin ── */
+.content-wrapper .admin-setup-guide {
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border-left: 4px solid var(--edusaas-violet, #8b5cf6);
+}
+
+.content-wrapper .admin-setup-guide h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--edusaas-text, #1e293b);
+}
+
+.content-wrapper .admin-setup-guide > p {
+  color: var(--edusaas-muted, #64748b);
+  margin: 0 0 1rem;
+  font-size: 0.92rem;
+}
+
+.content-wrapper .admin-setup-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.content-wrapper .admin-setup-step-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.content-wrapper .admin-setup-step-btn:hover {
+  background: var(--edusaas-violet-soft, #f5f3ff);
+  border-color: #c4b5fd;
+}
+
+.content-wrapper .admin-setup-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--edusaas-violet, #8b5cf6);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Stats cards admin ── */
+.content-wrapper .admin-stats-grid,
+.content-wrapper .professor-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.content-wrapper .stat-card-admin,
+.content-wrapper .stat-card {
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.content-wrapper .stat-card-admin:hover,
+.content-wrapper .stat-card:hover {
+  border-color: #c4b5fd;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.1);
+}
+
+.content-wrapper .stat-card-emerald,
+.content-wrapper .stat-card-amber {
+  border-left: 4px solid var(--edusaas-violet, #8b5cf6);
+}
+
+.content-wrapper .stat-number {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--edusaas-violet-dark, #6d28d9);
+}
+
+.content-wrapper .stat-label {
+  color: var(--edusaas-muted, #64748b);
+  font-size: 0.88rem;
+}
+
+/* ── Prof workspace ── */
+.content-wrapper .prof-greeting-block h1 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--edusaas-text, #1e293b);
+}
+
+.content-wrapper .prof-welcome-card {
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border-left: 4px solid var(--edusaas-violet, #8b5cf6);
+}
+
+.content-wrapper .prof-welcome-card h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+  color: var(--edusaas-text, #1e293b);
+}
+
+.content-wrapper .prof-welcome-card p {
+  margin: 0;
+  color: var(--edusaas-muted, #64748b);
+}
+
+/* ── Super Admin contenu ── */
+.content-wrapper .sa-page-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.content-wrapper .sa-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.content-wrapper .sa-stat-card {
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.content-wrapper .sa-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--edusaas-violet-soft, #f5f3ff);
+  font-size: 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content-wrapper .sa-stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--edusaas-violet-dark, #6d28d9);
+}
+
+.content-wrapper .sa-stat-label {
+  font-size: 0.82rem;
+  color: var(--edusaas-muted, #64748b);
+}
+
+.content-wrapper .sa-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 992px) {
+  .content-wrapper .sa-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.content-wrapper .sa-panel {
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  height: 100%;
+}
+
+.content-wrapper .sa-panel-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--edusaas-text, #1e293b);
+  margin: 0 0 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--edusaas-border, #e2e8f0);
+}
+
+.content-wrapper .sa-bar-fill {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa) !important;
+}
+
+.content-wrapper .sa-table-wrap {
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.content-wrapper .sa-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.content-wrapper .sa-search,
+.content-wrapper .sa-filter-select {
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  color: var(--edusaas-text, #1e293b);
+}
+
+.content-wrapper .sa-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--edusaas-muted, #64748b);
+  background: #fff;
+  border: 1px dashed #c4b5fd;
+  border-radius: 12px;
+}
+
+.content-wrapper .sa-list-item {
+  border-bottom: 1px solid var(--edusaas-border, #e2e8f0);
+  padding: 0.75rem 0;
+}
+
+.content-wrapper .sa-list-item:last-child {
+  border-bottom: none;
+}
+
+.content-wrapper .sa-badge-active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.content-wrapper .sa-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.content-wrapper .sa-table th,
+.content-wrapper .sa-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--edusaas-border, #e2e8f0);
+  font-size: 0.9rem;
+}
+
+.content-wrapper .sa-table th {
+  background: var(--edusaas-violet-soft, #f5f3ff);
+  color: var(--edusaas-violet-dark, #6d28d9);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.content-wrapper .sa-table tr:hover td {
+  background: #fafafa;
+}
+
+.content-wrapper .sa-bar-track {
+  background: #ede9fe;
+}
+
+.content-wrapper .sa-list-name {
+  font-weight: 600;
+  color: var(--edusaas-text, #1e293b);
+}
+
+.content-wrapper .sa-list-meta {
+  font-size: 0.82rem;
+  color: var(--edusaas-muted, #64748b);
+}
+
+.content-wrapper .sa-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+
+/* ── Sections listes (prof, admin modules) ── */
+.content-wrapper .content-section,
+.content-wrapper .section-header,
+.content-wrapper .page-header {
+  background: #fff;
+  border: 1px solid var(--edusaas-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.content-wrapper .section-header h2,
+.content-wrapper .page-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  color: var(--edusaas-text, #1e293b);
+}
+
+.content-wrapper .section-header p,
+.content-wrapper .page-header p {
+  margin: 0;
+  color: var(--edusaas-muted, #64748b);
+  font-size: 0.9rem;
+}
+
+.content-wrapper .content-section-flat {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.content-wrapper .content-section-flat .section-header {
+  margin-bottom: 1rem;
+}
