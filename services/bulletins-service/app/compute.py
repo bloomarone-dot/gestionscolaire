@@ -50,14 +50,22 @@ def compute_class_bulletins(
     official = [s for s in subjects if s.get("source", "OFFICIELLE") != "SPECIALE"]
     special = [s for s in subjects if s.get("source") == "SPECIALE"]
 
-    # moyenne par (élève, matière)
-    bucket: dict[tuple[int, int], list[float]] = {}
+    # Notes par (élève, matière) → {type_evaluation: valeur} (1e/2e séquence…)
+    bucket: dict[tuple[int, int], dict[str, float]] = {}
     for n in notes:
-        bucket.setdefault((n["eleve_id"], n["matiere_id"]), []).append(n["valeur"])
+        key = (n["eleve_id"], n["matiere_id"])
+        bucket.setdefault(key, {})[n.get("type_evaluation") or "sequence_1"] = n["valeur"]
 
-    def subject_avg(eleve_id: int, matiere_id: int) -> Optional[float]:
-        vals = bucket.get((eleve_id, matiere_id))
-        return _round(mean(vals)) if vals else None
+    def subject_seqs(eleve_id: int, matiere_id: int):
+        """Retourne (seq1, seq2, moyenne) — moyenne des évaluations disponibles."""
+        d = bucket.get((eleve_id, matiere_id), {})
+        seq1 = d.get("sequence_1")
+        seq2 = d.get("sequence_2")
+        present = [v for v in (seq1, seq2) if v is not None]
+        if not present and d:          # autres types (ex. trimestre) sans séquences
+            present = list(d.values())
+        moyenne = _round(mean(present)) if present else None
+        return seq1, seq2, moyenne
 
     # Moyennes générales (officielles) + collecte pour les rangs par matière
     gen_avgs: dict[int, Optional[float]] = {}
@@ -70,7 +78,7 @@ def compute_class_bulletins(
         total_coeff = 0.0
         off_rows = []
         for s in official:
-            avg = subject_avg(eid, s["matiere_id"])
+            seq1, seq2, avg = subject_seqs(eid, s["matiere_id"])
             per_subject_avgs[s["matiere_id"]][eid] = avg
             points = None if avg is None else _round(avg * s["coefficient"])
             if avg is not None:
@@ -78,8 +86,10 @@ def compute_class_bulletins(
                 total_coeff += s["coefficient"]
             off_rows.append({
                 "matiere_id": s["matiere_id"], "nom": s["nom"],
+                "seq1": seq1, "seq2": seq2,
                 "coefficient": s["coefficient"], "moyenne": avg, "points": points,
-                "enseignant_id": s.get("enseignant_id"), "groupe": s.get("groupe"),
+                "enseignant_id": s.get("enseignant_id"),
+                "enseignant_nom": s.get("enseignant_nom"), "groupe": s.get("groupe"),
                 "appreciation": appreciation(avg, lang),
             })
         moyenne_generale = _round(total_points / total_coeff) if total_coeff else None
@@ -87,9 +97,10 @@ def compute_class_bulletins(
 
         sp_rows = []
         for s in special:
-            avg = subject_avg(eid, s["matiere_id"])
+            seq1, seq2, avg = subject_seqs(eid, s["matiere_id"])
             sp_rows.append({
                 "matiere_id": s["matiere_id"], "nom": s["nom"],
+                "seq1": seq1, "seq2": seq2,
                 "coefficient": s["coefficient"], "moyenne": avg,
                 "points": None if avg is None else _round(avg * s["coefficient"]),
                 "appreciation": appreciation(avg, lang),

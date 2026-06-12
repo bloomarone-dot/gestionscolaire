@@ -183,16 +183,16 @@ PREMIER_CYCLE_FR_LEVELS = ["6E", "5E", "4E", "3E"]
 # Colonne A1/A2 partagée par les séries A1 et A2.
 SECOND_CYCLE_FR_BY_SERIES = {
     "A1": {"FR_FRANCAIS": 4, "FR_ANGLAIS": 4, "FR_LV2": 4, "FR_MATHS": 2,
-           "FR_PHILO": 4, "FR_HIST": 2, "FR_GEO": 2, "FR_EPS": 2, "FR_INFO": 2},
+           "FR_PHILO": 4, "FR_HIST": 2, "FR_GEO": 2, "FR_EPS": 1, "FR_INFO": 1},
     "A2": {"FR_FRANCAIS": 4, "FR_ANGLAIS": 4, "FR_LV2": 4, "FR_MATHS": 2,
-           "FR_PHILO": 4, "FR_HIST": 2, "FR_GEO": 2, "FR_EPS": 2, "FR_INFO": 2},
+           "FR_PHILO": 4, "FR_HIST": 2, "FR_GEO": 2, "FR_EPS": 1, "FR_INFO": 1},
     "A4": {"FR_FRANCAIS": 4, "FR_ANGLAIS": 3, "FR_LV2": 4, "FR_MATHS": 3,
            "FR_PCT": 2, "FR_SVT": 2, "FR_PHILO": 3, "FR_HIST": 2, "FR_GEO": 2,
-           "FR_EPS": 2, "FR_INFO": 2},
+           "FR_EPS": 1, "FR_INFO": 1},
     "C": {"FR_FRANCAIS": 3, "FR_ANGLAIS": 2, "FR_MATHS": 5, "FR_PCT": 5,
-          "FR_SVT": 2, "FR_PHILO": 2, "FR_GEO": 2, "FR_EPS": 2, "FR_INFO": 2},
+          "FR_SVT": 2, "FR_PHILO": 2, "FR_GEO": 2, "FR_EPS": 1, "FR_INFO": 1},
     "D": {"FR_FRANCAIS": 3, "FR_ANGLAIS": 2, "FR_MATHS": 5, "FR_PCT": 4,
-          "FR_SVT": 4, "FR_PHILO": 2, "FR_HIST": 2, "FR_EPS": 2, "FR_INFO": 2},
+          "FR_SVT": 4, "FR_PHILO": 2, "FR_HIST": 2, "FR_EPS": 1, "FR_INFO": 1},
 }
 SECOND_CYCLE_FR_LEVELS = ["2ND", "1ERE", "TLE"]
 

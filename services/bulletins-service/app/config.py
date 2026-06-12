@@ -9,6 +9,7 @@ class Settings(BaseServiceSettings):
     pedagogie_service_url: str = "http://pedagogie-service:8000"
     evaluations_service_url: str = "http://evaluations-service:8000"
     tenant_service_url: str = "http://tenant-service:8000"
+    personnel_service_url: str = "http://personnel-service:8000"
 
 
 settings = Settings()

@@ -29,12 +29,14 @@ def build_class_bulletins(
 ) -> dict:
     classe = clients.get_classe(ctx, classe_id)
     school = clients.get_school(ctx)
+    teacher_names = clients.get_teacher_names(ctx)
     lang = lang_for_subsystem(classe.get("subsystem_code"))
 
     subjects = [
         {
             "matiere_id": m["id"], "nom": m["nom"], "coefficient": m["coefficient"],
             "source": m.get("source", "OFFICIELLE"), "enseignant_id": m.get("enseignant_id"),
+            "enseignant_nom": teacher_names.get(m.get("enseignant_id")),
             "groupe": m.get("groupe"),
         }
         for m in classe.get("matieres", []) if m.get("activated")
@@ -44,13 +46,16 @@ def build_class_bulletins(
          "nom": s.get("nom"), "prenom": s.get("prenom")}
         for s in clients.get_students(ctx, classe_id)
     ]
+    # type_evaluation=None → on récupère 1e ET 2e séquence pour le trimestre.
     notes = [
-        {"eleve_id": n["eleve_id"], "matiere_id": n["matiere_id"], "valeur": n["valeur"]}
+        {"eleve_id": n["eleve_id"], "matiere_id": n["matiere_id"],
+         "valeur": n["valeur"], "type_evaluation": n.get("type_evaluation")}
         for n in clients.get_notes(ctx, classe_id, trimestre, type_evaluation)
     ]
 
     result = compute_class_bulletins(students, subjects, notes, lang)
     result["header"] = _header(classe, school, lang, trimestre)
+    result["header"]["effectif"] = result["effectif"]
     for b in result["bulletins"]:
         b["decision"] = decision(b["moyenne_generale"], lang)
     return result

@@ -91,6 +91,14 @@ def test_technique_commercial_and_industrial(db):
     assert f2["FR_TPATELIER"] == 5
 
 
+def test_eps_info_second_cycle_coeff_1(db):
+    """Tableau 3.3 (révisé) : EPS et Informatique valent 1 dans toutes les séries."""
+    for series in ("A1", "A2", "A4", "C", "D"):
+        coeffs = _coef_map(crud.resolve_subjects(db, "TLE", series))
+        assert coeffs["FR_EPS"] == 1, series
+        assert coeffs["FR_INFO"] == 1, series
+
+
 def test_anglophone_general(db):
     coeffs = _coef_map(crud.resolve_subjects(db, "F5", None))
     assert coeffs["EN_ENGLISH"] == 4

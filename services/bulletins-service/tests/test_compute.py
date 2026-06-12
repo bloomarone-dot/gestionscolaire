@@ -12,11 +12,11 @@ SUBJECTS = [
     {"matiere_id": 200, "nom": "Mandarin", "coefficient": 2, "source": "SPECIALE"},
 ]
 NOTES = [
-    {"eleve_id": 1, "matiere_id": 100, "valeur": 16},
-    {"eleve_id": 1, "matiere_id": 101, "valeur": 12},
-    {"eleve_id": 2, "matiere_id": 100, "valeur": 10},
-    {"eleve_id": 2, "matiere_id": 101, "valeur": 14},
-    {"eleve_id": 1, "matiere_id": 200, "valeur": 18},  # spéciale
+    {"eleve_id": 1, "matiere_id": 100, "valeur": 16, "type_evaluation": "sequence_1"},
+    {"eleve_id": 1, "matiere_id": 101, "valeur": 12, "type_evaluation": "sequence_1"},
+    {"eleve_id": 2, "matiere_id": 100, "valeur": 10, "type_evaluation": "sequence_1"},
+    {"eleve_id": 2, "matiere_id": 101, "valeur": 14, "type_evaluation": "sequence_1"},
+    {"eleve_id": 1, "matiere_id": 200, "valeur": 18, "type_evaluation": "sequence_1"},  # spéciale
 ]
 
 
@@ -69,6 +69,20 @@ def test_missing_note_excluded_from_total():
     assert b[1]["moyenne_generale"] == 15
     fr = next(s for s in b[1]["subjects"] if s["matiere_id"] == 101)
     assert fr["moyenne"] is None
+
+
+def test_two_sequences_average():
+    """Moyenne matière = moyenne des deux évaluations (1e + 2e séquence)."""
+    subjects = [{"matiere_id": 100, "nom": "Maths", "coefficient": 5, "source": "OFFICIELLE"}]
+    notes = [
+        {"eleve_id": 1, "matiere_id": 100, "valeur": 16, "type_evaluation": "sequence_1"},
+        {"eleve_id": 1, "matiere_id": 100, "valeur": 12, "type_evaluation": "sequence_2"},
+    ]
+    b = _by_id(compute_class_bulletins([STUDENTS[0]], subjects, notes, "fr"))
+    s = b[1]["subjects"][0]
+    assert s["seq1"] == 16 and s["seq2"] == 12
+    assert s["moyenne"] == 14            # (16 + 12) / 2
+    assert b[1]["moyenne_generale"] == 14
 
 
 def test_groupe_passthrough():

@@ -8,6 +8,7 @@ _eleves = InternalClient(settings.eleves_service_url, settings.internal_shared_s
 _pedagogie = InternalClient(settings.pedagogie_service_url, settings.internal_shared_secret)
 _evaluations = InternalClient(settings.evaluations_service_url, settings.internal_shared_secret)
 _tenant = InternalClient(settings.tenant_service_url, settings.internal_shared_secret)
+_personnel = InternalClient(settings.personnel_service_url, settings.internal_shared_secret)
 
 
 def get_classe(ctx: TenantContext, classe_id: int) -> dict:
@@ -31,3 +32,15 @@ def get_notes(ctx: TenantContext, classe_id: int, trimestre: int, type_evaluatio
 
 def get_school(ctx: TenantContext) -> dict:
     return _tenant.get("/tenants/me", ctx=ctx)
+
+
+def get_teacher_names(ctx: TenantContext) -> dict[int, str]:
+    """id enseignant → « NOM Prénom » (pour la colonne Professeur du bulletin)."""
+    try:
+        rows = _personnel.get("/personnel/enseignants", ctx=ctx)
+    except Exception:
+        return {}
+    return {
+        r["id"]: " ".join(x for x in [r.get("nom"), r.get("prenom")] if x)
+        for r in rows
+    }
