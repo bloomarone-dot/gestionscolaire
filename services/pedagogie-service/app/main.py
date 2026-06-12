@@ -57,7 +57,7 @@ def _matiere_out(m: ClasseMatiere) -> MatiereOut:
         type="Officielle" if m.source == SOURCE_OFFICIELLE else "Spéciale",
         subject_code=m.subject_code, coefficient=m.coefficient,
         volume_horaire=m.volume_horaire, enseignant_id=m.enseignant_id,
-        activated=m.activated, is_obligatoire=m.is_obligatoire,
+        activated=m.activated, is_obligatoire=m.is_obligatoire, groupe=m.groupe,
     )
 
 

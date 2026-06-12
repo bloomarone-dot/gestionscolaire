@@ -115,9 +115,9 @@ def resolve_subjects(
     return [
         ResolvedSubjectOut(
             subject_id=subj.id, code=subj.code, name=subj.name,
-            default_coefficient=coef, is_obligatoire=oblig,
+            default_coefficient=coef, is_obligatoire=oblig, groupe=groupe,
         )
-        for subj, coef, oblig in rows
+        for subj, coef, oblig, groupe in rows
     ]
 
 
@@ -182,7 +182,7 @@ def create_eligibility(
     elig = SubjectEligibility(
         subject_id=subject.id, level_id=level.id, series_id=series_id,
         default_coefficient=payload.default_coefficient,
-        is_obligatoire=payload.is_obligatoire,
+        is_obligatoire=payload.is_obligatoire, groupe=payload.groupe,
     )
     db.add(elig)
     db.commit()

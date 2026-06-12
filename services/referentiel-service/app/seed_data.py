@@ -217,3 +217,19 @@ ANGLO_GENERAL = {
     "EN_CS": 1, "EN_PE": 1,
 }
 ANGLO_GENERAL_LEVELS = ["F1", "F2", "F3", "F4", "F5"]
+
+# ── Groupes de bulletin (second cycle francophone uniquement) ─────────────────
+# Décision client : 2 groupes (« 1er Groupe » / « 2e Groupe »), variables selon la
+# série. Affectation matière → groupe par série. À COMPLÉTER avec les données
+# officielles du client — laissé vide pour ne rien inventer. Tant que vide, les
+# matières sont affichées sans regroupement sur le bulletin.
+# Format : { series_code: { subject_code: groupe(1|2) } }
+SECOND_CYCLE_FR_GROUPS: dict[str, dict[str, int]] = {
+    # "C": {"FR_MATHS": 1, "FR_PCT": 1, "FR_FRANCAIS": 2, ...},
+    # "D": {...}, "A1": {...}, "A2": {...}, "A4": {...},
+}
+
+
+def groupe_for(series_code: str, subject_code: str) -> int | None:
+    return SECOND_CYCLE_FR_GROUPS.get(series_code, {}).get(subject_code)
+

@@ -82,6 +82,7 @@ class ClasseMatiere(Base):
     coefficient = Column(Float, nullable=False, default=1)
     volume_horaire = Column(Integer, nullable=True)
     enseignant_id = Column(Integer, nullable=True)
+    groupe = Column(Integer, nullable=True)  # groupe de bulletin (second cycle francophone)
 
     activated = Column(Boolean, default=True, nullable=False)
     is_obligatoire = Column(Boolean, default=False, nullable=False)

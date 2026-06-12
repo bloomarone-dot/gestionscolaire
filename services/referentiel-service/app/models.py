@@ -131,6 +131,9 @@ class SubjectEligibility(Base):
     series_id = Column(Integer, ForeignKey("series_specialties.id"), nullable=True)
     default_coefficient = Column(Float, nullable=False)
     is_obligatoire = Column(Boolean, nullable=False, default=False)
+    # Groupe de bulletin (1 ou 2), uniquement à partir du second cycle francophone ;
+    # NULL ailleurs. Peut varier selon la série (cf. décision client).
+    groupe = Column(Integer, nullable=True)
 
     subject = relationship("Subject")
     level = relationship("Level")

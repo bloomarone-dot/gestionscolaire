@@ -60,6 +60,7 @@ def create_class(
                 subject_code=s["code"], nom=s["name"],
                 coefficient=s["default_coefficient"],
                 is_obligatoire=s.get("is_obligatoire", False),
+                groupe=s.get("groupe"),
                 activated=True,
             ))
     db.commit()

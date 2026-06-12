@@ -51,6 +51,7 @@ class ResolvedSubjectOut(BaseModel):
     name: str
     default_coefficient: float
     is_obligatoire: bool
+    groupe: Optional[int] = None  # groupe de bulletin (second cycle francophone)
     type: str = "Officielle"
 
 
@@ -66,3 +67,4 @@ class EligibilityCreate(BaseModel):
     series_code: Optional[str] = None
     default_coefficient: float
     is_obligatoire: bool = False
+    groupe: Optional[int] = None

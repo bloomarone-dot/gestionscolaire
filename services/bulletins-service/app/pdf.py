@@ -41,21 +41,35 @@ def render_bulletin_pdf(data: dict) -> bytes:
     ))
     story.append(Spacer(1, 0.4 * cm))
 
-    # Tableau principal — matières officielles
+    # Tableau principal — matières officielles, regroupées par « groupe » si défini
+    # (second cycle francophone). Sinon, liste à plat.
     head = [labels["subject"], labels["average"], labels["coefficient"],
             labels["points"], labels["rank"], labels["appreciation"], labels["teacher"]]
-    rows = [head]
-    for s in bulletin.get("subjects", []):
-        rows.append([
-            s["nom"], _fmt(s["moyenne"]), _fmt(s["coefficient"]), _fmt(s["points"]),
-            _fmt(s["rang_matiere"]), s.get("appreciation", ""), str(s.get("enseignant_id") or ""),
-        ])
-    rows.append([
-        labels["total_coeff"], "", _fmt(bulletin.get("total_coefficient")),
-        _fmt(bulletin.get("total_points")), "", "", "",
-    ])
-    story.append(_styled_table(rows))
-    story.append(Spacer(1, 0.3 * cm))
+
+    def _srow(s):
+        return [s["nom"], _fmt(s["moyenne"]), _fmt(s["coefficient"]), _fmt(s["points"]),
+                _fmt(s["rang_matiere"]), s.get("appreciation", ""), str(s.get("enseignant_id") or "")]
+
+    subjects = bulletin.get("subjects", [])
+    groups_present = sorted({s["groupe"] for s in subjects if s.get("groupe")})
+    if groups_present:
+        for g in groups_present:
+            story.append(Paragraph(labels.get(f"group_{g}", f"Groupe {g}"), styles["Heading4"]))
+            story.append(_styled_table([head] + [_srow(s) for s in subjects if s.get("groupe") == g]))
+            story.append(Spacer(1, 0.2 * cm))
+        ungrouped = [s for s in subjects if not s.get("groupe")]
+        if ungrouped:
+            story.append(_styled_table([head] + [_srow(s) for s in ungrouped]))
+    else:
+        story.append(_styled_table([head] + [_srow(s) for s in subjects]))
+
+    story.append(Spacer(1, 0.2 * cm))
+    story.append(Paragraph(
+        f"<b>{labels['total_coeff']}:</b> {_fmt(bulletin.get('total_coefficient'))} | "
+        f"<b>{labels['total_points']}:</b> {_fmt(bulletin.get('total_points'))}",
+        styles["Normal"],
+    ))
+    story.append(Spacer(1, 0.2 * cm))
     story.append(Paragraph(
         f"<b>{labels['general_average']}:</b> {_fmt(bulletin.get('moyenne_generale'))} | "
         f"<b>{labels['general_rank']}:</b> {_fmt(bulletin.get('rang_general'))} | "

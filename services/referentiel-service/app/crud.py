@@ -91,4 +91,7 @@ def resolve_subjects(db: Session, level_code: str, series_code: Optional[str] = 
         ).filter(SeriesSpecialty.code == series_code)
     else:
         q = q.filter(SubjectEligibility.series_id.is_(None))
-    return [(subj, elig.default_coefficient, elig.is_obligatoire) for elig, subj in q.all()]
+    return [
+        (subj, elig.default_coefficient, elig.is_obligatoire, elig.groupe)
+        for elig, subj in q.all()
+    ]

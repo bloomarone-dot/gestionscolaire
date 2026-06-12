@@ -71,6 +71,17 @@ def test_missing_note_excluded_from_total():
     assert fr["moyenne"] is None
 
 
+def test_groupe_passthrough():
+    """Le groupe de bulletin (second cycle francophone) est porté jusqu'au calcul."""
+    subjects = [
+        {"matiere_id": 100, "nom": "Mathématiques", "coefficient": 5, "source": "OFFICIELLE", "groupe": 1},
+        {"matiere_id": 101, "nom": "Français", "coefficient": 3, "source": "OFFICIELLE", "groupe": 2},
+    ]
+    b = _by_id(compute_class_bulletins(STUDENTS, subjects, NOTES, "fr"))
+    groups = {s["matiere_id"]: s["groupe"] for s in b[1]["subjects"]}
+    assert groups == {100: 1, 101: 2}
+
+
 def test_lang_and_labels():
     assert lang_for_subsystem("ANGLOPHONE") == "en"
     assert lang_for_subsystem("FRANCOPHONE") == "fr"

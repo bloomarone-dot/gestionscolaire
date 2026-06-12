@@ -24,7 +24,7 @@ def db():
 
 
 def _coef_map(rows):
-    return {s.code: coef for s, coef, _ in rows}
+    return {s.code: coef for s, coef, *_ in rows}
 
 
 def test_cascade_francophone_general(db):
@@ -97,6 +97,20 @@ def test_anglophone_general(db):
     assert coeffs["EN_MATHS"] == 4
     assert coeffs["EN_LIT"] == 3
     assert coeffs["EN_PE"] == 1
+
+
+def test_groupe_exposed_null_until_mapping(db):
+    """Le groupe de bulletin est exposé ; NULL tant que l'affectation n'est pas fournie."""
+    rows = crud.resolve_subjects(db, "TLE", "C")
+    assert rows and all(len(r) == 4 for r in rows)
+    assert all(groupe is None for *_, groupe in rows)
+
+
+def test_groupe_for_helper(monkeypatch):
+    from app import seed_data
+    monkeypatch.setitem(seed_data.SECOND_CYCLE_FR_GROUPS, "C", {"FR_MATHS": 1, "FR_PCT": 1})
+    assert seed_data.groupe_for("C", "FR_MATHS") == 1
+    assert seed_data.groupe_for("C", "FR_FRANCAIS") is None  # non affectée
 
 
 def test_idempotent_seed(db):

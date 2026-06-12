@@ -74,12 +74,14 @@ def seed_all(session: Session) -> None:
     session.flush()
 
     # ── Éligibilité + coefficients ────────────────────────────────────────
-    def add_elig(subject_code: str, level_code: str, series_code: str | None, coef: float):
+    def add_elig(subject_code: str, level_code: str, series_code: str | None, coef: float,
+                 groupe: int | None = None):
         session.add(SubjectEligibility(
             subject_id=subjects[subject_code].id,
             level_id=levels[level_code].id,
             series_id=series[series_code].id if series_code else None,
             default_coefficient=coef,
+            groupe=groupe,
         ))
 
     # §3.2 Premier cycle francophone général (tronc commun)
@@ -87,12 +89,13 @@ def seed_all(session: Session) -> None:
         for subject_code, coef in D.PREMIER_CYCLE_FR.items():
             add_elig(subject_code, level_code, None, coef)
 
-    # §3.3 Second cycle francophone général (par série)
+    # §3.3 Second cycle francophone général (par série) — avec groupe de bulletin.
     for level_code in D.SECOND_CYCLE_FR_LEVELS:
         for series_code in D.LEVEL_SERIES[level_code]:
             coef_map = D.SECOND_CYCLE_FR_BY_SERIES[series_code]
             for subject_code, coef in coef_map.items():
-                add_elig(subject_code, level_code, series_code, coef)
+                add_elig(subject_code, level_code, series_code, coef,
+                         groupe=D.groupe_for(series_code, subject_code))
 
     # §3.4 Sections techniques commerciales
     for level_code, series_codes in D.TECH_COMMERCIAL_BY_LEVEL.items():

@@ -35,6 +35,7 @@ def build_class_bulletins(
         {
             "matiere_id": m["id"], "nom": m["nom"], "coefficient": m["coefficient"],
             "source": m.get("source", "OFFICIELLE"), "enseignant_id": m.get("enseignant_id"),
+            "groupe": m.get("groupe"),
         }
         for m in classe.get("matieres", []) if m.get("activated")
     ]

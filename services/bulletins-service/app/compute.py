@@ -79,7 +79,7 @@ def compute_class_bulletins(
             off_rows.append({
                 "matiere_id": s["matiere_id"], "nom": s["nom"],
                 "coefficient": s["coefficient"], "moyenne": avg, "points": points,
-                "enseignant_id": s.get("enseignant_id"),
+                "enseignant_id": s.get("enseignant_id"), "groupe": s.get("groupe"),
                 "appreciation": appreciation(avg, lang),
             })
         moyenne_generale = _round(total_points / total_coeff) if total_coeff else None

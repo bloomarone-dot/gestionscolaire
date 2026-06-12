@@ -44,6 +44,7 @@ class MatiereOut(BaseModel):
     enseignant_id: Optional[int] = None
     activated: bool
     is_obligatoire: bool
+    groupe: Optional[int] = None  # groupe de bulletin (second cycle francophone)
 
 
 class ClasseListItem(BaseModel):
