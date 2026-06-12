@@ -29,7 +29,8 @@ services:
       POSTGRES_PASSWORD: gs
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      # Port hôte décalé pour éviter un conflit avec un Postgres local (5432).
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -42,8 +43,8 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT:-5673}:5672"
+      - "${RABBITMQ_UI_PORT:-15672}:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 15s
@@ -53,7 +54,8 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      # Port hôte décalé pour éviter un conflit avec un Redis local (6379).
+      - "${REDIS_PORT:-6380}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -69,7 +71,7 @@ services:
       INTERNAL_SHARED_SECRET: *internal_secret
       CORS_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
     ports:
-      - "8080:8000"
+      - "${GATEWAY_PORT:-8080}:8000"
     depends_on:
       - auth-service
     restart: unless-stopped
@@ -155,7 +157,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "5173:80"
+      - "${WEB_PORT:-5173}:80"
     depends_on:
       - api-gateway
     restart: unless-stopped
