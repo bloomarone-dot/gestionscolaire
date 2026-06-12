@@ -11,7 +11,7 @@ apps/
 services/
   api-gateway/             # ✅ FastAPI — routage, JWT, injection X-Tenant-Id
   auth-service/            # ✅ login téléphone+mot de passe, JWT (service de référence)
-  tenant-service/          # 🟡 squelette bootable — profil école, sous-systèmes/types actifs
+  tenant-service/          # ✅ profil école, sous-systèmes/types actifs (filtre §14), canaux notif
   referentiel-service/     # ✅ référentiel MINESEC + seed (cascade, coefficients, tree)
   pedagogie-service/       # 🟡 squelette bootable — classes (cascade), matières, coefficients
   personnel-service/       # 🟡 squelette bootable — enseignants, direction (2 tél.)
