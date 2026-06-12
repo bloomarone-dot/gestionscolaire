@@ -9,6 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProfessorDashboard from './pages/ProfessorDashboard';
 import SuperAdminHome from './pages/superadmin/SuperAdminHome';
 import SuperAdminSchoolsPage from './pages/superadmin/SuperAdminSchoolsPage';
+import SuperAdminSchoolFormPage from './pages/superadmin/SuperAdminSchoolFormPage';
 import SuperAdminAdminsPage from './pages/superadmin/SuperAdminAdminsPage';
 import SuperAdminLogsPage from './pages/superadmin/SuperAdminLogsPage';
 import SuperAdminSettingsPage from './pages/superadmin/SuperAdminSettingsPage';
@@ -68,6 +69,8 @@ function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<SuperAdminHome />} />
         <Route path="schools" element={<SuperAdminSchoolsPage />} />
+        <Route path="schools/new" element={<SuperAdminSchoolFormPage />} />
+        <Route path="schools/:id/edit" element={<SuperAdminSchoolFormPage />} />
         <Route path="admins" element={<SuperAdminAdminsPage />} />
         <Route path="logs" element={<SuperAdminLogsPage />} />
         <Route path="settings" element={<SuperAdminSettingsPage />} />

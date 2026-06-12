@@ -362,6 +362,26 @@ export async function updateSchool(schoolId, schoolData) {
   return handleResponse(res);
 }
 
+// Profil pédagogique actif (sous-systèmes/types) + canaux de notif (§14 / §12.2).
+export async function updateSchoolProfile(schoolId, profile) {
+  const res = await fetch(`/tenants/schools/${schoolId}/profile`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(profile),
+  });
+  return handleResponse(res);
+}
+
+// Crée le compte administrateur de l'établissement (login téléphone + mot de passe).
+export async function createSchoolAdmin(schoolId, admin) {
+  const res = await fetch('/auth/accounts', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ ...admin, role: 'admin', tenant_id: schoolId }),
+  });
+  return handleResponse(res);
+}
+
 export async function deleteSchool(schoolId) {
   void schoolId;
   unsupported("La suppression d'un établissement");
