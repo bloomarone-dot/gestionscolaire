@@ -13,7 +13,7 @@ services/
   auth-service/            # ✅ login téléphone+mot de passe, JWT (service de référence)
   tenant-service/          # ✅ profil école, sous-systèmes/types actifs (filtre §14), canaux notif
   referentiel-service/     # ✅ référentiel MINESEC + seed (cascade, coefficients, tree)
-  pedagogie-service/       # 🟡 squelette bootable — classes (cascade), matières, coefficients
+  pedagogie-service/       # ✅ classes (cascade §4), matières de classe (§5), spéciales, confirmation §5.2
   personnel-service/       # 🟡 squelette bootable — enseignants, direction (2 tél.)
   eleves-service/          # 🟡 squelette bootable — inscriptions, héritage matières, promotions
   evaluations-service/     # 🟡 squelette bootable — saisie des notes
