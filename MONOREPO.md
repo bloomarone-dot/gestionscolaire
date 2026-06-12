@@ -17,7 +17,7 @@ services/
   personnel-service/       # ✅ enseignants (§7.1), direction 2 tél. (§7.2), compte via auth-service
   eleves-service/          # ✅ inscriptions (§6), parents, héritage matières (§6.2), transferts, promotions (§10)
   evaluations-service/     # ✅ saisie notes (§11.1) + fenêtres de saisie + bornes 0-20
-  bulletins-service/       # 🟡 squelette bootable — calculs + bulletin FR/EN + PDF
+  bulletins-service/       # ✅ calculs moyennes/rangs (§11), section spéciales (§11.3), FR/EN, PDF
   notifications-service/   # 🟡 squelette bootable — notif multi-canal (consumer RabbitMQ)
 libs/
   common/                  # ✅ lib partagée : config, JWT, tenant/RLS, db, security, events, http
