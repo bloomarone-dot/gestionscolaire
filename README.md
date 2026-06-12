@@ -9,8 +9,23 @@ docker compose up --build -d
 ```
 
 - **Frontend** : http://localhost:5173
-- **API Backend** : http://localhost:8000
-- **Documentation API** : http://localhost:8000/docs
+- **API Gateway** : http://localhost:8080 (santé : `/health`)
+- **RabbitMQ (console)** : http://localhost:15672 (guest/guest)
+
+### Premier super-administrateur
+
+Aucun compte n'existe au premier démarrage. Créez le super-administrateur
+(idempotent) une fois la stack lancée :
+
+```bash
+./scripts/seed-superadmin.sh
+# ou en personnalisant les identifiants :
+SUPERADMIN_PHONE=691234567 SUPERADMIN_PASSWORD='MonMotDePasse!' ./scripts/seed-superadmin.sh
+```
+
+Identifiants par défaut : téléphone `690000000`, mot de passe `ChangeMe2026!`
+(à changer après la première connexion). La connexion se fait par **téléphone +
+mot de passe**.
 
 Les données (base maître + tenants) sont persistées dans le volume Docker `backend_data`.
 
