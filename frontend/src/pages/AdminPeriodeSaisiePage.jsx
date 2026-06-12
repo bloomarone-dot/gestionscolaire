@@ -3,9 +3,9 @@ import * as api from '../api/api';
 import { formatLocalDate, toDateInputValue } from '../utils/dates';
 
 const STATUT_BADGE = {
-  ouverte: 'badge-green',
-  a_venir: 'badge-orange',
-  expiree: 'badge-red',
+  ouverte: 'badge-success',
+  a_venir: 'badge-warning',
+  expiree: 'badge-danger',
 };
 import '../styles/admin-notes.css';
 
@@ -185,44 +185,51 @@ export default function AdminPeriodeSaisiePage() {
   const showMatiereSelect = scope === 'single' || scope === 'matiere_all_classes';
 
   return (
-    <div className="admin-periode-page">
-      <header className="section-header">
-        <h2>Délais de saisie des notes</h2>
-        <p>
-          Un délai par couple <strong>classe + matière</strong>. Utilisez la création groupée pour ouvrir
-          la saisie sur plusieurs classes ou matières en une seule opération.
-          La date de début doit être <strong>aujourd&apos;hui ou avant</strong>.
-        </p>
-      </header>
-
-      <div className="admin-periode-filters form-row">
-        <div className="form-group">
+    <div>
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Délais de saisie des notes</h3>
+        </div>
+        <div className="card-body">
+          <p className="text-muted">
+            Un délai par couple classe + matière. Utilisez la création groupée pour ouvrir
+            la saisie sur plusieurs classes ou matières en une seule opération.
+          </p>
+          <div className="form-row mb-0">
+            <div className="form-group col-md-6">
           <label htmlFor="filter-classe">Filtrer par classe</label>
-          <select id="filter-classe" value={filterClasseId} onChange={(e) => setFilterClasseId(e.target.value)}>
+          <select className="form-control" id="filter-classe" value={filterClasseId} onChange={(e) => setFilterClasseId(e.target.value)}>
             <option value="">Toutes les classes</option>
             {classes.map((classe) => (
               <option key={classe.id} value={classe.id}>{classe.nom} ({classe.niveau})</option>
             ))}
           </select>
-        </div>
-        <div className="form-group">
+            </div>
+            <div className="form-group col-md-6">
           <label htmlFor="filter-matiere">Filtrer par matière</label>
-          <select id="filter-matiere" value={filterMatiereId} onChange={(e) => setFilterMatiereId(e.target.value)}>
+          <select className="form-control" id="filter-matiere" value={filterMatiereId} onChange={(e) => setFilterMatiereId(e.target.value)}>
             <option value="">Toutes les matières</option>
             {matieres.map((matiere) => (
               <option key={matiere.id} value={matiere.id}>{matiere.nom}</option>
             ))}
           </select>
+            </div>
+          </div>
         </div>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <form className="periode-form" onSubmit={handleSubmit}>
-        <div className="form-group">
+      <form className="card" onSubmit={handleSubmit}>
+        <div className="card-header">
+          <h3 className="card-title">Créer une période</h3>
+        </div>
+        <div className="card-body">
+          <div className="form-group">
           <label htmlFor="periode-scope">Portée du délai</label>
           <select
+            className="form-control"
             id="periode-scope"
             value={scope}
             disabled={!!editingId}
@@ -232,13 +239,14 @@ export default function AdminPeriodeSaisiePage() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-        </div>
+          </div>
 
-        <div className="admin-periode-filters form-row">
+        <div className="form-row">
           {showClasseSelect && (
-            <div className="form-group">
+            <div className="form-group col-md-6">
               <label htmlFor="periode-classe">Classe</label>
               <select
+                className="form-control"
                 id="periode-classe"
                 value={selectedClasseId}
                 onChange={(e) => setSelectedClasseId(e.target.value)}
@@ -251,9 +259,10 @@ export default function AdminPeriodeSaisiePage() {
             </div>
           )}
           {showMatiereSelect && (
-            <div className="form-group">
+            <div className="form-group col-md-6">
               <label htmlFor="periode-matiere">Matière</label>
               <select
+                className="form-control"
                 id="periode-matiere"
                 value={selectedMatiereId}
                 onChange={(e) => setSelectedMatiereId(e.target.value)}
@@ -268,19 +277,20 @@ export default function AdminPeriodeSaisiePage() {
         </div>
 
         <div className="form-row">
-          <div className="form-group">
+          <div className="form-group col-md-6">
             <label htmlFor="date_debut">Date de début *</label>
-            <input id="date_debut" type="date" name="date_debut" value={form.date_debut} onChange={handleChange} required />
+            <input className="form-control" id="date_debut" type="date" name="date_debut" value={form.date_debut} onChange={handleChange} required />
           </div>
-          <div className="form-group">
+          <div className="form-group col-md-6">
             <label htmlFor="date_fin">Date limite (échéance) *</label>
-            <input id="date_fin" type="date" name="date_fin" value={form.date_fin} onChange={handleChange} required />
+            <input className="form-control" id="date_fin" type="date" name="date_fin" value={form.date_fin} onChange={handleChange} required />
           </div>
         </div>
+        </div>
 
-        <div className="modal-actions" style={{ marginTop: 12 }}>
+        <div className="card-footer">
           {editingId && (
-            <button type="button" className="btn btn-secondary" onClick={handleCancel}>Annuler</button>
+            <button type="button" className="btn btn-secondary mr-2" onClick={handleCancel}>Annuler</button>
           )}
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? 'Enregistrement...' : editingId ? 'Mettre à jour' : 'Créer les délais'}
@@ -291,14 +301,17 @@ export default function AdminPeriodeSaisiePage() {
       {loading ? (
         <div className="page-loader"><div className="spinner" /></div>
       ) : (
-        <div className="periode-table-wrap">
-          <p className="admin-notes-intro" style={{ margin: '1rem 0 0.5rem' }}>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">
             {periodes.length} délai{periodes.length !== 1 ? 's' : ''} configuré{periodes.length !== 1 ? 's' : ''}
             {serverDate && (
               <> — date serveur : <strong>{formatLocalDate(serverDate)}</strong></>
             )}
-          </p>
-          <table className="admin-notes-table">
+            </h3>
+          </div>
+          <div className="card-body table-responsive p-0">
+          <table className="table table-hover text-nowrap mb-0">
             <thead>
               <tr>
                 <th>Classe</th>
@@ -328,9 +341,9 @@ export default function AdminPeriodeSaisiePage() {
                       <td><strong>{formatLocalDate(periode.date_fin)}</strong></td>
                       <td><span className={`badge ${badgeClass}`}>{statusLabel}</span></td>
                       <td>
-                        <div className="note-actions">
-                          <button type="button" className="btn-icon btn-edit" onClick={() => handleEdit(periode)}>✏️</button>
-                          <button type="button" className="btn-icon btn-delete" onClick={() => handleDelete(periode.id)}>🗑️</button>
+                        <div className="btn-group btn-group-sm">
+                          <button type="button" className="btn btn-default" onClick={() => handleEdit(periode)}><i className="fas fa-edit" /></button>
+                          <button type="button" className="btn btn-danger" onClick={() => handleDelete(periode.id)}><i className="fas fa-trash" /></button>
                         </div>
                       </td>
                     </tr>
@@ -339,6 +352,7 @@ export default function AdminPeriodeSaisiePage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

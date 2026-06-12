@@ -56,83 +56,108 @@ export default function SuperAdminSchoolsPage() {
 
   return (
     <div>
-      <div className="sa-page-toolbar">
-        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-          <i className="fas fa-plus mr-1" />
-          Créer un établissement
-        </button>
-      </div>
-
-      <div className="sa-toolbar">
-        <input
-          type="search"
-          className="sa-search"
-          placeholder="Rechercher par nom, ville, email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          className="sa-filter-select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">Tous les statuts</option>
-          <option value="active">Actifs</option>
-          <option value="inactive">Inactifs</option>
-        </select>
-      </div>
-
       {loading ? (
-        <div className="sa-empty">Chargement...</div>
-      ) : filtered.length === 0 ? (
-        <div className="sa-empty">
-          <p>Aucun établissement trouvé</p>
-          <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-            Créer le premier établissement
-          </button>
+        <div className="card"><div className="card-body text-muted">Chargement...</div></div>
+      ) : schools.length === 0 ? (
+        <div className="card card-empty">
+          <div className="card-body text-center py-5">
+            <i className="fas fa-building fa-2x text-muted mb-3" />
+            <p className="text-muted">Aucun établissement trouvé</p>
+            <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+              <i className="fas fa-plus mr-1" />
+              Créer le premier établissement
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="sa-table-wrap">
-          <table className="sa-table">
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Ville</th>
-                <th>Email</th>
-                <th>Téléphone</th>
-                <th>Schema BD</th>
-                <th>Connexion BD</th>
-                <th>Statut</th>
-                <th>Créé le</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((school) => (
-                <tr key={school.id}>
-                  <td><strong>{school.name}</strong></td>
-                  <td>{school.city}</td>
-                  <td>{school.email}</td>
-                  <td>{school.phone}</td>
-                  <td><code>{school.db_name}</code></td>
-                  <td>
-                    <DbStatusBadge status={school.db_status} />
-                  </td>
-                  <td>
-                    <span className={`sa-badge ${school.is_active ? 'sa-badge-active' : 'sa-badge-inactive'}`}>
-                      {school.is_active ? 'Actif' : 'Inactif'}
-                    </span>
-                  </td>
-                  <td>{new Date(school.created_at).toLocaleDateString('fr-FR')}</td>
-                  <td>
-                    <button className="sa-action-btn" title="Détails" onClick={() => setDetailSchoolId(school.id)}>👁️</button>
-                    <button className="sa-action-btn" title="Modifier" onClick={() => setEditingSchool(school)}>✏️</button>
-                    <button className="sa-action-btn" title="Supprimer" onClick={() => handleDelete(school.id, school.name)}>🗑️</button>
-                  </td>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Établissements</h3>
+            <div className="card-tools">
+              <button className="btn btn-primary btn-sm" onClick={() => setShowCreateModal(true)}>
+                <i className="fas fa-plus mr-1" />
+                Créer
+              </button>
+            </div>
+          </div>
+          <div className="card-body border-bottom">
+            <div className="row">
+              <div className="col-md-8 mb-2 mb-md-0">
+                <input
+                  type="search"
+                  className="form-control"
+                  placeholder="Rechercher par nom, ville, email..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="col-md-4">
+                <select
+                  className="form-control"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">Tous les statuts</option>
+                  <option value="active">Actifs</option>
+                  <option value="inactive">Inactifs</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="card-body table-responsive p-0">
+            <table className="table table-hover text-nowrap mb-0">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Ville</th>
+                  <th>Email</th>
+                  <th>Téléphone</th>
+                  <th>Schema BD</th>
+                  <th>Connexion BD</th>
+                  <th>Statut</th>
+                  <th>Créé le</th>
+                  <th className="text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center text-muted py-4">Aucun résultat pour ces filtres.</td>
+                  </tr>
+                ) : (
+                  filtered.map((school) => (
+                    <tr key={school.id}>
+                      <td><strong>{school.name}</strong></td>
+                      <td>{school.city || '—'}</td>
+                      <td>{school.email || '—'}</td>
+                      <td>{school.phone || '—'}</td>
+                      <td><code>{school.db_name || school.code || '—'}</code></td>
+                      <td><DbStatusBadge status={school.db_status} /></td>
+                      <td>
+                        <span className={`badge ${school.is_active ? 'badge-success' : 'badge-secondary'}`}>
+                          {school.is_active ? 'Actif' : 'Inactif'}
+                        </span>
+                      </td>
+                      <td>{school.created_at ? new Date(school.created_at).toLocaleDateString('fr-FR') : '—'}</td>
+                      <td className="text-right">
+                        <div className="btn-group btn-group-sm">
+                          <button className="btn btn-default" title="Détails" onClick={() => setDetailSchoolId(school.id)}>
+                            <i className="fas fa-eye" />
+                          </button>
+                          <button className="btn btn-default" title="Modifier" onClick={() => setEditingSchool(school)}>
+                            <i className="fas fa-edit" />
+                          </button>
+                          <button className="btn btn-danger" title="Supprimer" onClick={() => handleDelete(school.id, school.name)}>
+                            <i className="fas fa-trash" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -169,21 +194,14 @@ export default function SuperAdminSchoolsPage() {
 }
 
 function DbStatusBadge({ status }) {
-  if (!status) return <span className="sa-badge">—</span>;
+  if (!status) return <span className="badge badge-light">—</span>;
   const styles = {
-    connected: { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', label: 'Connecté' },
-    error: { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171', label: 'Erreur' },
-    missing: { bg: 'rgba(251, 146, 60, 0.15)', color: '#fb923c', label: 'Manquant' },
+    connected: { className: 'badge-success', label: 'Connecté' },
+    error: { className: 'badge-danger', label: 'Erreur' },
+    missing: { className: 'badge-warning', label: 'Manquant' },
   };
-  const s = styles[status] || { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', label: status };
-  return (
-    <span
-      className="sa-badge"
-      style={{ background: s.bg, color: s.color }}
-    >
-      {s.label}
-    </span>
-  );
+  const s = styles[status] || { className: 'badge-light', label: status };
+  return <span className={`badge ${s.className}`}>{s.label}</span>;
 }
 
 function EditSchoolModal({ school, onClose, onSaved }) {

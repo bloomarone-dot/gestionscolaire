@@ -36,86 +36,87 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-card">
-        {/* Logo */}
+      <div className="login-box">
         <div className="login-logo">
-          <div className="login-logo-icon">🎓</div>
-          <h1>EduSaaS</h1>
-          <p>Connectez-vous à votre espace de gestion</p>
+          <span className="brand-link border-0">
+            <i className="fas fa-graduation-cap mr-2" />
+            <b>Edu</b>SaaS
+          </span>
         </div>
 
-        {/* Sélecteur de type utilisateur */}
-        <div className="login-tabs">
-          <button
-            className={`login-tab ${userType === 'admin' ? 'active' : ''}`}
-            onClick={() => { setUserType('admin'); setError(''); }}
-          >
-            👤 Admin
-          </button>
-          <button
-            className={`login-tab ${userType === 'professor' ? 'active' : ''}`}
-            onClick={() => { setUserType('professor'); setError(''); }}
-          >
-            👨‍🏫 Professeur
-          </button>
-        </div>
-
-        {/* Formulaire */}
-        <form className="login-form" onSubmit={handleSubmit}>
-          {error && (
-            <div className="alert alert-error">
-              <span>⚠️</span> {error}
+        <div className="card card-outline card-primary">
+          <div className="card-header text-center">
+            <p className="mb-0 text-muted">Connectez-vous à votre espace de gestion</p>
+          </div>
+          <div className="card-body login-card-body">
+            <div className="btn-group btn-group-toggle d-flex mb-3">
+              <button
+                type="button"
+                className={`btn ${userType === 'admin' ? 'btn-primary' : 'btn-default'}`}
+                onClick={() => { setUserType('admin'); setError(''); }}
+              >
+                <i className="fas fa-user-shield mr-1" />
+                Admin
+              </button>
+              <button
+                type="button"
+                className={`btn ${userType === 'professor' ? 'btn-primary' : 'btn-default'}`}
+                onClick={() => { setUserType('professor'); setError(''); }}
+              >
+                <i className="fas fa-chalkboard-teacher mr-1" />
+                Professeur
+              </button>
             </div>
-          )}
 
-          <div className="form-group">
-            <label htmlFor="username">Nom d'utilisateur</label>
-            <input
-              id="username"
-              type="text"
-              placeholder={userType === 'admin' ? 'admin' : 'prof_username'}
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              autoComplete="username"
-              autoFocus
-            />
+            <form onSubmit={handleSubmit}>
+              {error && <div className="alert alert-danger">{error}</div>}
+
+              <div className="input-group mb-3">
+                <input
+                  id="username"
+                  className="form-control"
+                  type="text"
+                  placeholder="Téléphone"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  autoComplete="username"
+                  autoFocus
+                />
+                <div className="input-group-append">
+                  <div className="input-group-text"><span className="fas fa-phone" /></div>
+                </div>
+              </div>
+
+              <div className="input-group mb-3">
+                <input
+                  id="password"
+                  className="form-control"
+                  type="password"
+                  placeholder="Mot de passe"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <div className="input-group-append">
+                  <div className="input-group-text"><span className="fas fa-lock" /></div>
+                </div>
+              </div>
+
+              <button
+                id="login-submit-btn"
+                type="submit"
+                className="btn btn-primary btn-block"
+                disabled={loading}
+              >
+                {loading ? 'Connexion...' : 'Se connecter'}
+              </button>
+            </form>
+
+            <p className="text-muted text-sm mt-3 text-center">
+              Identifiant oublié ? Contactez {userType === 'professor' ? "l'administrateur de votre établissement" : 'le super administrateur'}.
+            </p>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Mot de passe</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button
-            id="login-submit-btn"
-            type="submit"
-            className="login-btn"
-            disabled={loading}
-          >
-            {loading ? <span className="spinner" /> : 'Se connecter'}
-          </button>
-        </form>
-
-        {userType === 'professor' && (
-          <p className="text-muted text-sm mt-16" style={{ textAlign: 'center' }}>
-            Identifiant oublié ? Contactez l&apos;administrateur de votre établissement pour le réinitialiser.
-          </p>
-        )}
-        {userType === 'admin' && (
-          <p className="text-muted text-sm mt-16" style={{ textAlign: 'center' }}>
-            Identifiant oublié ? Contactez le super administrateur de la plateforme.
-          </p>
-        )}
-        <p className="text-muted text-sm mt-16" style={{ textAlign: 'center' }}>
-          EduSaaS — Gestion Scolaire © 2025
-        </p>
+        </div>
       </div>
     </div>
   );

@@ -127,23 +127,30 @@ export default function AdminBulletinSettingsPage() {
   }
 
   return (
-    <div className="admin-bulletin-settings">
-      <header className="section-header">
-        <h2>Configuration des bulletins</h2>
-        <p>
-          Personnalisez l&apos;en-tête officiel, le modèle PDF et les groupes de matières
-          pour {settings?.name || 'votre établissement'}.
-        </p>
-      </header>
+    <div>
+      <div className="card card-primary card-outline">
+        <div className="card-header">
+          <h3 className="card-title">Configuration des bulletins</h3>
+        </div>
+        <div className="card-body">
+          <p className="text-muted mb-0">
+            Personnalisez l&apos;en-tête officiel, le modèle PDF et les groupes de matières
+            pour {settings?.name || 'votre établissement'}.
+          </p>
+        </div>
+      </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <form onSubmit={handleSaveSettings} className="bulletin-settings-card">
-        <h3>En-tête officiel & logo</h3>
-        <p className="section-hint">
-          Ces informations apparaissent en haut du PDF (bilingue FR/EN comme Royal Priesthood).
-        </p>
+      <form onSubmit={handleSaveSettings} className="card">
+        <div className="card-header">
+          <h3 className="card-title">En-tête officiel & logo</h3>
+        </div>
+        <div className="card-body">
+          <p className="text-muted">
+            Ces informations apparaissent en haut du PDF bilingue FR/EN.
+          </p>
 
         <div className="bulletin-settings-grid">
           <div className="form-group full">
@@ -164,6 +171,7 @@ export default function AdminBulletinSettingsPage() {
           <div className="form-group">
             <label htmlFor="bulletin_motto">Devise / motto</label>
             <input
+              className="form-control"
               id="bulletin_motto"
               name="bulletin_motto"
               value={form.bulletin_motto}
@@ -175,6 +183,7 @@ export default function AdminBulletinSettingsPage() {
           <div className="form-group">
             <label htmlFor="bulletin_po_box">Boîte postale</label>
             <input
+              className="form-control"
               id="bulletin_po_box"
               name="bulletin_po_box"
               value={form.bulletin_po_box}
@@ -186,6 +195,7 @@ export default function AdminBulletinSettingsPage() {
           <div className="form-group full">
             <label htmlFor="bulletin_delegation_en">En-tête anglophone</label>
             <textarea
+              className="form-control"
               id="bulletin_delegation_en"
               name="bulletin_delegation_en"
               rows={5}
@@ -197,6 +207,7 @@ export default function AdminBulletinSettingsPage() {
           <div className="form-group full">
             <label htmlFor="bulletin_delegation_fr">En-tête francophone</label>
             <textarea
+              className="form-control"
               id="bulletin_delegation_fr"
               name="bulletin_delegation_fr"
               rows={5}
@@ -208,6 +219,7 @@ export default function AdminBulletinSettingsPage() {
           <div className="form-group full">
             <label htmlFor="bulletin_next_term_note">Note de rentrée (pied de page)</label>
             <input
+              className="form-control"
               id="bulletin_next_term_note"
               name="bulletin_next_term_note"
               value={form.bulletin_next_term_note}
@@ -219,6 +231,7 @@ export default function AdminBulletinSettingsPage() {
           <div className="form-group full">
             <label htmlFor="bulletin_template">Format / modèle PDF</label>
             <select
+              className="form-control"
               id="bulletin_template"
               name="bulletin_template"
               value={form.bulletin_template}
@@ -237,6 +250,7 @@ export default function AdminBulletinSettingsPage() {
           <div className="form-group full">
             <label htmlFor="bulletin_scope">Portée des séquences sur le bulletin</label>
             <select
+              className="form-control"
               id="bulletin_scope"
               name="bulletin_scope"
               value={form.bulletin_scope}
@@ -253,24 +267,29 @@ export default function AdminBulletinSettingsPage() {
           </div>
         </div>
 
-        <div className="form-actions">
+        </div>
+
+        <div className="card-footer">
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? 'Enregistrement…' : 'Enregistrer la configuration'}
           </button>
         </div>
       </form>
 
-      <section className="bulletin-settings-card">
-        <h3>Groupes & coefficients des matières</h3>
-        <p className="section-hint">
-          Groupe 1 = Premier groupe, 2 = Deuxième, 3 = Troisième (comme sur le bulletin officiel).
-        </p>
+      <section className="card">
+        <div className="card-header">
+          <h3 className="card-title">Groupes & coefficients des matières</h3>
+        </div>
+        <div className="card-body">
+          <p className="text-muted">
+            Groupe 1 = Premier groupe, 2 = Deuxième, 3 = Troisième.
+          </p>
 
         {matieres.length === 0 ? (
           <p className="text-muted">Créez d&apos;abord des matières dans l&apos;onglet Matières.</p>
         ) : (
-          <div className="bulletin-matieres-table-wrap">
-            <table className="bulletin-matieres-table">
+          <div className="table-responsive">
+            <table className="table table-hover text-nowrap mb-0">
               <thead>
                 <tr>
                   <th>Matière</th>
@@ -287,6 +306,7 @@ export default function AdminBulletinSettingsPage() {
                     <td>{m.code}</td>
                     <td>
                       <select
+                        className="form-control form-control-sm"
                         value={m.groupe ?? 1}
                         onChange={(e) => handleMatiereFieldChange(m.id, 'groupe', e.target.value)}
                       >
@@ -297,12 +317,12 @@ export default function AdminBulletinSettingsPage() {
                     </td>
                     <td>
                       <input
+                        className="form-control form-control-sm coef-input"
                         type="number"
                         min="0.5"
                         step="0.5"
                         value={m.coefficient_defaut ?? 1}
                         onChange={(e) => handleMatiereFieldChange(m.id, 'coefficient_defaut', e.target.value)}
-                        className="coef-input"
                       />
                     </td>
                     <td>
@@ -321,14 +341,16 @@ export default function AdminBulletinSettingsPage() {
             </table>
           </div>
         )}
+        </div>
       </section>
 
-      <section className="bulletin-settings-card bulletin-settings-info">
-        <h3>Sections francophone / anglophone</h3>
-        <p>
-          Définissez la <strong>section</strong> de chaque classe dans l&apos;onglet <strong>Classes</strong>
-          (francophone ou anglophone). Le bulletin PDF s&apos;adapte automatiquement.
-        </p>
+      <section className="card">
+        <div className="card-body">
+          <h3 className="h5">Sections francophone / anglophone</h3>
+          <p className="text-muted mb-0">
+            Définissez la section de chaque classe dans l&apos;onglet Classes. Le bulletin PDF s&apos;adapte automatiquement.
+          </p>
+        </div>
       </section>
     </div>
   );

@@ -127,15 +127,19 @@ export default function ProfessorDashboard() {
                   { value: stats.recent_notes, label: 'Notes' },
                 ]}
                 actions={[
-                  { label: 'Saisir des notes', icon: '📝', onClick: () => setActiveSection('notes') },
+                  { label: 'Saisir des notes', icon: <i className="fas fa-edit" />, onClick: () => setActiveSection('notes') },
                 ]}
               />
-              <div className="prof-welcome-card">
-                <h2>Comment commencer ?</h2>
-                <p>
-                  Dépliez une matière dans « Mes enseignements » à gauche, sélectionnez votre classe,
-                  puis saisissez les notes par séquence ou trimestre.
-                </p>
+              <div className="card">
+                <div className="card-header">
+                  <h3 className="card-title"><i className="fas fa-info-circle mr-2" />Comment commencer ?</h3>
+                </div>
+                <div className="card-body">
+                  <p className="mb-0 text-muted">
+                    Dépliez une matière dans « Mes enseignements » à gauche, sélectionnez votre classe,
+                    puis saisissez les notes par séquence ou trimestre.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -150,22 +154,27 @@ export default function ProfessorDashboard() {
                   matiereName={selectedMatiere.nom}
                 />
               ) : (
-                <div className="prof-welcome-card">
-                  <h2>Sélectionnez une classe</h2>
-                  <p>Choisissez une matière et une classe dans le menu de gauche pour commencer la saisie.</p>
+                <div className="card">
+                  <div className="card-body text-center py-5">
+                    <i className="fas fa-chalkboard fa-2x text-muted mb-3" />
+                    <h3 className="h5">Sélectionnez une classe</h3>
+                    <p className="text-muted mb-0">Choisissez une matière et une classe dans le menu de gauche pour commencer la saisie.</p>
+                  </div>
                 </div>
               )}
             </>
           )}
 
           {activeSection === 'bulletins' && (
-            <section className="content-section content-section-flat">
-              <header className="section-header">
-                <h2>Mes élèves</h2>
-                <p>Consultez l&apos;effectif de vos classes et les résultats par trimestre (lecture seule)</p>
-              </header>
-              <ProfessorMesEleves />
-            </section>
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title">Mes élèves</h3>
+                <p className="card-text text-muted mb-0">Consultez l&apos;effectif de vos classes et les résultats par trimestre.</p>
+              </div>
+              <div className="card-body">
+                <ProfessorMesEleves />
+              </div>
+            </div>
           )}
     </AdminLTELayout>
   );

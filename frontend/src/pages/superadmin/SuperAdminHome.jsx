@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import * as api from '../../api/api';
 
 const ACTION_LABELS = {
@@ -11,7 +10,6 @@ const ACTION_LABELS = {
 };
 
 export default function SuperAdminHome() {
-  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,130 +21,123 @@ export default function SuperAdminHome() {
   }, []);
 
   if (loading) {
-    return <div className="sa-empty">Chargement du tableau de bord...</div>;
+    return <div className="card"><div className="card-body text-muted">Chargement du tableau de bord...</div></div>;
   }
 
   const maxCityCount = Math.max(...(data?.schools_by_city?.map((c) => c.count) || [1]), 1);
 
   return (
     <div>
-      <div className="sa-stats-grid">
-        <div className="sa-stat-card">
-          <div className="sa-stat-icon">🏛️</div>
-          <div>
-            <div className="sa-stat-value">{data?.total_schools ?? 0}</div>
-            <div className="sa-stat-label">Établissements</div>
+      <div className="row">
+        {[
+          ['fa-building', 'info', data?.total_schools ?? 0, 'Établissements'],
+          ['fa-check-circle', 'success', data?.active_schools ?? 0, 'Actifs'],
+          ['fa-user-shield', 'primary', data?.total_admins ?? 0, 'Administrateurs'],
+          ['fa-users', 'warning', data?.total_eleves ?? 0, 'Élèves'],
+          ['fa-chalkboard-teacher', 'secondary', data?.total_professeurs ?? 0, 'Professeurs'],
+          ['fa-bolt', 'danger', data?.today_activity ?? 0, "Activité aujourd'hui"],
+        ].map(([icon, color, value, label]) => (
+          <div key={label} className="col-12 col-sm-6 col-xl-4">
+            <div className="info-box">
+              <span className={`info-box-icon bg-${color}`}><i className={`fas ${icon}`} /></span>
+              <div className="info-box-content">
+                <span className="info-box-text">{label}</span>
+                <span className="info-box-number">{value}</span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="sa-stat-card">
-          <div className="sa-stat-icon">✅</div>
-          <div>
-            <div className="sa-stat-value">{data?.active_schools ?? 0}</div>
-            <div className="sa-stat-label">Actifs</div>
-          </div>
-        </div>
-        <div className="sa-stat-card">
-          <div className="sa-stat-icon">👤</div>
-          <div>
-            <div className="sa-stat-value">{data?.total_admins ?? 0}</div>
-            <div className="sa-stat-label">Administrateurs</div>
-          </div>
-        </div>
-        <div className="sa-stat-card">
-          <div className="sa-stat-icon">👥</div>
-          <div>
-            <div className="sa-stat-value">{data?.total_eleves ?? 0}</div>
-            <div className="sa-stat-label">Élèves (total)</div>
-          </div>
-        </div>
-        <div className="sa-stat-card">
-          <div className="sa-stat-icon">👨‍🏫</div>
-          <div>
-            <div className="sa-stat-value">{data?.total_professeurs ?? 0}</div>
-            <div className="sa-stat-label">Professeurs</div>
-          </div>
-        </div>
-        <div className="sa-stat-card">
-          <div className="sa-stat-icon">⚡</div>
-          <div>
-            <div className="sa-stat-value">{data?.today_activity ?? 0}</div>
-            <div className="sa-stat-label">Activité aujourd'hui</div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="sa-grid-2">
-        <div className="sa-panel">
-          <h2 className="sa-panel-title">📊 Établissements par ville</h2>
-          {data?.schools_by_city?.length > 0 ? (
-            <div className="sa-bar-chart">
-              {data.schools_by_city.map(({ city, count }) => (
-                <div key={city} className="sa-bar-row">
-                  <span className="sa-bar-label" title={city}>{city}</span>
-                  <div className="sa-bar-track">
-                    <div
-                      className="sa-bar-fill"
-                      style={{ width: `${(count / maxCityCount) * 100}%` }}
-                    >
-                      <span className="sa-bar-value">{count}</span>
+      <div className="row">
+        <div className="col-lg-6">
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title"><i className="fas fa-chart-bar mr-2" />Établissements par ville</h3>
+            </div>
+            <div className="card-body">
+              {data?.schools_by_city?.length > 0 ? (
+                data.schools_by_city.map(({ city, count }) => (
+                  <div key={city} className="mb-3">
+                    <div className="d-flex justify-content-between mb-1">
+                      <span className="text-truncate" title={city}>{city}</span>
+                      <strong>{count}</strong>
+                    </div>
+                    <div className="progress progress-sm">
+                      <div
+                        className="progress-bar bg-primary"
+                        style={{ width: `${(count / maxCityCount) * 100}%` }}
+                      />
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-muted mb-0">Aucun établissement enregistré</p>
+              )}
             </div>
-          ) : (
-            <p className="sa-empty">Aucun établissement enregistré</p>
-          )}
+          </div>
         </div>
 
-        <div className="sa-panel">
-          <h2 className="sa-panel-title">🚀 Établissements récents</h2>
-          {data?.recent_schools?.length > 0 ? (
-            data.recent_schools.map((school) => (
-              <div key={school.id} className="sa-list-item">
-                <div>
-                  <div className="sa-list-name">{school.name}</div>
-                  <div className="sa-list-meta">
-                    {school.city} · {new Date(school.created_at).toLocaleDateString('fr-FR')}
-                  </div>
-                </div>
-                <span className={`sa-badge ${school.is_active ? 'sa-badge-active' : 'sa-badge-inactive'}`}>
-                  {school.is_active ? 'Actif' : 'Inactif'}
-                </span>
+        <div className="col-lg-6">
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title"><i className="fas fa-building mr-2" />Établissements récents</h3>
+              <div className="card-tools">
+                <Link to="/superadmin/schools" className="btn btn-tool text-primary">Gérer</Link>
               </div>
-            ))
-          ) : (
-            <p className="sa-empty">Aucun établissement récent</p>
-          )}
-          <Link to="/superadmin/schools" className="btn btn-primary" style={{ marginTop: '1rem', display: 'inline-block' }}>
-            Gérer les établissements →
-          </Link>
+            </div>
+            <div className="card-body p-0">
+              {data?.recent_schools?.length > 0 ? (
+                <ul className="list-group list-group-flush">
+                  {data.recent_schools.map((school) => (
+                    <li key={school.id} className="list-group-item d-flex justify-content-between align-items-center">
+                      <span>
+                        <strong>{school.name}</strong>
+                        <small className="d-block text-muted">
+                          {school.city} · {new Date(school.created_at).toLocaleDateString('fr-FR')}
+                        </small>
+                      </span>
+                      <span className={`badge ${school.is_active ? 'badge-success' : 'badge-secondary'}`}>
+                        {school.is_active ? 'Actif' : 'Inactif'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="p-3 text-muted">Aucun établissement récent</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="sa-panel">
-        <h2 className="sa-panel-title">⚡ Activité d'aujourd'hui</h2>
-        {data?.today_logs?.length > 0 ? (
-          data.today_logs.map((log) => (
-            <div key={log.id} className="sa-list-item">
-              <div>
-                <div className="sa-list-name">
-                  {ACTION_LABELS[log.action] || log.action}
-                </div>
-                <div className="sa-list-meta">{log.description}</div>
-              </div>
-              <div className="sa-list-meta" style={{ textAlign: 'right' }}>
-                <div>{log.admin_username || '—'}</div>
-                <div>{new Date(log.timestamp).toLocaleTimeString('fr-FR')}</div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="sa-empty">Aucune activité aujourd'hui</p>
-        )}
-        <Link to="/superadmin/logs" className="btn btn-secondary" style={{ marginTop: '1rem', display: 'inline-block' }}>
-          Voir tout l'historique →
-        </Link>
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title"><i className="fas fa-bolt mr-2" />Activité d'aujourd'hui</h3>
+          <div className="card-tools">
+            <Link to="/superadmin/logs" className="btn btn-tool text-primary">Historique</Link>
+          </div>
+        </div>
+        <div className="card-body p-0">
+          {data?.today_logs?.length > 0 ? (
+            <ul className="list-group list-group-flush">
+              {data.today_logs.map((log) => (
+                <li key={log.id} className="list-group-item d-flex justify-content-between align-items-center">
+                  <span>
+                    <strong>{ACTION_LABELS[log.action] || log.action}</strong>
+                    <small className="d-block text-muted">{log.description}</small>
+                  </span>
+                  <small className="text-muted text-right">
+                    {log.admin_username || '—'}<br />
+                    {new Date(log.timestamp).toLocaleTimeString('fr-FR')}
+                  </small>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="p-3 text-muted">Aucune activité aujourd'hui</div>
+          )}
+        </div>
       </div>
     </div>
   );

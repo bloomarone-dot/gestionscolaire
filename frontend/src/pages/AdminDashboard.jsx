@@ -18,12 +18,12 @@ import { loadAdminWorkspace, saveAdminWorkspace } from '../utils/draftStorage';
 import '../styles/dashboard-shared.css';
 
 const ADMIN_QUICK_ACTIONS = [
-  { id: 'bulletin-config', icon: '⚙️', title: 'Config. bulletins', desc: 'Logo, en-tête, modèle PDF' },
-  { id: 'matieres', icon: '📖', title: 'Matières', desc: 'Groupes & coefficients' },
-  { id: 'classes', icon: '📚', title: 'Classes', desc: 'Section FR / EN' },
-  { id: 'bulletins', icon: '📄', title: 'Bulletins', desc: 'PDF officiel Cameroun' },
-  { id: 'eleves', icon: '👥', title: 'Élèves', desc: 'Gérer les inscriptions' },
-  { id: 'professeurs', icon: '👨‍🏫', title: 'Professeurs', desc: 'Comptes et attributions' },
+  { id: 'bulletin-config', icon: 'fa-cog', color: 'info', title: 'Config. bulletins', desc: 'Logo, en-tête, modèle PDF' },
+  { id: 'matieres', icon: 'fa-book-open', color: 'success', title: 'Matières', desc: 'Groupes & coefficients' },
+  { id: 'classes', icon: 'fa-book', color: 'primary', title: 'Classes', desc: 'Section FR / EN' },
+  { id: 'bulletins', icon: 'fa-file-alt', color: 'warning', title: 'Bulletins', desc: 'PDF officiel Cameroun' },
+  { id: 'eleves', icon: 'fa-users', color: 'secondary', title: 'Élèves', desc: 'Gérer les inscriptions' },
+  { id: 'professeurs', icon: 'fa-chalkboard-teacher', color: 'danger', title: 'Professeurs', desc: 'Comptes et attributions' },
 ];
 
 const ADMIN_SETUP_STEPS = [
@@ -109,8 +109,8 @@ export default function AdminDashboard() {
                   { value: stats.total_matieres, label: 'Matières' },
                 ] : []}
                 actions={[
-                  { label: 'Définir les délais', icon: '⏰', onClick: () => setActiveTab('fenetre-notes') },
-                  { label: 'Gérer les élèves', icon: '👥', variant: 'btn-secondary', onClick: () => setActiveTab('eleves') },
+                  { label: 'Définir les délais', icon: <i className="fas fa-clock" />, onClick: () => setActiveTab('fenetre-notes') },
+                  { label: 'Gérer les élèves', icon: <i className="fas fa-users" />, variant: 'btn-secondary', onClick: () => setActiveTab('eleves') },
                 ]}
               />
 
@@ -144,18 +144,26 @@ export default function AdminDashboard() {
                 />
               ) : null}
 
-              <div className="quick-actions-grid">
+              <div className="row">
                 {ADMIN_QUICK_ACTIONS.map((action) => (
-                  <button
-                    key={action.id}
-                    type="button"
-                    className="quick-action-card"
-                    onClick={() => setActiveTab(action.id)}
-                  >
-                    <span className="quick-action-icon">{action.icon}</span>
-                    <span className="quick-action-title">{action.title}</span>
-                    <span className="quick-action-desc">{action.desc}</span>
-                  </button>
+                  <div key={action.id} className="col-12 col-sm-6 col-xl-4">
+                    <button
+                      type="button"
+                      className={`small-box bg-${action.color} border-0 text-left w-100`}
+                      onClick={() => setActiveTab(action.id)}
+                    >
+                      <div className="inner">
+                        <h3 className="h5 mb-1">{action.title}</h3>
+                        <p>{action.desc}</p>
+                      </div>
+                      <div className="icon">
+                        <i className={`fas ${action.icon}`} />
+                      </div>
+                      <span className="small-box-footer">
+                        Ouvrir <i className="fas fa-arrow-circle-right ml-1" />
+                      </span>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

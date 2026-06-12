@@ -55,83 +55,114 @@ export default function ProfesseursList() {
   };
 
   return (
-    <div className="professeurs-section">
-      <div className="section-header">
-        <h2>Gestion des Professeurs</h2>
-        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-          + Ajouter un professeur
-        </button>
-      </div>
-
+    <div>
       {loading ? (
-        <div className="loading">Chargement...</div>
+        <div className="card"><div className="card-body text-muted">Chargement...</div></div>
       ) : professeurs.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">👨‍🏫</div>
-          <h3>Aucun professeur</h3>
-          <p>Commencez par ajouter votre premier professeur</p>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Gestion des professeurs</h3>
+            <div className="card-tools">
+              <button className="btn btn-primary btn-sm" onClick={() => setShowCreateModal(true)}>
+                <i className="fas fa-plus mr-1" />
+                Ajouter
+              </button>
+            </div>
+          </div>
+          <div className="card-body text-center py-5">
+            <i className="fas fa-chalkboard-teacher fa-2x text-muted mb-3" />
+            <h3 className="h5">Aucun professeur</h3>
+            <p className="text-muted mb-0">Commencez par ajouter votre premier professeur</p>
+          </div>
         </div>
       ) : (
-        <div className="professeurs-grid">
-          {professeurs.map(prof => (
-            <div key={prof.id} className="prof-card">
-              <div className="prof-header">
-                <h3>{prof.prenom} {prof.nom}</h3>
-                <span className={`badge ${prof.is_active ? 'active' : 'inactive'}`}>
-                  {prof.is_active ? 'Actif' : 'Inactif'}
-                </span>
-              </div>
-
-              <div className="prof-info">
-                <p><strong>Matricule:</strong> {prof.matricule}</p>
-                <p><strong>Identifiant:</strong> {prof.username || prof.matricule}</p>
-                <p><strong>Email:</strong> {formatEmail(prof.email)}</p>
-                {prof.phone && <p><strong>Téléphone 1:</strong> {prof.phone}</p>}
-                {prof.phone2 && <p><strong>Téléphone 2:</strong> {prof.phone2}</p>}
-                {prof.specialite && <p><strong>Spécialité:</strong> {prof.specialite}</p>}
-                <p><strong>Section:</strong> {getSectionLabel(prof.section || 'francophone')}</p>
-              </div>
-
-              <div className="prof-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setSelectedProf(prof);
-                    setShowEditModal(true);
-                  }}
-                >
-                  Modifier
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setSelectedProf(prof);
-                    setShowResetModal(true);
-                  }}
-                >
-                  Réinitialiser identifiants
-                </button>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setSelectedProf(prof);
-                    setShowAttributeModal(true);
-                  }}
-                >
-                  Attribuer classe/matière
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDelete(prof.id, `${prof.prenom} ${prof.nom}`)}
-                >
-                  Supprimer
-                </button>
-              </div>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Gestion des professeurs</h3>
+            <div className="card-tools">
+              <button className="btn btn-primary btn-sm" onClick={() => setShowCreateModal(true)}>
+                <i className="fas fa-plus mr-1" />
+                Ajouter
+              </button>
             </div>
-          ))}
+          </div>
+          <div className="card-body table-responsive p-0">
+            <table className="table table-hover text-nowrap mb-0">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Identifiant</th>
+                  <th>Email</th>
+                  <th>Téléphone</th>
+                  <th>Spécialité</th>
+                  <th>Section</th>
+                  <th>Statut</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {professeurs.map((prof) => (
+                  <tr key={prof.id}>
+                    <td><strong>{prof.prenom} {prof.nom}</strong></td>
+                    <td><code>{prof.username || prof.matricule || prof.phone}</code></td>
+                    <td>{formatEmail(prof.email)}</td>
+                    <td>{prof.phone || '—'}{prof.phone2 ? <small className="d-block text-muted">{prof.phone2}</small> : null}</td>
+                    <td>{prof.specialite || '—'}</td>
+                    <td>{getSectionLabel(prof.section || 'francophone')}</td>
+                    <td>
+                      <span className={`badge ${prof.is_active ? 'badge-success' : 'badge-secondary'}`}>
+                        {prof.is_active ? 'Actif' : 'Inactif'}
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <div className="btn-group btn-group-sm">
+                        <button
+                          type="button"
+                          className="btn btn-default"
+                          title="Modifier"
+                          onClick={() => {
+                            setSelectedProf(prof);
+                            setShowEditModal(true);
+                          }}
+                        >
+                          <i className="fas fa-edit" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-default"
+                          title="Réinitialiser identifiants"
+                          onClick={() => {
+                            setSelectedProf(prof);
+                            setShowResetModal(true);
+                          }}
+                        >
+                          <i className="fas fa-key" />
+                        </button>
+                        <button
+                          className="btn btn-default"
+                          title="Attribuer classe/matière"
+                          onClick={() => {
+                            setSelectedProf(prof);
+                            setShowAttributeModal(true);
+                          }}
+                        >
+                          <i className="fas fa-link" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          title="Supprimer"
+                          onClick={() => handleDelete(prof.id, `${prof.prenom} ${prof.nom}`)}
+                        >
+                          <i className="fas fa-trash" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
