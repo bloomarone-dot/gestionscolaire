@@ -15,46 +15,49 @@ export default function SuperAdminSettingsPage() {
   return (
     <div>
       {loading ? (
-        <div className="sa-empty">Chargement...</div>
+        <div className="card"><div className="card-body text-muted">Chargement...</div></div>
       ) : (
-        <div className="sa-panel" style={{ maxWidth: 600 }}>
-          <h2 className="sa-panel-title">⚙️ Configuration système</h2>
-          <div className="info-row">
-            <span className="info-label">Application</span>
-            <span>{settings?.app_name}</span>
-          </div>
-          <div className="info-row">
-            <span className="info-label">Version</span>
-            <span>{settings?.version}</span>
-          </div>
-          <div className="info-row">
-            <span className="info-label">Mode base de données</span>
-            <span><code>{settings?.database_mode}</code></span>
-          </div>
-          <div className="info-row">
-            <span className="info-label">Stratégie multi-tenant</span>
-            <span><code>{settings?.multi_tenant_strategy}</code></span>
-          </div>
-
-          {!loading && settings?.database_mode === 'sql_server' && (
-            <>
-              <div className="info-row">
-                <span className="info-label">Serveur SQL par défaut</span>
-                <span>
-                  <code>{settings.default_tenant_db_host}:{settings.default_tenant_db_port}</code>
-                  {' '}({settings.default_tenant_db_username})
-                </span>
+        <div className="row">
+          <div className="col-lg-7">
+            <div className="card card-primary card-outline">
+              <div className="card-header">
+                <h3 className="card-title"><i className="fas fa-cog mr-2" />Configuration système</h3>
               </div>
-            </>
-          )}
+              <div className="card-body p-0">
+                <table className="table mb-0">
+                  <tbody>
+                    <tr><th>Application</th><td>{settings?.app_name || 'EduSaaS'}</td></tr>
+                    <tr><th>Version</th><td>{settings?.version || '—'}</td></tr>
+                    <tr><th>Mode base de données</th><td><code>{settings?.database_mode || 'services'}</code></td></tr>
+                    <tr><th>Stratégie multi-tenant</th><td><code>{settings?.multi_tenant_strategy || 'tenant_id'}</code></td></tr>
+                    {!loading && settings?.database_mode === 'sql_server' && (
+                      <tr>
+                        <th>Serveur SQL par défaut</th>
+                        <td>
+                          <code>{settings.default_tenant_db_host}:{settings.default_tenant_db_port}</code>
+                          {' '}({settings.default_tenant_db_username})
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
-          <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(99,102,241,0.08)', borderRadius: '8px' }}>
-            <strong>Architecture (style Sage 100) :</strong>
-            <ul style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-              <li>Base maître → établissements, admins, logs</li>
-              <li>Base <code>school_[ID]</code> par établissement → élèves, profs, classes, notes</li>
-              <li>Isolation totale des données entre établissements</li>
-            </ul>
+          <div className="col-lg-5">
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title"><i className="fas fa-sitemap mr-2" />Architecture</h3>
+              </div>
+              <div className="card-body">
+                <ul className="list-unstyled mb-0">
+                  <li className="mb-2"><i className="fas fa-database text-primary mr-2" />Base maître: établissements, admins, logs</li>
+                  <li className="mb-2"><i className="fas fa-school text-success mr-2" />Données école isolées par tenant</li>
+                  <li><i className="fas fa-lock text-warning mr-2" />Isolation des données entre établissements</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       )}

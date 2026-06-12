@@ -47,73 +47,75 @@ export default function SuperAdminAdminsPage() {
   return (
     <div>
       {loading ? (
-        <div className="sa-empty">Chargement...</div>
+        <div className="card"><div className="card-body text-muted">Chargement...</div></div>
       ) : admins.length === 0 ? (
-        <div className="sa-empty">
-          Aucun administrateur. Créez un établissement pour en générer un automatiquement.
+        <div className="card">
+          <div className="card-body text-center py-5">
+            <i className="fas fa-user-shield fa-2x text-muted mb-3" />
+            <p className="text-muted mb-0">Aucun administrateur. Créez un établissement pour en générer un automatiquement.</p>
+          </div>
         </div>
       ) : (
-        <div className="sa-table-wrap">
-          <table className="sa-table">
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Établissement</th>
-                <th>Statut</th>
-                <th>Créé le</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {admins.map((admin) => (
-                <tr key={admin.id}>
-                  <td>{admin.first_name} {admin.last_name}</td>
-                  <td><code>{admin.username}</code></td>
-                  <td>{admin.email || '—'}</td>
-                  <td>{admin.school_name || '—'}</td>
-                  <td>
-                    <span className={`sa-badge ${admin.is_active ? 'sa-badge-active' : 'sa-badge-inactive'}`}>
-                      {admin.is_active ? 'Actif' : 'Inactif'}
-                    </span>
-                  </td>
-                  <td>{new Date(admin.created_at).toLocaleDateString('fr-FR')}</td>
-                  <td>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
-                        onClick={() => setResetAdmin(admin)}
-                      >
-                        Réinitialiser identifiants
-                      </button>
-                      {assigning === admin.id ? (
-                        <select
-                          className="sa-filter-select"
-                          defaultValue={admin.school_id || ''}
-                          onChange={(e) => handleAssign(admin.id, e.target.value)}
-                        >
-                          <option value="">Choisir établissement...</option>
-                          {schools.map((s) => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
-                          onClick={() => setAssigning(admin.id)}
-                        >
-                          Assigner
-                        </button>
-                      )}
-                    </div>
-                  </td>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Administrateurs</h3>
+          </div>
+          <div className="card-body table-responsive p-0">
+            <table className="table table-hover text-nowrap mb-0">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Établissement</th>
+                  <th>Statut</th>
+                  <th>Créé le</th>
+                  <th className="text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {admins.map((admin) => (
+                  <tr key={admin.id}>
+                    <td>{admin.first_name} {admin.last_name}</td>
+                    <td><code>{admin.username}</code></td>
+                    <td>{admin.email || '—'}</td>
+                    <td>{admin.school_name || '—'}</td>
+                    <td>
+                      <span className={`badge ${admin.is_active ? 'badge-success' : 'badge-secondary'}`}>
+                        {admin.is_active ? 'Actif' : 'Inactif'}
+                      </span>
+                    </td>
+                    <td>{admin.created_at ? new Date(admin.created_at).toLocaleDateString('fr-FR') : '—'}</td>
+                    <td className="text-right">
+                      <div className="btn-group btn-group-sm">
+                        <button className="btn btn-default" onClick={() => setResetAdmin(admin)}>
+                          <i className="fas fa-key mr-1" />
+                          Réinitialiser
+                        </button>
+                        {assigning === admin.id ? (
+                          <select
+                            className="form-control form-control-sm"
+                            defaultValue={admin.school_id || ''}
+                            onChange={(e) => handleAssign(admin.id, e.target.value)}
+                          >
+                            <option value="">Choisir établissement...</option>
+                            {schools.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <button className="btn btn-default" onClick={() => setAssigning(admin.id)}>
+                            <i className="fas fa-link mr-1" />
+                            Assigner
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

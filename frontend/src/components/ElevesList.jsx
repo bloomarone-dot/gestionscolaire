@@ -60,121 +60,124 @@ export default function ElevesList() {
   };
 
   return (
-    <div className="eleves-section">
-      <div className="section-header">
-        <div>
-          <h2>Gestion des Élèves</h2>
-          <span className="eleves-count">{eleves.length} élève{eleves.length !== 1 ? 's' : ''}</span>
-        </div>
-        <div className="eleves-header-actions">
-          <button type="button" className="btn btn-secondary" onClick={() => { setShowImport(true); setSuccess(''); setError(''); }}>
-            Importer une liste
-          </button>
-          <button className="btn btn-primary" onClick={() => { setEditingEleve(null); setShowModal(true); }}>
-            + Ajouter un élève
-          </button>
-        </div>
-      </div>
-
+    <div>
       {error && <div className="form-error">{error}</div>}
       {success && <div className="form-success">{success}</div>}
 
-      <div className="eleves-toolbar">
-        <input
-          type="search"
-          className="eleves-search"
-          placeholder="Rechercher par nom, prénom, matricule..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          className="eleves-filter"
-          value={filterSection}
-          onChange={(e) => setFilterSection(e.target.value)}
-        >
-          <option value="">Toutes les sections</option>
-          {SECTION_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
-        <select
-          className="eleves-filter"
-          value={filterClasse}
-          onChange={(e) => setFilterClasse(e.target.value)}
-        >
-          <option value="">Toutes les classes</option>
-          {classes
-            .filter((c) => !filterSection || c.section === filterSection)
-            .map((c) => (
-            <option key={c.id} value={String(c.id)}>
-              {c.nom} ({c.niveau}) — {c.section === 'anglophone' ? 'EN' : 'FR'}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {loading ? (
-        <div className="loading">Chargement...</div>
+        <div className="card"><div className="card-body text-muted">Chargement...</div></div>
       ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">👥</div>
-          <h3>Aucun élève trouvé</h3>
-          <p>{search || filterClasse ? 'Modifiez vos filtres' : 'Commencez par inscrire le premier élève'}</p>
-          {!search && !filterClasse && (
-            <button className="btn btn-primary" onClick={() => { setEditingEleve(null); setShowModal(true); }}>
-              Inscrire un élève
-            </button>
-          )}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Gestion des élèves <span className="badge badge-light ml-2">{eleves.length}</span></h3>
+            <div className="card-tools">
+              <button type="button" className="btn btn-secondary btn-sm mr-2" onClick={() => { setShowImport(true); setSuccess(''); setError(''); }}>
+                <i className="fas fa-file-import mr-1" />
+                Importer
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => { setEditingEleve(null); setShowModal(true); }}>
+                <i className="fas fa-plus mr-1" />
+                Ajouter
+              </button>
+            </div>
+          </div>
+          <ElevesFilters
+            search={search}
+            setSearch={setSearch}
+            filterSection={filterSection}
+            setFilterSection={setFilterSection}
+            filterClasse={filterClasse}
+            setFilterClasse={setFilterClasse}
+            classes={classes}
+          />
+          <div className="card-body text-center py-5">
+            <i className="fas fa-users fa-2x text-muted mb-3" />
+            <h3 className="h5">Aucun élève trouvé</h3>
+            <p className="text-muted">{search || filterClasse ? 'Modifiez vos filtres' : 'Commencez par inscrire le premier élève'}</p>
+            {!search && !filterClasse && (
+              <button className="btn btn-primary" onClick={() => { setEditingEleve(null); setShowModal(true); }}>
+                Inscrire un élève
+              </button>
+            )}
+          </div>
         </div>
       ) : (
-        <div className="eleves-table-wrap">
-          <table className="eleves-table">
-            <thead>
-              <tr>
-                <th>Matricule</th>
-                <th>Nom</th>
-                <th>Prénom</th>
-                <th>Section</th>
-                <th>Classe</th>
-                <th>Date d'inscription</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((eleve) => (
-                <tr key={eleve.id}>
-                  <td><code>{eleve.matricule}</code></td>
-                  <td><strong>{eleve.nom}</strong></td>
-                  <td>{eleve.prenom}</td>
-                  <td>{eleve.section ? getSectionLabel(eleve.section) : '—'}</td>
-                  <td>
-                    {eleve.classe_nom ? (
-                      <span className="classe-badge">{eleve.classe_nom}</span>
-                    ) : (
-                      <span className="no-classe">Non assigné</span>
-                    )}
-                  </td>
-                  <td>{new Date(eleve.date_inscription).toLocaleDateString('fr-FR')}</td>
-                  <td className="actions-cell">
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm list-action-btn"
-                      onClick={() => { setEditingEleve(eleve); setShowModal(true); }}
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-sm list-action-btn"
-                      onClick={() => handleDelete(eleve.id, `${eleve.prenom} ${eleve.nom}`)}
-                    >
-                      Supprimer
-                    </button>
-                  </td>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Gestion des élèves <span className="badge badge-light ml-2">{eleves.length}</span></h3>
+            <div className="card-tools">
+              <button type="button" className="btn btn-secondary btn-sm mr-2" onClick={() => { setShowImport(true); setSuccess(''); setError(''); }}>
+                <i className="fas fa-file-import mr-1" />
+                Importer
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => { setEditingEleve(null); setShowModal(true); }}>
+                <i className="fas fa-plus mr-1" />
+                Ajouter
+              </button>
+            </div>
+          </div>
+          <ElevesFilters
+            search={search}
+            setSearch={setSearch}
+            filterSection={filterSection}
+            setFilterSection={setFilterSection}
+            filterClasse={filterClasse}
+            setFilterClasse={setFilterClasse}
+            classes={classes}
+          />
+          <div className="card-body table-responsive p-0">
+            <table className="table table-hover text-nowrap mb-0">
+              <thead>
+                <tr>
+                  <th>Matricule</th>
+                  <th>Nom</th>
+                  <th>Prénom</th>
+                  <th>Section</th>
+                  <th>Classe</th>
+                  <th>Date d'inscription</th>
+                  <th className="text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map((eleve) => (
+                  <tr key={eleve.id}>
+                    <td><code>{eleve.matricule}</code></td>
+                    <td><strong>{eleve.nom}</strong></td>
+                    <td>{eleve.prenom}</td>
+                    <td>{eleve.section ? getSectionLabel(eleve.section) : '—'}</td>
+                    <td>
+                      {eleve.classe_nom ? (
+                        <span className="badge badge-info">{eleve.classe_nom}</span>
+                      ) : (
+                        <span className="badge badge-light">Non assigné</span>
+                      )}
+                    </td>
+                    <td>{new Date(eleve.date_inscription).toLocaleDateString('fr-FR')}</td>
+                    <td className="text-right">
+                      <div className="btn-group btn-group-sm">
+                        <button
+                          type="button"
+                          className="btn btn-default"
+                          title="Modifier"
+                          onClick={() => { setEditingEleve(eleve); setShowModal(true); }}
+                        >
+                          <i className="fas fa-edit" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          title="Supprimer"
+                          onClick={() => handleDelete(eleve.id, `${eleve.prenom} ${eleve.nom}`)}
+                        >
+                          <i className="fas fa-trash" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -202,6 +205,60 @@ export default function ElevesList() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function ElevesFilters({
+  search,
+  setSearch,
+  filterSection,
+  setFilterSection,
+  filterClasse,
+  setFilterClasse,
+  classes,
+}) {
+  return (
+    <div className="card-body border-bottom">
+      <div className="row">
+        <div className="col-lg-6 mb-2 mb-lg-0">
+          <input
+            type="search"
+            className="form-control"
+            placeholder="Rechercher par nom, prénom, matricule..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="col-lg-3 mb-2 mb-lg-0">
+          <select
+            className="form-control"
+            value={filterSection}
+            onChange={(e) => setFilterSection(e.target.value)}
+          >
+            <option value="">Toutes les sections</option>
+            {SECTION_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-lg-3">
+          <select
+            className="form-control"
+            value={filterClasse}
+            onChange={(e) => setFilterClasse(e.target.value)}
+          >
+            <option value="">Toutes les classes</option>
+            {classes
+              .filter((c) => !filterSection || c.section === filterSection)
+              .map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.nom} ({c.niveau}) — {c.section === 'anglophone' ? 'EN' : 'FR'}
+                </option>
+              ))}
+          </select>
+        </div>
+      </div>
     </div>
   );
 }

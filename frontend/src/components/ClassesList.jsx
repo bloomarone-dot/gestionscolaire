@@ -92,17 +92,7 @@ export default function ClassesList() {
   };
 
   return (
-    <div className="classes-section">
-      <div className="section-header">
-        <div>
-          <h2>Gestion des Classes</h2>
-          <p className="form-section-hint">Définissez la <strong>section</strong> (francophone / anglophone) pour le bulletin PDF.</p>
-        </div>
-        <button type="button" className="btn btn-primary" onClick={openCreate}>
-          + Ajouter une classe
-        </button>
-      </div>
-
+    <div>
       {showForm && (
         <div className="modal-overlay" onClick={closeForm}>
           <div className="modal modal-md" onClick={(e) => e.stopPropagation()}>
@@ -154,34 +144,74 @@ export default function ClassesList() {
       )}
 
       {loading ? (
-        <div>Chargement...</div>
+        <div className="card"><div className="card-body text-muted">Chargement...</div></div>
       ) : classes.length === 0 ? (
-        <div className="empty-state">
-          <p>Aucune classe créée</p>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Gestion des classes</h3>
+            <div className="card-tools">
+              <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>
+                <i className="fas fa-plus mr-1" />
+                Ajouter
+              </button>
+            </div>
+          </div>
+          <div className="card-body text-center py-5">
+            <i className="fas fa-book fa-2x text-muted mb-3" />
+            <p className="text-muted mb-0">Aucune classe créée</p>
+          </div>
         </div>
       ) : (
-        <div className="classes-grid">
-          {classes.map((classe) => (
-            <div key={classe.id} className="classe-card">
-              <h3>{classe.nom}</h3>
-              <p><strong>Niveau:</strong> {classe.niveau}</p>
-              <p><strong>Capacité:</strong> {classe.capacite}</p>
-              <p>
-                <strong>Section:</strong>{' '}
-                {classe.section === 'anglophone' ? 'Anglophone' : 'Francophone'}
-                {classe.serie ? ` · ${classe.serie}` : ''}
-              </p>
-              {classe.salle && <p><strong>Salle:</strong> {classe.salle}</p>}
-              <div className="classe-card-actions">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEdit(classe)}>
-                  Modifier
-                </button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(classe.id)}>
-                  Supprimer
-                </button>
-              </div>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Gestion des classes</h3>
+            <div className="card-tools">
+              <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>
+                <i className="fas fa-plus mr-1" />
+                Ajouter
+              </button>
             </div>
-          ))}
+          </div>
+          <div className="card-body table-responsive p-0">
+            <table className="table table-hover text-nowrap mb-0">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Niveau</th>
+                  <th>Capacité</th>
+                  <th>Section</th>
+                  <th>Salle</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classes.map((classe) => (
+                  <tr key={classe.id}>
+                    <td><strong>{classe.nom}</strong></td>
+                    <td>{classe.niveau || '—'}</td>
+                    <td>{classe.capacite || '—'}</td>
+                    <td>
+                      <span className="badge badge-info">
+                        {classe.section === 'anglophone' ? 'Anglophone' : 'Francophone'}
+                      </span>
+                      {classe.serie ? <small className="ml-2 text-muted">{classe.serie}</small> : null}
+                    </td>
+                    <td>{classe.salle || '—'}</td>
+                    <td className="text-right">
+                      <div className="btn-group btn-group-sm">
+                        <button type="button" className="btn btn-default" title="Modifier" onClick={() => openEdit(classe)}>
+                          <i className="fas fa-edit" />
+                        </button>
+                        <button type="button" className="btn btn-danger" title="Supprimer" onClick={() => handleDelete(classe.id)}>
+                          <i className="fas fa-trash" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -28,9 +28,10 @@ services:
       POSTGRES_USER: gs
       POSTGRES_PASSWORD: gs
       POSTGRES_DB: postgres
-    ports:
-      # Port hôte décalé pour éviter un conflit avec un Postgres local (5432).
-      - "${POSTGRES_PORT:-5433}:5432"
+    # Pas de port hôte par défaut (évite tout conflit). Pour inspecter depuis
+    # l'hôte : décommenter et adapter, ou `docker compose exec postgres psql -U gs`.
+    # ports:
+    #   - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro

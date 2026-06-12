@@ -237,13 +237,6 @@ export default function NotesEntry({
     type_evaluation: selectedType,
   });
 
-  const handleCancelChanges = () => {
-    setNotesMap({ ...savedSnapshot });
-    setEditingId(null);
-    setError('');
-    setSuccess('');
-  };
-
   const handleSaveNotes = async () => {
     if (!selectedMatiere) {
       setError('Veuillez sélectionner une matière');
