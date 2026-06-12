@@ -77,13 +77,26 @@ def _activated_counts(db: Session, tenant_id: int) -> dict[int, int]:
     return {cid: n for cid, n in rows}
 
 
-def list_classes(db: Session, tenant_id: int) -> list[tuple[Classe, int]]:
-    classes = (
-        db.query(Classe)
-        .filter(Classe.tenant_id == tenant_id)
-        .order_by(Classe.nom_personnalise)
-        .all()
-    )
+def list_classes(
+    db: Session,
+    tenant_id: int,
+    *,
+    level_code: Optional[str] = None,
+    series_code: Optional[str] = None,
+    subsystem_code: Optional[str] = None,
+    type_code: Optional[str] = None,
+) -> list[tuple[Classe, int]]:
+    """Liste les classes du tenant, filtrables par profil (filtre §6 étape 5)."""
+    q = db.query(Classe).filter(Classe.tenant_id == tenant_id)
+    if subsystem_code:
+        q = q.filter(Classe.subsystem_code == subsystem_code)
+    if type_code:
+        q = q.filter(Classe.type_code == type_code)
+    if level_code:
+        q = q.filter(Classe.level_code == level_code)
+    if series_code:
+        q = q.filter(Classe.series_code == series_code)
+    classes = q.order_by(Classe.nom_personnalise).all()
     counts = _activated_counts(db, tenant_id)
     return [(c, counts.get(c.id, 0)) for c in classes]
 

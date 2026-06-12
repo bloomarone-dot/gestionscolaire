@@ -95,8 +95,20 @@ def create_classe(
 
 
 @app.get("/pedagogie/classes", response_model=list[ClasseListItem], tags=["classes"])
-def list_classes(db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
-    return [_classe_item(c, n) for c, n in crud.list_classes(db, ctx.tenant_id)]
+def list_classes(
+    level: str | None = None,
+    series: str | None = None,
+    subsystem: str | None = None,
+    type: str | None = None,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    """Liste/filtre les classes — le filtre par profil sert l'inscription élève (§6)."""
+    rows = crud.list_classes(
+        db, ctx.tenant_id, level_code=level, series_code=series,
+        subsystem_code=subsystem, type_code=type,
+    )
+    return [_classe_item(c, n) for c, n in rows]
 
 
 @app.get("/pedagogie/classes/{class_id}", response_model=ClasseDetail, tags=["classes"])
