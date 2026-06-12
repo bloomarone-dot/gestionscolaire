@@ -14,7 +14,7 @@ services/
   tenant-service/          # ✅ profil école, sous-systèmes/types actifs (filtre §14), canaux notif
   referentiel-service/     # ✅ référentiel MINESEC + seed (cascade, coefficients, tree)
   pedagogie-service/       # ✅ classes (cascade §4), matières de classe (§5), spéciales, confirmation §5.2
-  personnel-service/       # 🟡 squelette bootable — enseignants, direction (2 tél.)
+  personnel-service/       # ✅ enseignants (§7.1), direction 2 tél. (§7.2), compte via auth-service
   eleves-service/          # 🟡 squelette bootable — inscriptions, héritage matières, promotions
   evaluations-service/     # 🟡 squelette bootable — saisie des notes
   bulletins-service/       # 🟡 squelette bootable — calculs + bulletin FR/EN + PDF

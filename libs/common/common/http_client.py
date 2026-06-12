@@ -37,6 +37,13 @@ class InternalClient:
             resp.raise_for_status()
             return resp.json()
 
+    def post(self, path: str, *, ctx=None, json: Optional[dict] = None) -> Any:
+        url = f"{self._base_url}/{path.lstrip('/')}"
+        with httpx.Client(timeout=self._timeout) as client:
+            resp = client.post(url, headers=self._headers(ctx), json=json)
+            resp.raise_for_status()
+            return resp.json()
+
 
 class RedisCache:
     """Cache JSON simple au-dessus de Redis."""
