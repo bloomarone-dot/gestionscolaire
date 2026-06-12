@@ -51,6 +51,12 @@ def _hop_by_hop(name: str) -> bool:
     }
 
 
+@app.api_route("/{prefix}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+async def proxy_root(prefix: str, request: Request) -> Response:
+    """Préfixe nu, sans sous-chemin (ex. GET /eleves, GET /notifications)."""
+    return await proxy(prefix, "", request)
+
+
 @app.api_route(
     "/{prefix}/{path:path}",
     methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
@@ -60,7 +66,7 @@ async def proxy(prefix: str, path: str, request: Request) -> Response:
     if target is None:
         return JSONResponse({"detail": "Ressource inconnue"}, status_code=404)
 
-    full_path = f"{prefix}/{path}"
+    full_path = f"{prefix}/{path}" if path else prefix
     headers = {k: v for k, v in request.headers.items() if not _hop_by_hop(k)}
 
     # Authentification, sauf routes publiques.

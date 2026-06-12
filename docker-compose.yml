@@ -1,27 +1,154 @@
+# Lanceur complet du SaaS Scolaire (microservices). Depuis la racine :
+#   docker compose up --build
+#
+# Démarre : Postgres (9 bases logiques) + RabbitMQ + Redis + API Gateway +
+# 9 services métier + frontend (nginx). Accès : http://localhost:5173
+#
+# (L'ancien monolithe backend/ + Dockerfile racine n'est plus utilisé ici.)
+
+name: gestionscolaire
+
+x-jwt-secret: &jwt_secret ${JWT_SECRET:-dev-jwt-secret-change-me}
+x-internal-secret: &internal_secret ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
+
+x-common-env: &common_env
+  JWT_SECRET: *jwt_secret
+  INTERNAL_SHARED_SECRET: *internal_secret
+  RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+  REDIS_URL: redis://redis:6379/0
+
+x-depends-postgres: &depends_postgres
+  postgres:
+    condition: service_healthy
+
 services:
-  backend:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gs
+      POSTGRES_PASSWORD: gs
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
     build:
       context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    volumes:
-      - backend_data:/app/data
-    env_file:
-      - path: .env
-        required: false
+      dockerfile: services/api-gateway/Dockerfile
     environment:
-      DATABASE_URL: sqlite:////app/data/master.db
-      TENANT_DB_DIR: /app/data/tenants
-      SEED_DEMO_ON_START: "false"
-      TZ: Africa/Douala
+      JWT_SECRET: *jwt_secret
+      INTERNAL_SHARED_SECRET: *internal_secret
+      CORS_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
+    ports:
+      - "8080:8000"
+    depends_on:
+      - auth-service
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
+
+  auth-service:
+    build: { context: ., dockerfile: services/auth-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/auth_db
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  tenant-service:
+    build: { context: ., dockerfile: services/tenant-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/tenant_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  referentiel-service:
+    build: { context: ., dockerfile: services/referentiel-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/referentiel_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  pedagogie-service:
+    build: { context: ., dockerfile: services/pedagogie-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/pedagogie_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  personnel-service:
+    build: { context: ., dockerfile: services/personnel-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/personnel_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  eleves-service:
+    build: { context: ., dockerfile: services/eleves-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/eleves_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  evaluations-service:
+    build: { context: ., dockerfile: services/evaluations-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/evaluations_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  bulletins-service:
+    build: { context: ., dockerfile: services/bulletins-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/bulletins_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  notifications-service:
+    build: { context: ., dockerfile: services/notifications-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/notifications_db
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
 
   frontend:
     build:
@@ -30,9 +157,8 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - api-gateway
     restart: unless-stopped
 
 volumes:
-  backend_data:
+  pg_data:

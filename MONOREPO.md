@@ -21,9 +21,9 @@ services/
   notifications-service/   # ✅ consumer RabbitMQ §12, multi-canal, historique, jamais bloquant
 libs/
   common/                  # ✅ lib partagée : config, JWT, tenant/RLS, db, security, events, http
-infra/
-  docker-compose.yml       # ✅ Postgres + RabbitMQ + Redis + gateway + auth-service
-  postgres/init/           # ✅ création des N bases logiques
+apps/web → frontend/       # ✅ frontend React+Vite (nginx en prod), proxy vers la gateway
+docker-compose.yml         # ✅ lanceur complet (Postgres + RabbitMQ + Redis + gateway + 9 services + frontend)
+infra/postgres/init/       # ✅ création des N bases logiques
 ```
 
 `✅` complet · `🟡` squelette bootable (health + structure ; logique métier ajoutée phase par phase depuis le service de référence).
@@ -31,11 +31,11 @@ infra/
 ## Démarrage (dev)
 
 ```bash
-cd infra
-cp .env.example .env        # adapter les secrets
-docker compose up --build
+# (optionnel) secrets : export JWT_SECRET=... INTERNAL_SHARED_SECRET=...
+docker compose up --build      # depuis la racine du dépôt
 ```
 
+- Frontend : http://localhost:5173 (nginx proxifie l'API vers la gateway)
 - Gateway : http://localhost:8080 (santé : `/health`)
 - RabbitMQ (console) : http://localhost:15672 (guest/guest)
 - Postgres : `localhost:5432` (gs/gs), bases logiques créées au 1er démarrage
