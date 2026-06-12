@@ -1,33 +1,54 @@
-import { useAuth } from '../context/AuthContext';
-
+// Ordre hiérarchique STRICT du cahier des charges (§8). Les rubriques non encore
+// implémentées sont marquées `disabled` (placeholder « Bientôt »).
 const NAV_SECTIONS = [
   {
-    title: "Vue d'ensemble",
-    items: [{ id: 'accueil', icon: 'fa-home', label: 'Accueil' }],
+    title: null,
+    items: [{ id: 'accueil', icon: 'fa-tachometer-alt', label: 'Tableau de bord' }],
   },
   {
-    title: 'Gestion',
+    title: 'Structure Pédagogique',
     items: [
-      { id: 'professeurs', icon: 'fa-chalkboard-teacher', label: 'Professeurs' },
-      { id: 'classes', icon: 'fa-book', label: 'Classes' },
+      { id: 'classes', icon: 'fa-chalkboard', label: 'Classes' },
       { id: 'matieres', icon: 'fa-book-open', label: 'Matières' },
-      { id: 'eleves', icon: 'fa-users', label: 'Élèves' },
+      { id: 'referentiel', icon: 'fa-landmark', label: 'Référentiel MINESEC', disabled: true },
     ],
   },
   {
-    title: 'Notes & évaluations',
+    title: 'Personnel',
     items: [
-      { id: 'saisie-notes', icon: 'fa-edit', label: 'Saisie Notes' },
+      { id: 'professeurs', icon: 'fa-chalkboard-teacher', label: 'Enseignants' },
+      { id: 'direction', icon: 'fa-user-tie', label: 'Direction / Administration', disabled: true },
+    ],
+  },
+  {
+    title: 'Élèves',
+    items: [
+      { id: 'eleves', icon: 'fa-users', label: 'Liste des élèves' },
+      { id: 'inscriptions', icon: 'fa-user-plus', label: 'Inscriptions', disabled: true },
+      { id: 'promotions', icon: 'fa-level-up-alt', label: 'Promotions / Passages', disabled: true },
+    ],
+  },
+  {
+    title: 'Évaluations',
+    items: [
+      { id: 'saisie-notes', icon: 'fa-edit', label: 'Saisie des notes' },
       { id: 'fenetre-notes', icon: 'fa-clock', label: 'Délais de saisie' },
       { id: 'bulletins', icon: 'fa-file-alt', label: 'Bulletins' },
-      { id: 'bulletin-config', icon: 'fa-cog', label: 'Config. bulletins', badge: 'Nouveau' },
     ],
   },
   {
-    title: 'À venir',
+    title: 'Communication',
     items: [
-      { id: 'emploi-temps', icon: 'fa-calendar-alt', label: 'Emploi du Temps', disabled: true },
-      { id: 'rapports', icon: 'fa-chart-bar', label: 'Rapports', disabled: true },
+      { id: 'annonces', icon: 'fa-bullhorn', label: 'Annonces', disabled: true },
+      { id: 'notifications', icon: 'fa-bell', label: 'Notifications', disabled: true },
+    ],
+  },
+  {
+    title: 'Paramètres',
+    items: [
+      { id: 'profil-ecole', icon: 'fa-school', label: "Profil de l'école", disabled: true },
+      { id: 'bulletin-config', icon: 'fa-cog', label: 'Config. bulletins' },
+      { id: 'utilisateurs', icon: 'fa-user-shield', label: 'Utilisateurs & Droits', disabled: true },
     ],
   },
 ];
@@ -43,7 +64,9 @@ export default function AdminNavigation({ activeTab, onTabChange }) {
     <nav className="sidebar-nav-menu">
       <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
         {NAV_SECTIONS.flatMap((section) => [
-          <li key={`header-${section.title}`} className="nav-header">{section.title}</li>,
+          section.title
+            ? <li key={`header-${section.title}`} className="nav-header">{section.title}</li>
+            : null,
           ...section.items.map((tab) => (
             <li key={tab.id} className="nav-item">
               <a
@@ -69,10 +92,10 @@ export default function AdminNavigation({ activeTab, onTabChange }) {
 
 export const ADMIN_PAGE_TITLES = {
   accueil: 'Tableau de bord',
-  professeurs: 'Professeurs',
+  professeurs: 'Enseignants',
   classes: 'Classes',
   matieres: 'Matières',
-  eleves: 'Élèves',
+  eleves: 'Liste des élèves',
   'saisie-notes': 'Saisie des notes',
   'fenetre-notes': 'Délais de saisie',
   bulletins: 'Bulletins',
@@ -81,7 +104,7 @@ export const ADMIN_PAGE_TITLES = {
 
 export const ADMIN_PAGE_SUBTITLES = {
   accueil: 'Pilotage de votre établissement',
-  professeurs: 'Comptes et attributions',
+  professeurs: 'Comptes, téléphones et matières enseignées',
   classes: 'Sections francophone et anglophone',
   matieres: 'Groupes et coefficients',
   eleves: 'Inscriptions et effectifs',
