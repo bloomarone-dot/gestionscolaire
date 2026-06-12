@@ -11,14 +11,14 @@ apps/
 services/
   api-gateway/             # ✅ FastAPI — routage, JWT, injection X-Tenant-Id
   auth-service/            # ✅ login téléphone+mot de passe, JWT (service de référence)
-  tenant-service/          # ⏳ profil école, sous-systèmes/types actifs
-  referentiel-service/     # ⏳ référentiel national MINESEC + seed (Phase 2)
-  pedagogie-service/       # ⏳ classes (cascade), matières de classe, coefficients
-  personnel-service/       # ⏳ enseignants, direction (2 tél.)
-  eleves-service/          # ⏳ inscriptions, héritage matières, promotions
-  evaluations-service/     # ⏳ saisie des notes
-  bulletins-service/       # ⏳ calculs + bulletin FR/EN + PDF
-  notifications-service/   # ⏳ SMS/WhatsApp/Email + notif interne (consumer RabbitMQ)
+  tenant-service/          # 🟡 squelette bootable — profil école, sous-systèmes/types actifs
+  referentiel-service/     # 🟡 squelette bootable — référentiel MINESEC + seed (Phase 2)
+  pedagogie-service/       # 🟡 squelette bootable — classes (cascade), matières, coefficients
+  personnel-service/       # 🟡 squelette bootable — enseignants, direction (2 tél.)
+  eleves-service/          # 🟡 squelette bootable — inscriptions, héritage matières, promotions
+  evaluations-service/     # 🟡 squelette bootable — saisie des notes
+  bulletins-service/       # 🟡 squelette bootable — calculs + bulletin FR/EN + PDF
+  notifications-service/   # 🟡 squelette bootable — notif multi-canal (consumer RabbitMQ)
 libs/
   common/                  # ✅ lib partagée : config, JWT, tenant/RLS, db, security, events, http
 infra/
@@ -26,7 +26,7 @@ infra/
   postgres/init/           # ✅ création des N bases logiques
 ```
 
-`✅` en place · `⏳` à venir (générés depuis le service de référence, phase par phase).
+`✅` complet · `🟡` squelette bootable (health + structure ; logique métier ajoutée phase par phase depuis le service de référence).
 
 ## Démarrage (dev)
 

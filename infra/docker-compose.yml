@@ -10,6 +10,18 @@ name: gestionscolaire
 x-internal-secret: &internal_secret ${INTERNAL_SHARED_SECRET:-dev-internal-secret}
 x-jwt-secret: &jwt_secret ${JWT_SECRET:-dev-jwt-secret-change-me}
 
+# Environnement commun aux services métier (DATABASE_URL ajouté par service).
+x-common-env: &common_env
+  JWT_SECRET: *jwt_secret
+  INTERNAL_SHARED_SECRET: *internal_secret
+  RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+  REDIS_URL: redis://redis:6379/0
+
+# Dépendance standard : attendre Postgres prêt.
+x-depends-postgres: &depends_postgres
+  postgres:
+    condition: service_healthy
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -68,11 +80,92 @@ services:
       context: ..
       dockerfile: services/auth-service/Dockerfile
     environment:
-      JWT_SECRET: *jwt_secret
-      INTERNAL_SHARED_SECRET: *internal_secret
+      <<: *common_env
       DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/auth_db
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  tenant-service:
+    build:
+      context: ..
+      dockerfile: services/tenant-service/Dockerfile
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/tenant_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  referentiel-service:
+    build:
+      context: ..
+      dockerfile: services/referentiel-service/Dockerfile
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/referentiel_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  pedagogie-service:
+    build:
+      context: ..
+      dockerfile: services/pedagogie-service/Dockerfile
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/pedagogie_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  personnel-service:
+    build:
+      context: ..
+      dockerfile: services/personnel-service/Dockerfile
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/personnel_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  eleves-service:
+    build:
+      context: ..
+      dockerfile: services/eleves-service/Dockerfile
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/eleves_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  evaluations-service:
+    build:
+      context: ..
+      dockerfile: services/evaluations-service/Dockerfile
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/evaluations_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  bulletins-service:
+    build:
+      context: ..
+      dockerfile: services/bulletins-service/Dockerfile
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/bulletins_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  notifications-service:
+    build:
+      context: ..
+      dockerfile: services/notifications-service/Dockerfile
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/notifications_db
     depends_on:
       postgres:
         condition: service_healthy
