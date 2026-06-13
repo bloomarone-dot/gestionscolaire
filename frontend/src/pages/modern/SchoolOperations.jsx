@@ -419,8 +419,19 @@ export function OperationalSubjectsPage() {
   );
 }
 
+// Séquences d'un trimestre : T1 → Séq 1 & 2, T2 → Séq 3 & 4, T3 → Séq 5 & 6.
+function sequencesForTrimestre(t) {
+  const a = 2 * Number(t) - 1;
+  const b = 2 * Number(t);
+  return [[`sequence_${a}`, `Sequence ${a}`], [`sequence_${b}`, `Sequence ${b}`]];
+}
+
 function GradesWorkspace({ professor = false }) {
-  const { rows: classRows } = useLoad(useCallback(async () => (await api.getProfessorClasses()).map(classRow), []), []);
+  const loadClasses = useCallback(
+    async () => (professor ? await api.getProfessorClasses() : await api.fetchClasses()).map(classRow),
+    [professor],
+  );
+  const { rows: classRows } = useLoad(loadClasses, []);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [trimestre, setTrimestre] = useState(1);
@@ -429,9 +440,19 @@ function GradesWorkspace({ professor = false }) {
   const [subjects, setSubjects] = useState([]);
   const [values, setValues] = useState({});
   const [notice, setNotice] = useState('');
+  const [saving, setSaving] = useState(false);
 
+  const seqOptions = sequencesForTrimestre(trimestre);
+
+  // Changement de trimestre → recadre la séquence sur celles du trimestre.
+  function changeTrimestre(t) {
+    setTrimestre(t);
+    setTypeEvaluation(`sequence_${2 * Number(t) - 1}`);
+  }
+
+  // Charge élèves + matières de la classe.
   useEffect(() => {
-    if (!selectedClass) return;
+    if (!selectedClass) { setStudents([]); setSubjects([]); setSelectedSubject(''); return; }
     Promise.all([
       api.getClassEleves(selectedClass).then((data) => data.map((eleve) => studentRow(eleve, {
         [String(selectedClass)]: classNameById(classRows, selectedClass),
@@ -444,15 +465,33 @@ function GradesWorkspace({ professor = false }) {
     });
   }, [selectedClass, classRows]);
 
+  // Préremplit avec les notes déjà saisies pour (classe, matière, trimestre, séquence).
+  useEffect(() => {
+    if (!selectedClass || !selectedSubject) { setValues({}); return; }
+    let active = true;
+    api.fetchNotes({
+      classe_id: Number(selectedClass), matiere_id: Number(selectedSubject),
+      trimestre: Number(trimestre), type_evaluation: typeEvaluation,
+    }).then((notes) => {
+      if (!active) return;
+      const map = {};
+      (Array.isArray(notes) ? notes : []).forEach((n) => { map[n.eleve_id] = n.valeur; });
+      setValues(map);
+    }).catch(() => { if (active) setValues({}); });
+    return () => { active = false; };
+  }, [selectedClass, selectedSubject, trimestre, typeEvaluation]);
+
   async function submit(event) {
     event.preventDefault();
     const notes = students
       .map((student) => ({ eleve_id: Number(student.id), valeur: Number(values[student.id]) }))
       .filter((item) => Number.isFinite(item.valeur) && item.valeur >= 0 && item.valeur <= 20);
     if (!selectedClass || !selectedSubject || !notes.length) {
-      setNotice('Selectionnez une classe, une matiere et au moins une note valide.');
+      setNotice('Selectionnez une classe, une matiere et saisissez au moins une note (0 a 20).');
       return;
     }
+    setSaving(true);
+    setNotice('');
     try {
       await api.postNotesBulk({
         classe_id: Number(selectedClass),
@@ -461,41 +500,67 @@ function GradesWorkspace({ professor = false }) {
         type_evaluation: typeEvaluation,
         notes,
       });
-      setNotice('Notes enregistrees avec succes.');
+      setNotice(`${notes.length} note(s) enregistree(s) avec succes.`);
     } catch (err) {
       setNotice(err.message || 'Saisie des notes impossible.');
+    } finally {
+      setSaving(false);
     }
   }
 
+  const subjectName = subjects.find((s) => String(s.id) === String(selectedSubject))?.name;
+
   return (
     <>
-      <PageHeader title={professor ? 'Mes notes' : 'Notes'} description="Saisie groupée des notes par classe, matiere, trimestre et sequence." />
-      <Notice message={notice} />
+      <PageHeader title={professor ? 'Mes notes' : 'Saisie des notes'} description="Choisir la classe, la matiere, le trimestre et la sequence, puis remplir les notes." />
+      <Notice message={notice} tone={notice.includes('succes') ? 'emerald' : 'amber'} />
       <Card className="p-5">
         <form id="grades-form" onSubmit={submit}>
           <div className="grid gap-4 md:grid-cols-4">
-            <Select required value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}><option value="">Classe</option>{classRows.map((classe) => <option key={classe.id} value={classe.id}>{classe.name}</option>)}</Select>
-            <Select required value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}><option value="">Matiere</option>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</Select>
-            <Select value={trimestre} onChange={(e) => setTrimestre(e.target.value)}><option value="1">Trimestre 1</option><option value="2">Trimestre 2</option><option value="3">Trimestre 3</option></Select>
-            <Select value={typeEvaluation} onChange={(e) => setTypeEvaluation(e.target.value)}>{evaluationTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>
+            <label className="block"><span className="mb-1 block text-sm font-semibold text-slate-700">Classe</span>
+              <Select required value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}><option value="">Choisir...</option>{classRows.map((classe) => <option key={classe.id} value={classe.id}>{classe.name}</option>)}</Select>
+            </label>
+            <label className="block"><span className="mb-1 block text-sm font-semibold text-slate-700">Matiere</span>
+              <Select required value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} disabled={!subjects.length}><option value="">Choisir...</option>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</Select>
+            </label>
+            <label className="block"><span className="mb-1 block text-sm font-semibold text-slate-700">Trimestre</span>
+              <Select value={trimestre} onChange={(e) => changeTrimestre(e.target.value)}><option value="1">Trimestre 1</option><option value="2">Trimestre 2</option><option value="3">Trimestre 3</option></Select>
+            </label>
+            <label className="block"><span className="mb-1 block text-sm font-semibold text-slate-700">Sequence</span>
+              <Select value={typeEvaluation} onChange={(e) => setTypeEvaluation(e.target.value)}>{seqOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>
+            </label>
           </div>
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50"><tr><th className="px-4 py-3 text-left">Eleve</th><th className="px-4 py-3 text-left">Matricule</th><th className="px-4 py-3 text-left">Note / 20</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">
-                {students.map((student) => (
-                  <tr key={student.id}>
-                    <td className="px-4 py-3 font-semibold">{student.name}</td>
-                    <td className="px-4 py-3">{student.matricule}</td>
-                    <td className="px-4 py-3"><Input type="number" min="0" max="20" step="0.25" value={values[student.id] || ''} onChange={(e) => setValues({ ...values, [student.id]: e.target.value })} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-5 flex justify-end">
-            <Button type="submit"><CheckCircle2 size={16} /> Enregistrer les notes</Button>
-          </div>
+
+          {!selectedClass ? (
+            <p className="mt-6 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">Selectionnez une classe pour afficher les eleves.</p>
+          ) : students.length === 0 ? (
+            <p className="mt-6 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">Aucun eleve dans cette classe.</p>
+          ) : (
+            <>
+              <p className="mt-5 text-sm text-slate-500">{students.length} eleve(s){subjectName ? ` - ${subjectName}` : ''}</p>
+              <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50"><tr><th className="px-4 py-3 text-left">Matricule</th><th className="px-4 py-3 text-left">Eleve</th><th className="px-4 py-3 text-left">Note / 20</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {students.map((student) => (
+                      <tr key={student.id}>
+                        <td className="px-4 py-2 text-slate-500">{student.matricule}</td>
+                        <td className="px-4 py-2 font-semibold">{student.name}</td>
+                        <td className="px-4 py-2 w-32">
+                          <Input type="number" min="0" max="20" step="0.25" placeholder="-"
+                            value={values[student.id] ?? ''}
+                            onChange={(e) => setValues((v) => ({ ...v, [student.id]: e.target.value }))} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-5 flex justify-end">
+                <Button type="submit" disabled={saving}><CheckCircle2 size={16} /> {saving ? 'Enregistrement...' : 'Enregistrer'}</Button>
+              </div>
+            </>
+          )}
         </form>
       </Card>
     </>
