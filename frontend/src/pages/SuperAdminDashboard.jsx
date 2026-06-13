@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import * as api from '../api/api';
 import SchoolList from '../components/SchoolList';
 import CreateSchoolModal from '../components/CreateSchoolModal';

@@ -29,19 +29,3 @@ export default function SuperAdminNavigation() {
     </nav>
   );
 }
-
-export const SUPERADMIN_PAGE_TITLES = {
-  '/superadmin/dashboard': 'Tableau de bord',
-  '/superadmin/schools': 'Établissements',
-  '/superadmin/admins': 'Administrateurs',
-  '/superadmin/logs': 'Logs & activité',
-  '/superadmin/settings': 'Paramètres',
-};
-
-export const SUPERADMIN_PAGE_SUBTITLES = {
-  '/superadmin/dashboard': "Vue d'ensemble de la plateforme EduSaaS",
-  '/superadmin/schools': 'Créer, consulter et gérer les établissements',
-  '/superadmin/admins': 'Comptes administrateurs et réinitialisation',
-  '/superadmin/logs': 'Historique des actions sur la plateforme',
-  '/superadmin/settings': 'Configuration globale du système',
-};

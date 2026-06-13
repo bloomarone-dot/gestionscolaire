@@ -1,103 +1,116 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import Sidebar from './components/Sidebar';
-import SuperAdminLayout from './layouts/SuperAdminLayout';
-import HomePage from './pages/HomePage';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
+import SaaSLayout from './components/layout/SaaSLayout';
+import SuperAdminLayout from './components/layout/SuperAdminLayout';
+import ProfessorLayout from './components/layout/ProfessorLayout';
 import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import AdminDashboard from './pages/AdminDashboard';
-import ProfessorDashboard from './pages/ProfessorDashboard';
-import SuperAdminHome from './pages/superadmin/SuperAdminHome';
-import SuperAdminSchoolsPage from './pages/superadmin/SuperAdminSchoolsPage';
-import SuperAdminSchoolFormPage from './pages/superadmin/SuperAdminSchoolFormPage';
-import SuperAdminAdminsPage from './pages/superadmin/SuperAdminAdminsPage';
-import SuperAdminLogsPage from './pages/superadmin/SuperAdminLogsPage';
-import SuperAdminSettingsPage from './pages/superadmin/SuperAdminSettingsPage';
-import ElevesPage from './pages/ElevesPage';
-import NotesPage from './pages/NotesPage';
-import BulletinPage from './pages/BulletinPage';
+import Dashboard from './pages/modern/Dashboard';
+import SuperAdminConsole from './pages/modern/SuperAdminConsole';
+import {
+  AttendancePage,
+  PaymentsPage,
+  ParentsPage,
+  ReportsPage,
+  SchedulesPage,
+  SettingsPage,
+  ExpensesPage,
+  UsersPage,
+} from './pages/modern/ListPages';
+import {
+  OperationalBulletinsPage,
+  OperationalClassesPage,
+  OperationalGradesPage,
+  OperationalStudentsPage,
+  OperationalSubjectsPage,
+  OperationalTeachersPage,
+  ProfessorBulletinsPage,
+  ProfessorClassesPage,
+  ProfessorDashboardPage,
+  ProfessorGradesPage,
+  ProfessorProfilePage,
+  ProfessorStudentsPage,
+} from './pages/modern/SchoolOperations';
 import OfflineBanner from './components/OfflineBanner';
 
-function ProtectedLayout({ children }) {
+function ProtectedApp() {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role === 'superadmin') return <Navigate to="/superadmin/dashboard" replace />;
+  if (user?.role === 'professeur') return <Navigate to="/professor/dashboard" replace />;
+  return <SaaSLayout />;
+}
 
-  if (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'professeur') {
-    return <>{children}</>;
-  }
+function ProtectedProfessor() {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'professeur') return <Navigate to="/app/dashboard" replace />;
+  return <ProfessorLayout />;
+}
 
-  return (
-    <div className="app-layout">
-      <Sidebar />
-      <main className="main-content">{children}</main>
-    </div>
-  );
+function ProtectedSuperAdmin() {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'superadmin') return <Navigate to="/app/dashboard" replace />;
+  return <SuperAdminLayout />;
+}
+
+function LoginRoute() {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <LoginPage />;
+  if (user?.role === 'superadmin') return <Navigate to="/superadmin/dashboard" replace />;
+  if (user?.role === 'professeur') return <Navigate to="/professor/dashboard" replace />;
+  return <Navigate to="/app/dashboard" replace />;
+}
+
+function HomeRedirect() {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role === 'superadmin') return <Navigate to="/superadmin/dashboard" replace />;
+  if (user?.role === 'professeur') return <Navigate to="/professor/dashboard" replace />;
+  return <Navigate to="/app/dashboard" replace />;
 }
 
 function AppRoutes() {
-  const { isAuthenticated, user } = useAuth();
-
-  const homeRedirect = isAuthenticated
-    ? user?.role === 'superadmin'
-      ? <Navigate to="/superadmin/dashboard" replace />
-      : user?.role === 'admin'
-        ? <Navigate to="/admin/dashboard" replace />
-        : user?.role === 'professeur'
-          ? <Navigate to="/professor/dashboard" replace />
-          : <Navigate to="/dashboard" replace />
-    : <HomePage />;
-
-  const loginRedirect = isAuthenticated
-    ? user?.role === 'superadmin'
-      ? <Navigate to="/superadmin/dashboard" replace />
-      : user?.role === 'admin'
-        ? <Navigate to="/admin/dashboard" replace />
-        : user?.role === 'professeur'
-          ? <Navigate to="/professor/dashboard" replace />
-          : <Navigate to="/dashboard" replace />
-    : <LoginPage />;
-
   return (
     <Routes>
-      <Route path="/" element={homeRedirect} />
-      <Route path="/login" element={loginRedirect} />
-
-      {/* Super Admin — layout avec sidebar */}
-      <Route path="/superadmin" element={
-        <ProtectedLayout><SuperAdminLayout /></ProtectedLayout>
-      }>
+      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/login" element={<LoginRoute />} />
+      <Route path="/superadmin" element={<ProtectedSuperAdmin />}>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<SuperAdminHome />} />
-        <Route path="schools" element={<SuperAdminSchoolsPage />} />
-        <Route path="schools/new" element={<SuperAdminSchoolFormPage />} />
-        <Route path="schools/:id/edit" element={<SuperAdminSchoolFormPage />} />
-        <Route path="admins" element={<SuperAdminAdminsPage />} />
-        <Route path="logs" element={<SuperAdminLogsPage />} />
-        <Route path="settings" element={<SuperAdminSettingsPage />} />
+        <Route path="dashboard" element={<SuperAdminConsole tab="dashboard" />} />
+        <Route path="schools" element={<SuperAdminConsole tab="schools" />} />
+        <Route path="admins" element={<SuperAdminConsole tab="admins" />} />
+        <Route path="settings" element={<SuperAdminConsole tab="settings" />} />
       </Route>
-
-      <Route path="/admin/dashboard" element={
-        <ProtectedLayout><AdminDashboard /></ProtectedLayout>
-      } />
-
-      <Route path="/professor/dashboard" element={
-        <ProtectedLayout><ProfessorDashboard /></ProtectedLayout>
-      } />
-
-      <Route path="/dashboard" element={
-        <ProtectedLayout><DashboardPage /></ProtectedLayout>
-      } />
-      <Route path="/eleves" element={
-        <ProtectedLayout><ElevesPage /></ProtectedLayout>
-      } />
-      <Route path="/notes" element={
-        <ProtectedLayout><NotesPage /></ProtectedLayout>
-      } />
-      <Route path="/bulletin" element={
-        <ProtectedLayout><BulletinPage /></ProtectedLayout>
-      } />
-
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/professor" element={<ProtectedProfessor />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<ProfessorDashboardPage />} />
+        <Route path="classes" element={<ProfessorClassesPage />} />
+        <Route path="students" element={<ProfessorStudentsPage />} />
+        <Route path="grades" element={<ProfessorGradesPage />} />
+        <Route path="bulletins" element={<ProfessorBulletinsPage />} />
+        <Route path="profile" element={<ProfessorProfilePage />} />
+      </Route>
+      <Route path="/app" element={<ProtectedApp />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="students" element={<OperationalStudentsPage />} />
+        <Route path="parents" element={<ParentsPage />} />
+        <Route path="teachers" element={<OperationalTeachersPage />} />
+        <Route path="classes" element={<OperationalClassesPage />} />
+        <Route path="subjects" element={<OperationalSubjectsPage />} />
+        <Route path="schedules" element={<SchedulesPage />} />
+        <Route path="attendance" element={<AttendancePage />} />
+        <Route path="grades" element={<OperationalGradesPage />} />
+        <Route path="bulletins" element={<OperationalBulletinsPage />} />
+        <Route path="payments" element={<PaymentsPage />} />
+        <Route path="expenses" element={<ExpensesPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="users" element={<UsersPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
+      <Route path="*" element={<HomeRedirect />} />
     </Routes>
   );
 }
