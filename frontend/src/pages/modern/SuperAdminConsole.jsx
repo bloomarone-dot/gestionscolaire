@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, CheckCircle2, RefreshCw, School, ShieldCheck, UserPlus } from 'lucide-react';
+import { Building2, CheckCircle2, RefreshCw, School, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard } from '../../components/ui';
 
@@ -136,6 +136,18 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
     }
   }
 
+  async function handleDeleteSchool(row) {
+    if (!window.confirm(`Supprimer l'etablissement "${row.name}" ? Action irreversible.`)) return;
+    setError('');
+    try {
+      await api.deleteSchool(row.id);
+      setSchools((current) => current.filter((s) => s.id !== row.id));
+      setNotice('Etablissement supprime.');
+    } catch (err) {
+      setError(err.message || "Suppression impossible.");
+    }
+  }
+
   const showDashboard = tab === 'dashboard';
   const showSchools = tab === 'dashboard' || tab === 'schools';
   const showAdmins = tab === 'dashboard' || tab === 'admins';
@@ -254,7 +266,12 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
               { key: 'status', label: 'Statut', render: (row) => <Badge tone={row.status === 'Actif' ? 'emerald' : 'rose'}>{row.status}</Badge> },
             ]}
             rows={schools}
-            renderActions={(row) => <Button variant="secondary" onClick={() => setAdminForm((current) => ({ ...current, school_id: String(row.id) }))}><CheckCircle2 size={16} /> Choisir</Button>}
+            renderActions={(row) => (
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setAdminForm((current) => ({ ...current, school_id: String(row.id) }))}><CheckCircle2 size={16} /> Choisir</Button>
+                <Button variant="danger" className="px-2" title="Supprimer" onClick={() => handleDeleteSchool(row)}><Trash2 size={16} /></Button>
+              </div>
+            )}
           />
         </div>
       )}

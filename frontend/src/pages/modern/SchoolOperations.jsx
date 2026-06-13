@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, UserPlus } from 'lucide-react';
+import { BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, Trash2, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard, Textarea } from '../../components/ui';
 
@@ -21,6 +21,15 @@ const evaluationTypes = [
 ];
 
 const emptyRows = [];
+
+// Bouton Supprimer pour les lignes de tableau (avec confirmation côté page).
+function deleteAction(onConfirm) {
+  return (
+    <div className="flex justify-end">
+      <Button variant="danger" className="px-2" title="Supprimer" onClick={onConfirm}><Trash2 size={16} /></Button>
+    </div>
+  );
+}
 
 function Notice({ message, tone = 'emerald' }) {
   if (!message) return null;
@@ -126,6 +135,14 @@ export function OperationalTeachersPage() {
     }
   }
 
+  async function handleDelete(row) {
+    if (!window.confirm(`Supprimer l'enseignant "${row.name}" ?`)) return;
+    try {
+      await api.deleteProfesseur(row.id);
+      setRows((current) => current.filter((r) => r.id !== row.id));
+    } catch (err) { setNotice(err.message); }
+  }
+
   return (
     <>
       <PageHeader title="Enseignants" description="Creation et suivi des enseignants de l'etablissement." actions={<Button form="teacher-form"><UserPlus size={16} /> Creer</Button>} />
@@ -136,7 +153,7 @@ export function OperationalTeachersPage() {
         { key: 'subjects', label: 'Specialite' },
         { key: 'phone', label: 'Telephone' },
         { key: 'status', label: 'Statut', render: (row) => <Badge tone={row.status === 'Actif' ? 'emerald' : 'rose'}>{row.status}</Badge> },
-      ]} rows={rows} />
+      ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
         <h2 className="mb-4 font-bold">Creer un professeur</h2>
         <form id="teacher-form" className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
@@ -180,6 +197,14 @@ export function OperationalClassesPage() {
     }
   }
 
+  async function handleDelete(row) {
+    if (!window.confirm(`Supprimer la classe "${row.name}" ? Les matieres associees seront supprimees.`)) return;
+    try {
+      await api.deleteClasse(row.id);
+      setRows((current) => current.filter((r) => r.id !== row.id));
+    } catch (err) { setNotice(err.message); }
+  }
+
   return (
     <>
       <PageHeader title="Classes" description="Creation de classes standard ou speciales." actions={<Button form="class-form"><Plus size={16} /> Creer</Button>} />
@@ -190,7 +215,7 @@ export function OperationalClassesPage() {
         { key: 'level', label: 'Niveau' },
         { key: 'capacity', label: 'Capacite' },
         { key: 'students', label: 'Effectif' },
-      ]} rows={rows} />
+      ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
         <h2 className="mb-4 font-bold">Creer une classe</h2>
         <form id="class-form" className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
@@ -246,6 +271,14 @@ export function OperationalStudentsPage() {
     }
   }
 
+  async function handleDelete(row) {
+    if (!window.confirm(`Supprimer l'eleve "${row.name}" ?`)) return;
+    try {
+      await api.deleteEleve_admin(row.id);
+      setRows((current) => current.filter((r) => r.id !== row.id));
+    } catch (err) { setNotice(err.message); }
+  }
+
   return (
     <>
       <PageHeader title="Eleves" description="Inscription operationnelle avec parent et classe." actions={<Button form="student-form"><UserPlus size={16} /> Inscrire</Button>} />
@@ -257,7 +290,7 @@ export function OperationalStudentsPage() {
         { key: 'className', label: 'Classe' },
         { key: 'parent', label: 'Parent' },
         { key: 'status', label: 'Statut', render: (row) => <Badge tone="emerald">{row.status}</Badge> },
-      ]} rows={rows} />
+      ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
         <h2 className="mb-4 font-bold">Inscrire un eleve</h2>
         <form id="student-form" className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
