@@ -2,7 +2,7 @@
 from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy.orm import Session, sessionmaker
 
-from common.db import Base, get_engine, init_engine
+from common.db import Base, add_missing_columns, get_engine, init_engine
 from common.tenant import TenantContext, get_context, require_roles
 
 from app import crud
@@ -25,6 +25,11 @@ def _startup() -> None:
     global _SessionLocal
     init_engine(settings.database_url)
     Base.metadata.create_all(bind=get_engine())  # Alembic en Phase 5
+    add_missing_columns("schools", {
+        "bulletin_delegation_regional": "VARCHAR(255)",
+        "bulletin_delegation_departementale": "VARCHAR(255)",
+        "bulletin_next_term_note": "VARCHAR(255)",
+    })
     _SessionLocal = sessionmaker(bind=get_engine(), future=True)
 
 

@@ -257,9 +257,6 @@ export function ReportsPage() {
   return <ComingSoon title="Rapports" description="Indicateurs et exports." icon={FileText} />;
 }
 
-export function SettingsPage() {
-  return <ComingSoon title="Parametres" description="Profil de l'etablissement et configuration du bulletin." icon={Search} />;
-}
 export function ParentsPage() {
   return <ComingSoon title="Parents" description="Contacts responsables et communication famille." icon={UserPlus} />;
 }

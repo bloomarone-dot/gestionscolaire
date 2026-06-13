@@ -36,6 +36,24 @@ def get_engine():
     return _engine
 
 
+def add_missing_columns(table: str, columns: dict[str, str]) -> None:
+    """Ajoute des colonnes manquantes à une table existante (PostgreSQL).
+
+    `create_all` ne modifie jamais une table déjà créée : ce helper comble les
+    colonnes ajoutées au modèle après coup, de façon idempotente et sans perte de
+    données. No-op hors PostgreSQL (SQLite des tests : tables fraîches).
+    """
+    eng = get_engine()
+    if eng.dialect.name != "postgresql":
+        return
+    try:
+        with eng.begin() as conn:
+            for col, ddl in columns.items():
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {ddl}"))
+    except Exception:  # best-effort : ne bloque pas le démarrage
+        pass
+
+
 @contextmanager
 def tenant_session(tenant_id: Optional[int]) -> Iterator[Session]:
     """Session liée à un tenant : positionne ``app.tenant_id`` pour la RLS.

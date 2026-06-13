@@ -378,6 +378,12 @@ export async function getSchool(schoolId) {
   return handleResponse(res);
 }
 
+// Profil de l'établissement de l'utilisateur connecté (admin) — pour la page Paramètres.
+export async function fetchMySchool() {
+  const res = await fetch('/tenants/me', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
 export async function updateSchool(schoolId, schoolData) {
   const res = await fetch(`/tenants/schools/${schoolId}`, {
     method: 'PUT',

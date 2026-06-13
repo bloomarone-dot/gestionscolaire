@@ -2,7 +2,7 @@
 from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy.orm import Session, sessionmaker
 
-from common.db import Base, get_engine, init_engine
+from common.db import Base, add_missing_columns, get_engine, init_engine
 from common.events import EventNames, EventPublisher
 from common.tenant import TenantContext, require_tenant
 
@@ -14,6 +14,7 @@ from app.schemas import (
     ClasseCreate,
     ClasseDetail,
     ClasseListItem,
+    ClasseUpdate,
     MatiereOut,
     MatiereUpdate,
     SpecialMatiereCreate,
@@ -30,6 +31,7 @@ def _startup() -> None:
     global _SessionLocal, _publisher
     init_engine(settings.database_url)
     Base.metadata.create_all(bind=get_engine())  # Alembic en Phase 5
+    add_missing_columns("classe_matieres", {"groupe": "INTEGER"})
     _SessionLocal = sessionmaker(bind=get_engine(), future=True)
     _publisher = EventPublisher(settings.rabbitmq_url, settings.events_exchange)
 
@@ -122,6 +124,32 @@ def get_classe(
     except crud.NotFound as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
     return _detail(db, ctx.tenant_id, classe)
+
+
+@app.put("/pedagogie/classes/{class_id}", response_model=ClasseDetail, tags=["classes"])
+def update_classe(
+    class_id: int,
+    payload: ClasseUpdate,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        classe = crud.update_class(db, ctx.tenant_id, class_id, payload)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    return _detail(db, ctx.tenant_id, classe)
+
+
+@app.delete("/pedagogie/classes/{class_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["classes"])
+def delete_classe(
+    class_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        crud.delete_class(db, ctx.tenant_id, class_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
 
 def _detail(db: Session, tenant_id: int, classe: Classe) -> ClasseDetail:

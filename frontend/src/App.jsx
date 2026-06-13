@@ -13,10 +13,10 @@ import {
   ParentsPage,
   ReportsPage,
   SchedulesPage,
-  SettingsPage,
   ExpensesPage,
   UsersPage,
 } from './pages/modern/ListPages';
+import { SettingsPage } from './pages/modern/SchoolSettings';
 import {
   OperationalBulletinsPage,
   OperationalClassesPage,
