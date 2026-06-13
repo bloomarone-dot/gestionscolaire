@@ -89,27 +89,3 @@ export default function AdminNavigation({ activeTab, onTabChange }) {
     </nav>
   );
 }
-
-export const ADMIN_PAGE_TITLES = {
-  accueil: 'Tableau de bord',
-  professeurs: 'Enseignants',
-  classes: 'Classes',
-  matieres: 'Matières',
-  eleves: 'Liste des élèves',
-  'saisie-notes': 'Saisie des notes',
-  'fenetre-notes': 'Délais de saisie',
-  bulletins: 'Bulletins',
-  'bulletin-config': 'Configuration des bulletins',
-};
-
-export const ADMIN_PAGE_SUBTITLES = {
-  accueil: 'Pilotage de votre établissement',
-  professeurs: 'Comptes, téléphones et matières enseignées',
-  classes: 'Sections francophone et anglophone',
-  matieres: 'Groupes et coefficients',
-  eleves: 'Inscriptions et effectifs',
-  'saisie-notes': 'Consultation et correction des notes',
-  'fenetre-notes': 'Périodes autorisées pour les professeurs',
-  bulletins: 'Génération PDF officielle',
-  'bulletin-config': 'Logo, en-têtes et modèle Cameroun',
-};

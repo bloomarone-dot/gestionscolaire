@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { login as apiLogin, loginProfessor as apiLoginProfessor } from '../api/api';
-
-const AuthContext = createContext(null);
+import { AuthContext } from './useAuth';
 
 function readStoredUser() {
   try {
@@ -73,6 +72,25 @@ export function AuthProvider({ children }) {
     return userData;
   }, []);
 
+  const loginDemo = useCallback((role = 'admin') => {
+    const isSuperAdmin = role === 'superadmin';
+    const isProfessor = role === 'professeur';
+    const userData = {
+      id: isSuperAdmin ? 0 : isProfessor ? 2 : 1,
+      username: isSuperAdmin ? 'demo-superadmin' : isProfessor ? 'demo-professeur' : 'demo-admin',
+      role: isSuperAdmin ? 'superadmin' : isProfessor ? 'professeur' : 'admin',
+      school_id: isSuperAdmin ? null : 1,
+      tenant_id: isSuperAdmin ? null : 1,
+      first_name: 'Demo',
+      last_name: isSuperAdmin ? 'Superadmin' : isProfessor ? 'Professeur' : 'Admin',
+      token: `demo-${isSuperAdmin ? 'superadmin' : isProfessor ? 'professeur' : 'admin'}-token`,
+    };
+    localStorage.setItem('access_token', userData.token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    return userData;
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
@@ -91,6 +109,7 @@ export function AuthProvider({ children }) {
       user,
       login,
       loginProfessor,
+      loginDemo,
       logout,
       isAuthenticated: !!user && !!getAccessToken(),
       selectedSchool,
@@ -100,8 +119,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
-export function useAuth() {
-  return useContext(AuthContext);
-}
-

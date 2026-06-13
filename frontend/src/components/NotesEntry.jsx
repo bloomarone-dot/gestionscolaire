@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import * as api from '../api/api';
 import {
   TRIMESTRES,
@@ -171,7 +171,7 @@ export default function NotesEntry({
     } finally {
       setLoading(false);
     }
-  }, [classe, isAdmin, loadNotesForMatiere, fixedMatiereId]);
+  }, [classe, isAdmin, loadNotesForMatiere, fixedMatiereId, selectedTrimestre, selectedType]);
 
   useEffect(() => {
     loadData();

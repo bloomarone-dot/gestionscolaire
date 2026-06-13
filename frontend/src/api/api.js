@@ -277,6 +277,16 @@ export async function fetchClasseBulletins(classeId, trimestre = 1) {
   return handleResponse(res);
 }
 
+export async function publishEleveBulletin(eleveId, trimestre = 1, typeEvaluation = null) {
+  const params = new URLSearchParams({ trimestre: String(trimestre) });
+  if (typeEvaluation) params.set('type_evaluation', typeEvaluation);
+  const res = await fetch(`/bulletins/eleve/${eleveId}/publish?${params}`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
 export async function fetchBulletin(eleve_id, trimestre = 1) {
   try {
     return await fetchEleveBulletin(eleve_id, trimestre);
@@ -358,6 +368,26 @@ export async function updateSchool(schoolId, schoolData) {
     method: 'PUT',
     headers: getHeaders(),
     body: JSON.stringify(schoolData),
+  });
+  return handleResponse(res);
+}
+
+// Profil pédagogique actif (sous-systèmes/types) + canaux de notif (§14 / §12.2).
+export async function updateSchoolProfile(schoolId, profile) {
+  const res = await fetch(`/tenants/schools/${schoolId}/profile`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(profile),
+  });
+  return handleResponse(res);
+}
+
+// Crée le compte administrateur de l'établissement (login téléphone + mot de passe).
+export async function createSchoolAdmin(schoolId, admin) {
+  const res = await fetch('/auth/accounts', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ ...admin, role: 'admin', tenant_id: schoolId }),
   });
   return handleResponse(res);
 }
@@ -470,8 +500,22 @@ export async function fetchMatieres() {
 }
 
 export async function createMatiere(matiereData) {
-  void matiereData;
-  unsupported("La création globale d'une matière");
+  const classId = matiereData.classe_id || matiereData.class_id;
+  if (!classId) unsupported("La création d'une matière sans classe");
+  return createSpecialMatiere(classId, matiereData);
+}
+
+export async function createSpecialMatiere(classId, matiereData) {
+  const res = await fetch(`/pedagogie/classes/${classId}/matieres/special`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      nom: matiereData.nom || matiereData.name,
+      coefficient: Number(matiereData.coefficient ?? matiereData.coefficient_defaut) || 1,
+      volume_horaire: matiereData.volume_horaire ? Number(matiereData.volume_horaire) : null,
+    }),
+  });
+  return normalizeMatiere(await handleResponse(res));
 }
 
 export async function deleteMatiere(matiereId) {
@@ -554,6 +598,15 @@ export async function getClassMatieres(classeId) {
   return data.map(normalizeMatiere);
 }
 
+export async function postNotesBulk(payload) {
+  const res = await fetch('/evaluations/notes/bulk', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
 export async function createNote(classeId, noteData) {
   const url = '/evaluations/notes';
   const res = await fetch(url, {
@@ -585,11 +638,7 @@ export async function getEleveBulletin(eleveId, trimestre = 1) {
 }
 
 export async function generateBulletin(eleveId) {
-  const res = await fetch(`/bulletins/eleve/${eleveId}/publish`, {
-    method: 'POST',
-    headers: getHeaders(),
-  });
-  return handleResponse(res);
+  return publishEleveBulletin(eleveId);
 }
 
 // ── Super Admin ──────────────────────────────────────────

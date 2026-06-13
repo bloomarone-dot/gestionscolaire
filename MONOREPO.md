@@ -37,13 +37,12 @@ docker compose up --build      # depuis la racine du dépôt
 
 - Frontend : http://localhost:5173 (nginx proxifie l'API vers la gateway)
 - Gateway : http://localhost:8080 (santé : `/health`)
-- RabbitMQ (console) : http://localhost:15672 (guest/guest)
-- Postgres : `localhost:5433` (gs/gs), bases logiques créées au 1er démarrage
 
-> Ports hôte surchargeables si conflit : `WEB_PORT`, `GATEWAY_PORT`,
-> `POSTGRES_PORT`, `REDIS_PORT`, `RABBITMQ_PORT`, `RABBITMQ_UI_PORT`.
-> Ex. : `WEB_PORT=8088 docker compose up`. Les communications inter-services
-> passent par le réseau Docker interne (indépendantes des ports hôte).
+> Seuls le frontend (`WEB_PORT`, défaut 5173) et la gateway (`GATEWAY_PORT`,
+> défaut 8080) sont exposés sur l'hôte. Postgres, Redis et RabbitMQ restent
+> **internes** au réseau Docker (aucun conflit de port possible). Pour les
+> inspecter : `docker compose exec postgres psql -U gs` (ou décommenter leur
+> bloc `ports` dans docker-compose.yml).
 
 ## Conventions de service
 

@@ -104,15 +104,3 @@ export default function ProfessorNavigation({
     </nav>
   );
 }
-
-export const PROFESSOR_PAGE_TITLES = {
-  accueil: 'Tableau de bord',
-  notes: 'Saisie des notes',
-  bulletins: 'Mes élèves',
-};
-
-export const PROFESSOR_PAGE_SUBTITLES = {
-  accueil: 'Bienvenue dans votre espace enseignant',
-  notes: 'Enregistrez les notes par séquence ou trimestre',
-  bulletins: 'Consultation des effectifs et résultats',
-};

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import '../styles/dashboard-shared.css';
 
 export default function DashboardUserBar({ contextLabel, roleLabel }) {
