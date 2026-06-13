@@ -641,7 +641,24 @@ export async function getProfessorProfile() {
   return normalizeAuthUser(await handleResponse(res));
 }
 
+// Fiche personnel du compte connecté (pour restreindre l'enseignant à ses classes).
+export async function fetchMyPersonnel() {
+  const res = await fetch('/personnel/me', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
 export async function getProfessorClasses() {
+  // L'enseignant ne voit que les classes où il a une matière assignée.
+  try {
+    const me = await fetchMyPersonnel();
+    if (me?.id) {
+      const res = await fetch(`/pedagogie/classes?enseignant=${me.id}`, { headers: getHeaders() });
+      const data = await handleResponse(res);
+      return data.map(normalizeClasse);
+    }
+  } catch {
+    // Pas de fiche personnel (ex. admin) → repli sur toutes les classes.
+  }
   return fetchClasses();
 }
 

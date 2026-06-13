@@ -111,6 +111,15 @@ def list_all_personnel(db: Session = Depends(get_db), ctx: TenantContext = Depen
     return [_row(p) for p in crud.list_personnel(db, ctx.tenant_id)]
 
 
+@app.get("/personnel/me", response_model=PersonnelDetail, tags=["personnel"])
+def my_personnel(db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
+    """Fiche personnel de l'utilisateur connecté (pour filtrer ses classes/matières)."""
+    p = crud.get_by_account(db, ctx.tenant_id, ctx.user_id)
+    if not p:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Aucune fiche personnel pour ce compte")
+    return _detail(p)
+
+
 # ════════════════════════════════ COMMUN ═════════════════════════════════════
 @app.get("/personnel/{personnel_id}", response_model=PersonnelDetail, tags=["personnel"])
 def get_personnel(

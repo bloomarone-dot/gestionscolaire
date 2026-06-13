@@ -1,4 +1,5 @@
 """Logique métier pedagogie-service (pure et testable — sans I/O réseau)."""
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import func
@@ -7,11 +8,12 @@ from sqlalchemy.orm import Session
 from app.models import (
     SOURCE_OFFICIELLE,
     SOURCE_SPECIALE,
+    AnneeScolaire,
     Classe,
     ClasseMatiere,
     SpecialSubject,
 )
-from app.schemas import ClasseCreate, MatiereUpdate, SpecialMatiereCreate
+from app.schemas import AnneeScolaireCreate, ClasseCreate, MatiereUpdate, PassageAnneeIn, SpecialMatiereCreate
 
 
 class ConfirmationRequired(Exception):
@@ -20,6 +22,118 @@ class ConfirmationRequired(Exception):
 
 class NotFound(Exception):
     pass
+
+
+class Conflict(Exception):
+    pass
+
+
+def _next_school_year_label(current: str | None) -> str:
+    try:
+        start = int((current or "").split("-", 1)[0])
+    except ValueError:
+        start = datetime.utcnow().year
+    return f"{start + 1}-{start + 2}"
+
+
+def get_active_year(db: Session, tenant_id: int) -> AnneeScolaire | None:
+    return (
+        db.query(AnneeScolaire)
+        .filter(AnneeScolaire.tenant_id == tenant_id, AnneeScolaire.is_active.is_(True))
+        .first()
+    )
+
+
+def list_annees(db: Session, tenant_id: int) -> list[AnneeScolaire]:
+    return (
+        db.query(AnneeScolaire)
+        .filter(AnneeScolaire.tenant_id == tenant_id)
+        .order_by(AnneeScolaire.annee.desc())
+        .all()
+    )
+
+
+def create_annee(db: Session, tenant_id: int, payload: AnneeScolaireCreate) -> AnneeScolaire:
+    existing = (
+        db.query(AnneeScolaire)
+        .filter(AnneeScolaire.tenant_id == tenant_id, AnneeScolaire.annee == payload.annee)
+        .first()
+    )
+    if existing:
+        raise Conflict("Cette année scolaire existe déjà.")
+    if payload.is_active:
+        _deactivate_active_years(db, tenant_id, archive=True)
+    annee = AnneeScolaire(
+        tenant_id=tenant_id,
+        annee=payload.annee.strip(),
+        date_debut=payload.date_debut,
+        date_fin=payload.date_fin,
+        is_active=payload.is_active,
+        is_archived=False,
+    )
+    db.add(annee)
+    db.commit()
+    db.refresh(annee)
+    return annee
+
+
+def _deactivate_active_years(db: Session, tenant_id: int, archive: bool) -> None:
+    now = datetime.utcnow()
+    for year in db.query(AnneeScolaire).filter(
+        AnneeScolaire.tenant_id == tenant_id,
+        AnneeScolaire.is_active.is_(True),
+    ):
+        year.is_active = False
+        if archive:
+            year.is_archived = True
+            year.archived_at = now
+
+
+def activate_annee(db: Session, tenant_id: int, annee_id: int) -> AnneeScolaire:
+    annee = (
+        db.query(AnneeScolaire)
+        .filter(AnneeScolaire.tenant_id == tenant_id, AnneeScolaire.id == annee_id)
+        .first()
+    )
+    if not annee:
+        raise NotFound("Année scolaire introuvable")
+    _deactivate_active_years(db, tenant_id, archive=True)
+    annee.is_active = True
+    annee.is_archived = False
+    annee.archived_at = None
+    db.commit()
+    db.refresh(annee)
+    return annee
+
+
+def passage_annee(db: Session, tenant_id: int, payload: PassageAnneeIn) -> AnneeScolaire:
+    active = get_active_year(db, tenant_id)
+    next_label = (payload.next_annee or _next_school_year_label(active.annee if active else None)).strip()
+    existing = (
+        db.query(AnneeScolaire)
+        .filter(AnneeScolaire.tenant_id == tenant_id, AnneeScolaire.annee == next_label)
+        .first()
+    )
+    _deactivate_active_years(db, tenant_id, archive=True)
+    if existing:
+        existing.is_active = True
+        existing.is_archived = False
+        existing.archived_at = None
+        db.commit()
+        db.refresh(existing)
+        return existing
+    next_year = AnneeScolaire(
+        tenant_id=tenant_id,
+        annee=next_label,
+        date_debut=payload.date_debut,
+        date_fin=payload.date_fin,
+        is_active=True,
+        is_archived=False,
+    )
+    db.add(next_year)
+    db.commit()
+    db.refresh(next_year)
+    return next_year
 
 
 def create_class(
@@ -33,11 +147,13 @@ def create_class(
     `official_subjects` : liste fournie par le référentiel (code, name,
     default_coefficient, is_obligatoire). Ignorée pour une classe spéciale (§4.3).
     """
+    active_year = get_active_year(db, tenant_id)
     classe = Classe(
         tenant_id=tenant_id,
         nom_personnalise=payload.nom_personnalise.strip(),
         effectif_max=payload.effectif_max,
         prof_principal_id=payload.prof_principal_id,
+        annee_scolaire_id=payload.annee_scolaire_id or (active_year.id if active_year else None),
         is_special=payload.is_special,
     )
     if payload.is_special:
@@ -86,8 +202,9 @@ def list_classes(
     series_code: Optional[str] = None,
     subsystem_code: Optional[str] = None,
     type_code: Optional[str] = None,
+    enseignant_id: Optional[int] = None,
 ) -> list[tuple[Classe, int]]:
-    """Liste les classes du tenant, filtrables par profil (filtre §6 étape 5)."""
+    """Liste les classes du tenant, filtrables par profil (§6 étape 5) ou par enseignant."""
     q = db.query(Classe).filter(Classe.tenant_id == tenant_id)
     if subsystem_code:
         q = q.filter(Classe.subsystem_code == subsystem_code)
@@ -97,6 +214,18 @@ def list_classes(
         q = q.filter(Classe.level_code == level_code)
     if series_code:
         q = q.filter(Classe.series_code == series_code)
+    if enseignant_id is not None:
+        # Uniquement les classes où l'enseignant a une matière activée.
+        assigned = (
+            db.query(ClasseMatiere.classe_id)
+            .filter(
+                ClasseMatiere.tenant_id == tenant_id,
+                ClasseMatiere.enseignant_id == enseignant_id,
+                ClasseMatiere.activated.is_(True),
+            )
+            .distinct()
+        )
+        q = q.filter(Classe.id.in_(assigned))
     classes = q.order_by(Classe.nom_personnalise).all()
     counts = _activated_counts(db, tenant_id)
     return [(c, counts.get(c.id, 0)) for c in classes]
@@ -111,6 +240,23 @@ def get_class(db: Session, tenant_id: int, class_id: int) -> Classe:
     if not classe:
         raise NotFound("Classe introuvable")
     return classe
+
+
+def update_class(db: Session, tenant_id: int, class_id: int, payload) -> Classe:
+    classe = get_class(db, tenant_id, class_id)
+    data = payload.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(classe, field, value)
+    db.commit()
+    db.refresh(classe)
+    return classe
+
+
+def delete_class(db: Session, tenant_id: int, class_id: int) -> None:
+    """Supprime une classe (et ses matières en cascade)."""
+    classe = get_class(db, tenant_id, class_id)
+    db.delete(classe)
+    db.commit()
 
 
 def list_matieres(db: Session, tenant_id: int, class_id: int) -> list[ClasseMatiere]:
@@ -180,6 +326,7 @@ def add_special_matiere(
         tenant_id=tenant_id, classe_id=class_id, source=SOURCE_SPECIALE,
         special_subject_id=special.id, nom=special.nom,
         coefficient=special.coefficient, volume_horaire=special.volume_horaire,
+        enseignant_id=payload.enseignant_id,
         activated=True, is_obligatoire=False,
     )
     db.add(m)

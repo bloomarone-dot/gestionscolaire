@@ -39,6 +39,16 @@ def get_db() -> Session:
         db.close()
 
 
+# Saisie réservée au personnel (enseignant, direction/censeur, admin) — pas les parents.
+STAFF_ROLES = {"admin", "direction", "enseignant"}
+
+
+def require_staff(ctx: TenantContext = Depends(require_tenant)) -> TenantContext:
+    if ctx.role not in STAFF_ROLES:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Saisie des notes réservée au personnel.")
+    return ctx
+
+
 @app.get("/health", tags=["infra"])
 def health() -> dict:
     return {"status": "ok", "service": "evaluations-service"}
@@ -46,7 +56,7 @@ def health() -> dict:
 
 # ════════════════════════════════ NOTES ══════════════════════════════════════
 @app.post("/evaluations/notes", response_model=NoteOut, status_code=status.HTTP_201_CREATED, tags=["notes"])
-def create_note(payload: NoteIn, db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
+def create_note(payload: NoteIn, db: Session = Depends(get_db), ctx: TenantContext = Depends(require_staff)):
     try:
         note = crud.upsert_note(db, ctx.tenant_id, payload)
     except crud.EntryClosed as e:
@@ -59,7 +69,7 @@ def create_note(payload: NoteIn, db: Session = Depends(get_db), ctx: TenantConte
 
 
 @app.post("/evaluations/notes/bulk", response_model=list[NoteOut], tags=["notes"])
-def bulk_notes(payload: NoteBulkIn, db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
+def bulk_notes(payload: NoteBulkIn, db: Session = Depends(get_db), ctx: TenantContext = Depends(require_staff)):
     try:
         notes = crud.bulk_upsert(db, ctx.tenant_id, payload)
     except crud.EntryClosed as e:

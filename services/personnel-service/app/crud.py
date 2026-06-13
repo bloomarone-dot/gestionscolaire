@@ -77,5 +77,20 @@ def update_personnel(
     return p
 
 
+def get_by_account(db: Session, tenant_id: int, account_id: int) -> Optional[Personnel]:
+    """Fiche personnel rattachée au compte de connexion (auth account_id)."""
+    return (
+        db.query(Personnel)
+        .filter(Personnel.tenant_id == tenant_id, Personnel.account_id == account_id)
+        .first()
+    )
+
+
+def delete_personnel(db: Session, tenant_id: int, personnel_id: int) -> None:
+    p = get_personnel(db, tenant_id, personnel_id)
+    db.delete(p)
+    db.commit()
+
+
 def subject_labels(p: Personnel) -> list[str]:
     return [t.label for t in p.teachable_subjects]

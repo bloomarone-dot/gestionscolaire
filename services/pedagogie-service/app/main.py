@@ -11,12 +11,15 @@ from app.config import settings
 from app.models import Classe, ClasseMatiere, SOURCE_OFFICIELLE
 from app.referentiel_client import fetch_official_subjects
 from app.schemas import (
+    AnneeScolaireCreate,
+    AnneeScolaireOut,
     ClasseCreate,
     ClasseDetail,
     ClasseListItem,
     ClasseUpdate,
     MatiereOut,
     MatiereUpdate,
+    PassageAnneeIn,
     SpecialMatiereCreate,
 )
 
@@ -32,6 +35,7 @@ def _startup() -> None:
     init_engine(settings.database_url)
     Base.metadata.create_all(bind=get_engine())  # Alembic en Phase 5
     add_missing_columns("classe_matieres", {"groupe": "INTEGER"})
+    add_missing_columns("classes", {"annee_scolaire_id": "INTEGER"})
     _SessionLocal = sessionmaker(bind=get_engine(), future=True)
     _publisher = EventPublisher(settings.rabbitmq_url, settings.events_exchange)
 
@@ -69,6 +73,8 @@ def _classe_item(c: Classe, nb_matieres: int) -> ClasseListItem:
         type_code=c.type_code, level_code=c.level_code, series_code=c.series_code,
         niveau_libre=c.niveau_libre, specialite_libre=c.specialite_libre,
         effectif_max=c.effectif_max, prof_principal_id=c.prof_principal_id,
+        annee_scolaire_id=c.annee_scolaire_id,
+        annee_scolaire=c.annee_scolaire.annee if c.annee_scolaire else None,
         nb_matieres=nb_matieres, statut="Spéciale" if c.is_special else "Standard",
     )
 
@@ -76,6 +82,51 @@ def _classe_item(c: Classe, nb_matieres: int) -> ClasseListItem:
 @app.get("/health", tags=["infra"])
 def health() -> dict:
     return {"status": "ok", "service": "pedagogie-service"}
+
+
+# ═══════════════════════ ANNÉES SCOLAIRES ════════════════════════════════════
+@app.get("/pedagogie/annees-scolaires", response_model=list[AnneeScolaireOut], tags=["annees-scolaires"])
+def list_annees_scolaires(
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    return crud.list_annees(db, ctx.tenant_id)
+
+
+@app.post("/pedagogie/annees-scolaires", response_model=AnneeScolaireOut,
+          status_code=status.HTTP_201_CREATED, tags=["annees-scolaires"])
+def create_annee_scolaire(
+    payload: AnneeScolaireCreate,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        return crud.create_annee(db, ctx.tenant_id, payload)
+    except crud.Conflict as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(e))
+
+
+@app.put("/pedagogie/annees-scolaires/{annee_id}/activer",
+         response_model=AnneeScolaireOut, tags=["annees-scolaires"])
+def activate_annee_scolaire(
+    annee_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        return crud.activate_annee(db, ctx.tenant_id, annee_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+
+@app.post("/pedagogie/annees-scolaires/passage",
+          response_model=AnneeScolaireOut, tags=["annees-scolaires"])
+def passage_annee_scolaire(
+    payload: PassageAnneeIn,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    return crud.passage_annee(db, ctx.tenant_id, payload)
 
 
 # ════════════════════════════════ CLASSES ════════════════════════════════════
@@ -102,13 +153,14 @@ def list_classes(
     series: str | None = None,
     subsystem: str | None = None,
     type: str | None = None,
+    enseignant: int | None = None,
     db: Session = Depends(get_db),
     ctx: TenantContext = Depends(require_tenant),
 ):
-    """Liste/filtre les classes — le filtre par profil sert l'inscription élève (§6)."""
+    """Liste/filtre les classes — par profil (§6) ou par enseignant (ses classes)."""
     rows = crud.list_classes(
         db, ctx.tenant_id, level_code=level, series_code=series,
-        subsystem_code=subsystem, type_code=type,
+        subsystem_code=subsystem, type_code=type, enseignant_id=enseignant,
     )
     return [_classe_item(c, n) for c, n in rows]
 

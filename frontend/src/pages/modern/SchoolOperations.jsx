@@ -441,6 +441,7 @@ function GradesWorkspace({ professor = false }) {
   const [values, setValues] = useState({});
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
+  const [entryOpen, setEntryOpen] = useState(null);
 
   const seqOptions = sequencesForTrimestre(trimestre);
 
@@ -464,6 +465,16 @@ function GradesWorkspace({ professor = false }) {
       setSelectedSubject(nextSubjects[0]?.id ? String(nextSubjects[0].id) : '');
     });
   }, [selectedClass, classRows]);
+
+  // Statut de la fenêtre de saisie (délais) pour la classe/matière sélectionnée.
+  useEffect(() => {
+    if (!selectedClass || !selectedSubject) { setEntryOpen(null); return; }
+    let active = true;
+    api.verifierPeriodeSaisie(selectedClass, selectedSubject)
+      .then((r) => { if (active) setEntryOpen(r?.open !== false); })
+      .catch(() => { if (active) setEntryOpen(true); });
+    return () => { active = false; };
+  }, [selectedClass, selectedSubject]);
 
   // Préremplit avec les notes déjà saisies pour (classe, matière, trimestre, séquence).
   useEffect(() => {
@@ -531,6 +542,14 @@ function GradesWorkspace({ professor = false }) {
             </label>
           </div>
 
+          {selectedSubject && entryOpen !== null && (
+            <div className="mt-4">
+              {entryOpen
+                ? <Badge tone="emerald">Saisie ouverte</Badge>
+                : <Badge tone="rose">Saisie fermee (delai depasse pour cette classe/matiere)</Badge>}
+            </div>
+          )}
+
           {!selectedClass ? (
             <p className="mt-6 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">Selectionnez une classe pour afficher les eleves.</p>
           ) : students.length === 0 ? (
@@ -540,7 +559,7 @@ function GradesWorkspace({ professor = false }) {
               <p className="mt-5 text-sm text-slate-500">{students.length} eleve(s){subjectName ? ` - ${subjectName}` : ''}</p>
               <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50"><tr><th className="px-4 py-3 text-left">Matricule</th><th className="px-4 py-3 text-left">Eleve</th><th className="px-4 py-3 text-left">Note / 20</th></tr></thead>
+                  <thead className="bg-slate-50"><tr><th className="px-4 py-3 text-left">Matricule</th><th className="px-4 py-3 text-left">Eleve</th><th className="px-4 py-3 text-left">Note / 20</th><th className="px-4 py-3 text-right">Bulletin</th></tr></thead>
                   <tbody className="divide-y divide-slate-100">
                     {students.map((student) => (
                       <tr key={student.id}>
@@ -551,13 +570,20 @@ function GradesWorkspace({ professor = false }) {
                             value={values[student.id] ?? ''}
                             onChange={(e) => setValues((v) => ({ ...v, [student.id]: e.target.value }))} />
                         </td>
+                        <td className="px-4 py-2 text-right">
+                          <Button type="button" variant="secondary" className="px-2" title="Apercu / PDF du bulletin"
+                            onClick={() => api.exportEleveBulletinPdf(student.id, Number(trimestre)).catch((err) => setNotice(err.message))}>
+                            <Download size={16} />
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="mt-5 flex justify-end">
-                <Button type="submit" disabled={saving}><CheckCircle2 size={16} /> {saving ? 'Enregistrement...' : 'Enregistrer'}</Button>
+              <div className="mt-5 flex items-center justify-end gap-3">
+                {entryOpen === false && <span className="text-sm text-rose-600">Saisie fermee pour cette classe/matiere.</span>}
+                <Button type="submit" disabled={saving || entryOpen === false}><CheckCircle2 size={16} /> {saving ? 'Enregistrement...' : 'Enregistrer'}</Button>
               </div>
             </>
           )}
