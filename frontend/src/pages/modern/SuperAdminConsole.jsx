@@ -3,14 +3,6 @@ import { Building2, CheckCircle2, RefreshCw, School, ShieldCheck, UserPlus } fro
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard } from '../../components/ui';
 
-const fallbackSchools = [
-  { id: 1, name: 'Complexe Scolaire Bloomar', code: 'BLOOMAR', city: 'Douala', is_active: true, created_at: '2026-06-01' },
-];
-
-const fallbackAdmins = [
-  { id: 1, name: 'VOGT VOGT', phone: '699 000 111', school: 'Complexe Scolaire Bloomar', status: 'Actif' },
-];
-
 const emptySchool = {
   name: '',
   code: '',
@@ -59,11 +51,11 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
       ]);
       const normalized = Array.isArray(schoolsData) ? schoolsData.map(normalizeSchool) : [];
       setSchools(normalized);
-      setAdmins(Array.isArray(adminsData) && adminsData.length ? adminsData : fallbackAdmins);
+      setAdmins(Array.isArray(adminsData) ? adminsData : []);
     } catch (err) {
-      setSchools(fallbackSchools.map(normalizeSchool));
-      setAdmins(fallbackAdmins);
-      setError(`Backend indisponible: affichage des donnees demo. ${err.message || ''}`);
+      setSchools([]);
+      setAdmins([]);
+      setError(err.message || 'Erreur de chargement des etablissements.');
     } finally {
       setLoading(false);
     }

@@ -1,104 +1,105 @@
-import { AlertTriangle, CalendarDays, ClipboardCheck, GraduationCap, Receipt, School, Users, WalletCards } from 'lucide-react';
-import { activities, classes, payments, schedule, stats, students } from '../../data/mockSchool';
+import { useEffect, useMemo, useState } from 'react';
+import { GraduationCap, School, Users } from 'lucide-react';
+import * as api from '../../api/api';
 import { Badge, Card, PageHeader, StatCard } from '../../components/ui';
 
-const icons = [Users, GraduationCap, School, WalletCards, ClipboardCheck, AlertTriangle];
-
 export default function Dashboard() {
+  const [eleves, setEleves] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [profs, setProfs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [e, c, p] = await Promise.all([
+          api.fetchEleves_admin().catch(() => []),
+          api.fetchClasses().catch(() => []),
+          api.fetchProfesseurs().catch(() => []),
+        ]);
+        if (!active) return;
+        setEleves(Array.isArray(e) ? e : []);
+        setClasses(Array.isArray(c) ? c : []);
+        setProfs(Array.isArray(p) ? p : []);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const stats = [
+    { label: 'Eleves', value: eleves.length, trend: 'Inscrits', icon: Users, tone: 'blue' },
+    { label: 'Enseignants', value: profs.length, trend: 'Actifs', icon: GraduationCap, tone: 'emerald' },
+    { label: 'Classes', value: classes.length, trend: "De l'etablissement", icon: School, tone: 'slate' },
+  ];
+
+  const effectifs = useMemo(() => {
+    const byClass = new Map();
+    eleves.forEach((e) => byClass.set(e.classe_id ?? null, (byClass.get(e.classe_id ?? null) || 0) + 1));
+    return classes.map((c) => ({
+      id: c.id,
+      name: c.nom_personnalise || c.nom || `Classe ${c.id}`,
+      count: byClass.get(c.id) || 0,
+    }));
+  }, [classes, eleves]);
+
+  const recents = eleves.slice(-5).reverse();
+
   return (
     <>
-      <PageHeader
-        title="Tableau de bord"
-        description="Vue d'ensemble de l'activite scolaire, administrative et financiere de l'etablissement."
-        breadcrumb="Accueil / Dashboard"
-      />
+      <PageHeader title="Tableau de bord" description="Vue d'ensemble de l'etablissement." breadcrumb="Accueil / Dashboard" />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {stats.map((item, index) => <StatCard key={item.label} {...item} icon={icons[index]} />)}
+        {stats.map((item) => <StatCard key={item.label} {...item} />)}
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        <Card className="p-5 xl:col-span-2">
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-bold">Dernieres inscriptions</h2>
-            <Badge tone="blue">{students.length} recents</Badge>
+            <Badge tone="blue">{eleves.length} eleves</Badge>
           </div>
-          <div className="space-y-3">
-            {students.slice(0, 4).map((student) => (
-              <div key={student.id} className="flex items-center justify-between rounded-xl border border-slate-100 p-3">
-                <div>
-                  <p className="font-semibold">{student.name}</p>
-                  <p className="text-sm text-slate-500">{student.matricule} - {student.className}</p>
+          {recents.length === 0 ? (
+            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+              {loading ? 'Chargement...' : 'Aucun eleve inscrit pour le moment.'}
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {recents.map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded-xl border border-slate-100 p-3">
+                  <div>
+                    <p className="font-semibold">{[s.nom, s.prenom].filter(Boolean).join(' ') || 'Eleve'}</p>
+                    <p className="text-sm text-slate-500">{s.matricule || '-'}</p>
+                  </div>
                 </div>
-                <Badge tone={student.payment === 'A jour' ? 'emerald' : student.payment === 'Partiel' ? 'amber' : 'rose'}>{student.payment}</Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
-        <Card className="p-5">
-          <h2 className="mb-4 font-bold">Alertes importantes</h2>
-          <div className="space-y-3">
-            <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">12 paiements en retard cette semaine.</div>
-            <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-700">3 classes sans professeur principal.</div>
-            <div className="rounded-xl bg-blue-50 p-3 text-sm text-blue-700">Conseil de classe prevu vendredi.</div>
-          </div>
-        </Card>
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="p-5">
-          <h2 className="mb-4 flex items-center gap-2 font-bold"><CalendarDays size={18} /> Prochains cours</h2>
-          <div className="space-y-3">
-            {schedule.slice(0, 3).map((item) => (
-              <div key={`${item.day}-${item.time}`} className="rounded-xl border border-slate-100 p-3">
-                <p className="font-semibold">{item.course}</p>
-                <p className="text-sm text-slate-500">{item.day}, {item.time} - {item.className}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card className="p-5">
-          <h2 className="mb-4 flex items-center gap-2 font-bold"><Receipt size={18} /> Paiements recents</h2>
-          <div className="space-y-3">
-            {payments.map((item) => (
-              <div key={item.student} className="flex justify-between rounded-xl border border-slate-100 p-3">
-                <span>
-                  <p className="font-semibold">{item.student}</p>
-                  <p className="text-sm text-slate-500">{item.amount}</p>
-                </span>
-                <Badge tone={item.status === 'Payé' ? 'emerald' : item.status === 'Partiel' ? 'amber' : 'rose'}>{item.status}</Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card className="p-5">
-          <h2 className="mb-4 font-bold">Activite recente</h2>
-          <div className="space-y-3">
-            {activities.map((activity) => <p key={activity} className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{activity}</p>)}
-          </div>
-        </Card>
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card className="p-5">
           <h2 className="mb-4 font-bold">Effectifs par classe</h2>
-          <div className="space-y-4">
-            {classes.map((item) => (
-              <div key={item.id}>
-                <div className="mb-1 flex justify-between text-sm">
-                  <span>{item.name}</span>
-                  <strong>{item.students} eleves</strong>
+          {effectifs.length === 0 ? (
+            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+              {loading ? 'Chargement...' : 'Aucune classe creee pour le moment.'}
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {effectifs.map((item) => (
+                <div key={item.id}>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span>{item.name}</span>
+                    <strong>{item.count} eleves</strong>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100">
+                    <div className="h-2 rounded-full bg-blue-600" style={{ width: `${Math.min(item.count, 60) * 1.5}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-blue-600" style={{ width: `${Math.min(item.students, 60) * 1.5}%` }} /></div>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card className="p-5">
-          <h2 className="mb-4 font-bold">Performance globale</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {['Moyenne: 13.8', 'Reussite: 78%', 'Retards: 21'].map((item) => <div key={item} className="rounded-xl bg-slate-50 p-4 text-center text-sm font-semibold">{item}</div>)}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </>

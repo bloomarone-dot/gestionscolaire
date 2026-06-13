@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
-import { classes as mockClasses, students as mockStudents, teachers as mockTeachers } from '../../data/mockSchool';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard, Textarea } from '../../components/ui';
 
 const levelOptions = [
@@ -111,7 +110,7 @@ function subjectRow(subject, classe = null) {
 
 export function OperationalTeachersPage() {
   const loadTeachers = useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []);
-  const { rows, setRows, loading, error } = useLoad(loadTeachers, mockTeachers);
+  const { rows, setRows, loading, error } = useLoad(loadTeachers, []);
   const [form, setForm] = useState({ nom: '', prenom: '', sexe: 'M', phone: '', email: '', specialite: '', diplome: '', password: '' });
   const [notice, setNotice] = useState('');
 
@@ -157,7 +156,7 @@ export function OperationalTeachersPage() {
 
 export function OperationalClassesPage() {
   const loadClasses = useCallback(async () => (await api.fetchClasses()).map(classRow), []);
-  const { rows, setRows, loading, error } = useLoad(loadClasses, mockClasses);
+  const { rows, setRows, loading, error } = useLoad(loadClasses, []);
   const [form, setForm] = useState({ nom: '', effectif_max: 40, level_code: '', series_code: '', section: 'francophone' });
   const [notice, setNotice] = useState('');
 
@@ -222,8 +221,8 @@ export function OperationalStudentsPage() {
     return eleves.map((eleve) => studentRow(eleve, classLookup));
   }, []);
   const loadClasses = useCallback(async () => (await api.fetchClasses()).map(classRow), []);
-  const { rows, setRows, loading, error } = useLoad(loadStudents, mockStudents);
-  const { rows: classRows } = useLoad(loadClasses, mockClasses);
+  const { rows, setRows, loading, error } = useLoad(loadStudents, []);
+  const { rows: classRows } = useLoad(loadClasses, []);
   const [form, setForm] = useState({ nom: '', prenom: '', matricule: '', sexe: '', classe_id: '', parent_nom: '', parent_phone: '' });
   const [notice, setNotice] = useState('');
 
@@ -282,7 +281,7 @@ export function OperationalSubjectsPage() {
   const loadClasses = useCallback(async () => (await api.fetchClasses()).map(classRow), []);
   const loadSubjects = useCallback(async () => (await api.fetchMatieres()).map(subjectRow), []);
   const { rows, setRows, loading, error } = useLoad(loadSubjects, emptyRows);
-  const { rows: classRows } = useLoad(loadClasses, mockClasses);
+  const { rows: classRows } = useLoad(loadClasses, []);
   const [form, setForm] = useState({ classe_id: '', nom: '', coefficient: 1, volume_horaire: '' });
   const [notice, setNotice] = useState('');
 
@@ -328,7 +327,7 @@ export function OperationalSubjectsPage() {
 }
 
 function GradesWorkspace({ professor = false }) {
-  const { rows: classRows } = useLoad(useCallback(async () => (await api.getProfessorClasses()).map(classRow), []), mockClasses);
+  const { rows: classRows } = useLoad(useCallback(async () => (await api.getProfessorClasses()).map(classRow), []), []);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [trimestre, setTrimestre] = useState(1);
@@ -343,7 +342,7 @@ function GradesWorkspace({ professor = false }) {
     Promise.all([
       api.getClassEleves(selectedClass).then((data) => data.map((eleve) => studentRow(eleve, {
         [String(selectedClass)]: classNameById(classRows, selectedClass),
-      }))).catch(() => mockStudents),
+      }))).catch(() => []),
       api.getClassMatieres(selectedClass).then((data) => data.map(subjectRow)).catch(() => []),
     ]).then(([nextStudents, nextSubjects]) => {
       setStudents(nextStudents);
@@ -412,7 +411,7 @@ export function OperationalGradesPage() {
 }
 
 function BulletinsWorkspace({ professor = false }) {
-  const { rows: classRows } = useLoad(useCallback(async () => (await api.getProfessorClasses()).map(classRow), []), mockClasses);
+  const { rows: classRows } = useLoad(useCallback(async () => (await api.getProfessorClasses()).map(classRow), []), []);
   const [selectedClass, setSelectedClass] = useState('');
   const [trimestre, setTrimestre] = useState(1);
   const [students, setStudents] = useState([]);
@@ -425,7 +424,7 @@ function BulletinsWorkspace({ professor = false }) {
     const [nextStudents, nextBulletins] = await Promise.all([
       api.getClassEleves(classId).then((data) => data.map((eleve) => studentRow(eleve, {
         [String(classId)]: classNameById(classRows, classId),
-      }))).catch(() => mockStudents),
+      }))).catch(() => []),
       api.fetchClasseBulletins(classId, trimestre).then((data) => data.bulletins || data || []).catch(() => []),
     ]);
     setStudents(nextStudents);
@@ -526,7 +525,7 @@ export function ProfessorDashboardPage() {
 
 export function ProfessorClassesPage() {
   const loadClasses = useCallback(async () => (await api.getProfessorClasses()).map(classRow), []);
-  const { rows, loading, error } = useLoad(loadClasses, mockClasses);
+  const { rows, loading, error } = useLoad(loadClasses, []);
   return (
     <>
       <PageHeader title="Mes classes" description="Classes affectees au professeur connecte." />
@@ -543,9 +542,9 @@ export function ProfessorClassesPage() {
 
 export function ProfessorStudentsPage() {
   const loadClasses = useCallback(async () => (await api.getProfessorClasses()).map(classRow), []);
-  const { rows: classRows } = useLoad(loadClasses, mockClasses);
+  const { rows: classRows } = useLoad(loadClasses, []);
   const [selectedClass, setSelectedClass] = useState('');
-  const [rows, setRows] = useState(mockStudents);
+  const [rows, setRows] = useState([]);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -558,7 +557,7 @@ export function ProfessorStudentsPage() {
         setNotice('');
       })
       .catch((err) => {
-        setRows(mockStudents);
+        setRows([]);
         setNotice(err.message || 'Backend indisponible.');
       });
   }, [selectedClass, classRows]);

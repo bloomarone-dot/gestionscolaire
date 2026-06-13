@@ -100,6 +100,21 @@ function clearAuthSession() {
   localStorage.removeItem('selectedSchool');
 }
 
+// Helper DELETE (204 attendu) — gère 401 et remonte l'erreur serveur.
+async function deleteRequest(url) {
+  const res = await fetch(url, { method: 'DELETE', headers: getHeaders() });
+  if (res.status === 401) {
+    clearAuthSession();
+    if (!window.location.pathname.startsWith('/login')) window.location.replace('/login');
+    throw new Error('Session expirée. Reconnectez-vous.');
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Erreur lors de la suppression' }));
+    throw new Error(formatApiError(err.detail));
+  }
+  return { success: true };
+}
+
 async function handleResponse(res) {
   if (res.status === 401) {
     clearAuthSession();
@@ -393,8 +408,7 @@ export async function createSchoolAdmin(schoolId, admin) {
 }
 
 export async function deleteSchool(schoolId) {
-  void schoolId;
-  unsupported("La suppression d'un établissement");
+  return deleteRequest(`/tenants/schools/${schoolId}`);
 }
 
 export async function getSchoolStats(schoolId) {
@@ -448,8 +462,7 @@ export async function updateProfesseur(profId, profData) {
 }
 
 export async function deleteProfesseur(profId) {
-  void profId;
-  unsupported("La suppression d'un professeur");
+  return deleteRequest(`/personnel/${profId}`);
 }
 
 // ── Classes (Admin) ──────────────────────────────────────
@@ -480,8 +493,7 @@ export async function createClasse(classeData) {
 }
 
 export async function deleteClasse(classeId) {
-  void classeId;
-  unsupported("La suppression d'une classe");
+  return deleteRequest(`/pedagogie/classes/${classeId}`);
 }
 
 // ── Matières (Admin) ─────────────────────────────────────
@@ -535,9 +547,16 @@ export async function updateMatiere(matiereId, data) {
 }
 
 export async function updateClasse(classeId, data) {
-  void classeId;
-  void data;
-  unsupported("La modification d'une classe");
+  const res = await fetch(`/pedagogie/classes/${classeId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      nom_personnalise: data.nom_personnalise ?? data.nom,
+      effectif_max: data.effectif_max ?? data.capacite,
+      prof_principal_id: data.prof_principal_id ?? null,
+    }),
+  });
+  return normalizeClasse(await handleResponse(res));
 }
 
 export async function fetchBulletinSettings() {
@@ -706,8 +725,7 @@ export async function updateEleve_admin(eleveId, eleveData) {
 }
 
 export async function deleteEleve_admin(eleveId) {
-  void eleveId;
-  unsupported("La suppression d'un élève");
+  return deleteRequest(`/eleves/${eleveId}`);
 }
 
 export async function downloadElevesImportTemplate() {
