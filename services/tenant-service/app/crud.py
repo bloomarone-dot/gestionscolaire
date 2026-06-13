@@ -66,12 +66,24 @@ def list_schools(db: Session, only_id: Optional[int] = None) -> list[School]:
     return q.order_by(School.name).all()
 
 
+def delete_school(db: Session, school_id: int) -> bool:
+    school = get_school(db, school_id)
+    if not school:
+        return False
+    db.delete(school)
+    db.commit()
+    return True
+
+
 def to_profile(school: School) -> SchoolProfile:
     return SchoolProfile(
         id=school.id, name=school.name, code=school.code, city=school.city,
         address=school.address, phone=school.phone, logo_url=school.logo_url,
         primary_color=school.primary_color, secondary_color=school.secondary_color,
         bulletin_po_box=school.bulletin_po_box, bulletin_motto=school.bulletin_motto,
+        bulletin_delegation_regional=school.bulletin_delegation_regional,
+        bulletin_delegation_departementale=school.bulletin_delegation_departementale,
+        bulletin_next_term_note=school.bulletin_next_term_note,
         subscription_plan=school.subscription_plan, is_active=school.is_active,
         created_at=school.created_at,
         subsystems=[s.subsystem_code for s in school.subsystems],

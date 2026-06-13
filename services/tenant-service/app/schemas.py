@@ -28,6 +28,9 @@ class SchoolUpdate(BaseModel):
     secondary_color: Optional[str] = None
     bulletin_po_box: Optional[str] = None
     bulletin_motto: Optional[str] = None
+    bulletin_delegation_regional: Optional[str] = None
+    bulletin_delegation_departementale: Optional[str] = None
+    bulletin_next_term_note: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -59,6 +62,9 @@ class SchoolProfile(BaseModel):
     secondary_color: Optional[str] = None
     bulletin_po_box: Optional[str] = None
     bulletin_motto: Optional[str] = None
+    bulletin_delegation_regional: Optional[str] = None
+    bulletin_delegation_departementale: Optional[str] = None
+    bulletin_next_term_note: Optional[str] = None
     subscription_plan: Optional[str] = None
     is_active: bool
     created_at: datetime

@@ -26,9 +26,6 @@ BLACK = colors.black
 EN_HEAD = ["REPUBLIC OF CAMEROON", "Peace-Work-Fatherland", "MINISTRY OF SECONDARY EDUCATION"]
 FR_HEAD = ["REPUBLIQUE DU CAMEROUN", "Paix-Travail-Patrie", "MINISTERE DE L'ENSEIGNEMENT SECONDAIRE"]
 
-# 9 colonnes (largeurs en cm) sur ~19 cm utiles (A4 portrait).
-COLS = [4.4, 1.35, 1.35, 1.6, 1.0, 1.6, 1.2, 1.9, 4.6]
-
 
 def _fmt(v) -> str:
     if v is None or v == "":
@@ -44,7 +41,7 @@ def render_bulletin_pdf(data: dict) -> bytes:
     b = data.get("bulletin") or {}
     lang = data.get("lang", "fr")
     trimestre = header.get("trimestre", 1)
-    sa, sb = seq_labels(trimestre, lang)
+    seq_lbls = header.get("seq_labels") or list(seq_labels(trimestre, lang))
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -53,9 +50,9 @@ def render_bulletin_pdf(data: dict) -> bytes:
     )
     story = [
         _national_header(header),
-        _title_bar(L),
+        _title_bar(header.get("report_title") or L["report_title"]),
         _identity(header, b, L),
-        _subjects(b, L, sa, sb),
+        _subjects(b, L, seq_lbls),
         _footer(b, data, header, L),
         _signatures(L),
         _next_term(header, L),
@@ -96,8 +93,8 @@ def _national_header(header) -> Table:
     return t
 
 
-def _title_bar(L) -> Table:
-    t = Table([[_p(L["report_title"], size=9, bold=True, align=TA_CENTER, color=colors.white)]],
+def _title_bar(title: str) -> Table:
+    t = Table([[_p(title, size=9, bold=True, align=TA_CENTER, color=colors.white)]],
               colWidths=[19 * cm])
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), BLUE_DK),
@@ -131,15 +128,16 @@ def _identity(header, b, L) -> Table:
     return t
 
 
-def _subjects(b, L, sa, sb) -> Table:
-    head = [L["subjects"], sa, sb, L["average"], L["coefficient"], L["total_marks"],
+def _subjects(b, L, seq_lbls) -> Table:
+    n = len(seq_lbls)
+    head = [L["subjects"], *seq_lbls, L["average"], L["coefficient"], L["total_marks"],
             L["rank"], L["appreciation"], L["teacher_sign"]]
     rows = [[_p(h, bold=True, align=TA_CENTER, color=colors.white) for h in head]]
     style = [
         ("GRID", (0, 0), (-1, -1), 0.5, BLACK),
         ("BACKGROUND", (0, 0), (-1, 0), BLUE_DK),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (1, 0), (7, -1), "CENTER"),
+        ("ALIGN", (1, 0), (-2, -1), "CENTER"),
         ("TOPPADDING", (0, 0), (-1, -1), 1.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5),
     ]
 
@@ -148,19 +146,27 @@ def _subjects(b, L, sa, sb) -> Table:
         groups.setdefault(s.get("groupe") or 1, []).append(s)
 
     for g in sorted(groups):
-        rows.append([_p(L.get(f"group_{g}", f"GROUP {g}"), bold=True, align=TA_CENTER)] + [""] * 8)
+        rows.append([_p(L.get(f"group_{g}", f"GROUP {g}"), bold=True, align=TA_CENTER)] + [""] * (n + 5))
         gi = len(rows) - 1
         style += [("SPAN", (0, gi), (-1, gi)), ("BACKGROUND", (0, gi), (-1, gi), BLUE)]
         for s in groups[g]:
+            seqs = s.get("seqs") or []
+            seq_cells = [_p(_fmt(seqs[i] if i < len(seqs) else None), align=TA_CENTER) for i in range(n)]
             rows.append([
-                _p(s["nom"], bold=True),
-                _p(_fmt(s.get("seq1")), align=TA_CENTER), _p(_fmt(s.get("seq2")), align=TA_CENTER),
+                _p(s["nom"], bold=True), *seq_cells,
                 _p(_fmt(s.get("moyenne")), align=TA_CENTER), _p(_fmt(s.get("coefficient")), align=TA_CENTER),
                 _p(_fmt(s.get("points")), align=TA_CENTER), _p(ordinal(s.get("rang_matiere"), "en"), align=TA_CENTER),
                 _p(s.get("appreciation", ""), align=TA_CENTER), _p((s.get("enseignant_nom") or "").upper(), align=TA_CENTER),
             ])
 
-    t = Table(rows, colWidths=[c * cm for c in COLS], repeatRows=1)
+    # Largeurs de colonnes adaptées au nombre de séquences (~19 cm utiles).
+    subj_w = 4.0 if n <= 2 else 3.3
+    teach_w = 4.2 if n <= 2 else 2.6
+    fixed = subj_w + teach_w + 1.5 + 0.9 + 1.4 + 1.0 + 1.6
+    seq_w = max((19 - fixed) / n, 0.8)
+    col_widths = [subj_w] + [seq_w] * n + [1.5, 0.9, 1.4, 1.0, 1.6, teach_w]
+
+    t = Table(rows, colWidths=[c * cm for c in col_widths], repeatRows=1)
     t.setStyle(TableStyle(style))
     return t
 

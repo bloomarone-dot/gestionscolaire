@@ -35,9 +35,10 @@ def class_bulletins(
     classe_id: int,
     trimestre: int = 1,
     type_evaluation: str | None = None,
+    scope: str = "trimestre",
     ctx: TenantContext = Depends(require_tenant),
 ):
-    return service.build_class_bulletins(ctx, classe_id, trimestre, type_evaluation)
+    return service.build_class_bulletins(ctx, classe_id, trimestre, type_evaluation, scope)
 
 
 @app.get("/bulletins/eleve/{eleve_id}", tags=["bulletins"])
@@ -45,9 +46,10 @@ def eleve_bulletin(
     eleve_id: int,
     trimestre: int = 1,
     type_evaluation: str | None = None,
+    scope: str = "trimestre",
     ctx: TenantContext = Depends(require_tenant),
 ):
-    return service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation)
+    return service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation, scope)
 
 
 @app.get("/bulletins/eleve/{eleve_id}/pdf", tags=["bulletins"])
@@ -55,9 +57,10 @@ def eleve_bulletin_pdf(
     eleve_id: int,
     trimestre: int = 1,
     type_evaluation: str | None = None,
+    scope: str = "trimestre",
     ctx: TenantContext = Depends(require_tenant),
 ):
-    data = service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation)
+    data = service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation, scope)
     pdf = render_bulletin_pdf(data)
     return Response(
         content=pdf, media_type="application/pdf",
@@ -70,13 +73,14 @@ def publish_bulletin(
     eleve_id: int,
     trimestre: int = 1,
     type_evaluation: str | None = None,
+    scope: str = "trimestre",
     ctx: TenantContext = Depends(require_tenant),
 ):
     """Publie le bulletin → événement BulletinPublished (notification parent §12).
 
     Best-effort : ne bloque jamais le parcours, même sans email parent.
     """
-    data = service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation)
+    data = service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation, scope)
     bulletin = data.get("bulletin") or {}
     if _publisher:
         _publisher.publish(EventNames.BULLETIN_PUBLISHED, {

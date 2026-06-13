@@ -7,7 +7,14 @@ from datetime import date
 
 from app import clients
 from app.compute import compute_class_bulletins
-from app.labels import LABELS, decision, lang_for_subsystem, term_label
+from app.labels import (
+    LABELS,
+    decision,
+    lang_for_subsystem,
+    period_label,
+    report_title,
+    seq_columns,
+)
 
 
 def _default_school_year() -> str:
@@ -16,7 +23,7 @@ def _default_school_year() -> str:
     return f"{start}/{start + 1}"
 
 
-def _header(classe: dict, school: dict, lang: str, trimestre: int) -> dict:
+def _header(classe: dict, school: dict, lang: str, trimestre: int, scope: str) -> dict:
     return {
         "school_name": school.get("name"),
         "logo_url": school.get("logo_url"),
@@ -32,13 +39,17 @@ def _header(classe: dict, school: dict, lang: str, trimestre: int) -> dict:
         "level_code": classe.get("level_code"),
         "series_code": classe.get("series_code"),
         "trimestre": trimestre,
-        "term": term_label(trimestre, lang),
+        "scope": scope,
+        "term": period_label(scope, trimestre, lang),
+        "report_title": report_title(scope, lang),
+        "seq_labels": seq_columns(scope, trimestre, lang),
         "labels": LABELS[lang],
     }
 
 
 def build_class_bulletins(
-    ctx: TenantContext, classe_id: int, trimestre: int, type_evaluation: Optional[str]
+    ctx: TenantContext, classe_id: int, trimestre: int,
+    type_evaluation: Optional[str], scope: str = "trimestre",
 ) -> dict:
     classe = clients.get_classe(ctx, classe_id)
     school = clients.get_school(ctx)
@@ -60,15 +71,16 @@ def build_class_bulletins(
          "sexe": s.get("sexe"), "redoublant": s.get("redoublant")}
         for s in clients.get_students(ctx, classe_id)
     ]
-    # type_evaluation=None → on récupère 1e ET 2e séquence pour le trimestre.
+    # En annuel : toutes les séquences (toutes périodes) ; sinon les notes du trimestre.
+    notes_trimestre = None if scope == "annual" else trimestre
     notes = [
         {"eleve_id": n["eleve_id"], "matiere_id": n["matiere_id"],
          "valeur": n["valeur"], "type_evaluation": n.get("type_evaluation")}
-        for n in clients.get_notes(ctx, classe_id, trimestre, type_evaluation)
+        for n in clients.get_notes(ctx, classe_id, notes_trimestre, type_evaluation)
     ]
 
-    result = compute_class_bulletins(students, subjects, notes, lang, trimestre)
-    result["header"] = _header(classe, school, lang, trimestre)
+    result = compute_class_bulletins(students, subjects, notes, lang, trimestre, scope)
+    result["header"] = _header(classe, school, lang, trimestre, scope)
     result["header"]["effectif"] = result["effectif"]
     for b in result["bulletins"]:
         b["decision"] = decision(b["moyenne_generale"], lang)
@@ -76,13 +88,14 @@ def build_class_bulletins(
 
 
 def build_eleve_bulletin(
-    ctx: TenantContext, eleve_id: int, trimestre: int, type_evaluation: Optional[str]
+    ctx: TenantContext, eleve_id: int, trimestre: int,
+    type_evaluation: Optional[str], scope: str = "trimestre",
 ) -> dict:
     eleve = clients.get_eleve(ctx, eleve_id)
     classe_id = eleve.get("classe_id")
     if not classe_id:
         return {"error": "Élève non rattaché à une classe"}
-    cls = build_class_bulletins(ctx, classe_id, trimestre, type_evaluation)
+    cls = build_class_bulletins(ctx, classe_id, trimestre, type_evaluation, scope)
     bulletin = next((b for b in cls["bulletins"] if b["eleve_id"] == eleve_id), None)
     return {
         "header": cls["header"], "moyenne_classe": cls["moyenne_classe"],

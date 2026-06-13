@@ -80,9 +80,22 @@ def test_two_sequences_average():
     ]
     b = _by_id(compute_class_bulletins([STUDENTS[0]], subjects, notes, "fr"))
     s = b[1]["subjects"][0]
-    assert s["seq1"] == 16 and s["seq2"] == 12
+    assert s["seqs"] == [16, 12]          # T1 → séquences 1 & 2
     assert s["moyenne"] == 14            # (16 + 12) / 2
     assert b[1]["moyenne_generale"] == 14
+
+
+def test_annual_six_sequences():
+    """Bulletin annuel : 6 colonnes de séquences, moyenne sur l'année."""
+    subjects = [{"matiere_id": 100, "nom": "Maths", "coefficient": 5, "source": "OFFICIELLE"}]
+    notes = [
+        {"eleve_id": 1, "matiere_id": 100, "valeur": v, "type_evaluation": f"sequence_{i}"}
+        for i, v in enumerate([10, 12, 14, 16, 12, 8], start=1)
+    ]
+    b = _by_id(compute_class_bulletins([STUDENTS[0]], subjects, notes, "en", scope="annual"))
+    s = b[1]["subjects"][0]
+    assert s["seqs"] == [10, 12, 14, 16, 12, 8]
+    assert s["moyenne"] == 12             # moyenne des 6 séquences
 
 
 def test_groupe_passthrough():

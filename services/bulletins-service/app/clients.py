@@ -23,8 +23,10 @@ def get_eleve(ctx: TenantContext, eleve_id: int) -> dict:
     return _eleves.get(f"/eleves/{eleve_id}", ctx=ctx)
 
 
-def get_notes(ctx: TenantContext, classe_id: int, trimestre: int, type_evaluation: str | None) -> list[dict]:
-    params = {"classe_id": classe_id, "trimestre": trimestre}
+def get_notes(ctx: TenantContext, classe_id: int, trimestre: int | None, type_evaluation: str | None) -> list[dict]:
+    params = {"classe_id": classe_id}
+    if trimestre is not None:        # None = toutes les périodes (bulletin annuel)
+        params["trimestre"] = trimestre
     if type_evaluation:
         params["type_evaluation"] = type_evaluation
     return _evaluations.get("/evaluations/notes", ctx=ctx, params=params)

@@ -107,6 +107,16 @@ def update_school(
     return crud.to_profile(school)
 
 
+@app.delete("/tenants/schools/{school_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["tenant"])
+def delete_school(
+    school_id: int,
+    db: Session = Depends(get_db),
+    _: TenantContext = Depends(require_roles("superadmin")),
+):
+    if not crud.delete_school(db, school_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "École introuvable")
+
+
 @app.put("/tenants/schools/{school_id}/profile", response_model=SchoolProfile, tags=["tenant"])
 def update_profile(
     school_id: int,

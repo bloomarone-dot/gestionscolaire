@@ -42,6 +42,9 @@ class School(Base):
     secondary_color = Column(String(7), default="#f59e0b")
     bulletin_po_box = Column(String(100), nullable=True)
     bulletin_motto = Column(String(255), nullable=True)
+    bulletin_delegation_regional = Column(String(255), nullable=True)
+    bulletin_delegation_departementale = Column(String(255), nullable=True)
+    bulletin_next_term_note = Column(String(255), nullable=True)
 
     subscription_plan = Column(String(40), default="standard")
     is_active = Column(Boolean, default=True, nullable=False)

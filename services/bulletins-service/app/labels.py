@@ -102,6 +102,36 @@ def seq_labels(trimestre: int, lang: str) -> tuple[str, str]:
     return LABELS[lang]["seqs"].get(trimestre, LABELS[lang]["seqs"][1])
 
 
+def seq_types_for(scope: str, trimestre: int) -> list[str]:
+    """Types de notes (séquences) à agréger selon la portée.
+
+    T1 → séq 1-2, T2 → 3-4, T3 → 5-6 ; annuel → séquences 1 à 6.
+    """
+    if scope == "annual":
+        return [f"sequence_{i}" for i in range(1, 7)]
+    return [f"sequence_{2 * trimestre - 1}", f"sequence_{2 * trimestre}"]
+
+
+def seq_columns(scope: str, trimestre: int, lang: str) -> list[str]:
+    """Libellés des colonnes de séquences (2 en trimestre, 6 en annuel)."""
+    prefix = "Seq" if lang == "en" else "Séq"
+    if scope == "annual":
+        return [f"{prefix} {i}" for i in range(1, 7)]
+    return list(seq_labels(trimestre, lang))
+
+
+def period_label(scope: str, trimestre: int, lang: str) -> str:
+    if scope == "annual":
+        return "ANNUAL" if lang == "en" else "ANNUEL"
+    return term_label(trimestre, lang)
+
+
+def report_title(scope: str, lang: str) -> str:
+    if scope == "annual":
+        return "ANNUAL REPORT CARD" if lang == "en" else "BULLETIN ANNUEL"
+    return LABELS[lang]["report_title"]
+
+
 def appreciation(moyenne: Optional[float], lang: str) -> str:
     """Codes officiels : EN → EXCELLENT/A/IPA/CNA ; FR → équivalents."""
     if moyenne is None:
