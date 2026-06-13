@@ -603,6 +603,16 @@ export async function updateClasse(classeId, data) {
   return normalizeClasse(await handleResponse(res));
 }
 
+// Affecte (ou retire) uniquement le professeur principal d'une classe.
+export async function setClasseProfPrincipal(classeId, profPrincipalId) {
+  const res = await fetch(`/pedagogie/classes/${classeId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ prof_principal_id: profPrincipalId ? Number(profPrincipalId) : null }),
+  });
+  return normalizeClasse(await handleResponse(res));
+}
+
 export async function fetchBulletinSettings() {
   return {};
 }

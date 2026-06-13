@@ -101,7 +101,7 @@ function classRow(classe) {
     level: classe.niveau || classe.level_code || classe.niveau_libre || classe.level || '-',
     students: classe.effectif || classe.students || 0,
     capacity: classe.capacite || classe.effectif_max || '-',
-    mainTeacher: classe.prof_principal_id || classe.mainTeacher || '-',
+    prof_principal_id: classe.prof_principal_id ?? null,
   };
 }
 
@@ -219,8 +219,17 @@ export function OperationalTeachersPage() {
 export function OperationalClassesPage() {
   const loadClasses = useCallback(async () => (await api.fetchClasses()).map(classRow), []);
   const { rows, setRows, loading, error } = useLoad(loadClasses, []);
+  const { rows: teacherRows } = useLoad(useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []), []);
   const [form, setForm] = useState({ nom: '', effectif_max: 40, level_code: '', series_code: '', section: 'francophone' });
   const [notice, setNotice] = useState('');
+
+  async function assignProfPrincipal(row, profId) {
+    try {
+      await api.setClasseProfPrincipal(row.id, profId);
+      setRows((current) => current.map((r) => (r.id === row.id ? { ...r, prof_principal_id: profId ? Number(profId) : null } : r)));
+      setNotice('Professeur principal mis a jour.');
+    } catch (err) { setNotice(err.message); }
+  }
 
   async function submit(event) {
     event.preventDefault();
@@ -260,6 +269,12 @@ export function OperationalClassesPage() {
         { key: 'level', label: 'Niveau' },
         { key: 'capacity', label: 'Capacite' },
         { key: 'students', label: 'Effectif' },
+        { key: 'prof_principal_id', label: 'Prof. principal', render: (row) => (
+          <Select value={String(row.prof_principal_id ?? '')} onChange={(e) => assignProfPrincipal(row, e.target.value)}>
+            <option value="">Aucun</option>
+            {teacherRows.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </Select>
+        ) },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
         <h2 className="mb-4 font-bold">Creer une classe</h2>
