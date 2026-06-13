@@ -108,35 +108,63 @@ function classRow(classe) {
 function subjectRow(subject, classe = null) {
   return {
     id: subject.id,
+    classe_id: subject.classe_id || classe?.id,
     name: subject.nom || subject.name,
     code: subject.code || subject.subject_code || String(subject.id),
     coefficient: subject.coefficient || subject.coefficient_defaut || 1,
     teacher: subject.enseignant_id || subject.teacher || '-',
-    className: classe?.nom || classe?.nom_personnalise || classe?.name || subject.className || '-',
+    className: classe?.nom || classe?.nom_personnalise || classe?.name || subject.classe_nom || subject.className || '-',
     status: subject.activated === false ? 'Inactive' : 'Active',
   };
 }
 
+const STAFF_FUNCTIONS = ['Censeur', "Directeur d'etudes", 'Surveillant General', 'Surveillant de discipline', 'Principal'];
+
+function personnelRow(p) {
+  return {
+    id: p.id,
+    name: [p.nom, p.prenom].filter(Boolean).join(' ') || 'Personnel',
+    fonction: p.fonction || (p.role_type === 'ENSEIGNANT' ? 'Enseignant' : 'Administration'),
+    phone: p.phone || '-',
+    status: p.is_active === false ? 'Inactif' : 'Actif',
+  };
+}
+
+const EMPTY_PERSONNEL = { fonction: 'Enseignant', nom: '', prenom: '', sexe: 'M', phone: '', phone2: '', email: '', specialite: '', password: '' };
+
 export function OperationalTeachersPage() {
-  const loadTeachers = useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []);
-  const { rows, setRows, loading, error } = useLoad(loadTeachers, []);
-  const [form, setForm] = useState({ nom: '', prenom: '', sexe: 'M', phone: '', email: '', specialite: '', diplome: '', password: '' });
+  const loadPersonnel = useCallback(async () => (await api.fetchPersonnel()).map(personnelRow), []);
+  const { rows, setRows, loading, error } = useLoad(loadPersonnel, []);
+  const [form, setForm] = useState(EMPTY_PERSONNEL);
   const [notice, setNotice] = useState('');
+  const isTeacher = form.fonction === 'Enseignant';
 
   async function submit(event) {
     event.preventDefault();
     try {
-      const created = await api.createProfesseur(form);
-      setRows((current) => [teacherRow(created), ...current]);
-      setForm({ nom: '', prenom: '', sexe: 'M', phone: '', email: '', specialite: '', diplome: '', password: '' });
-      setNotice('Enseignant cree avec succes.');
+      let created;
+      if (isTeacher) {
+        created = await api.createProfesseur({
+          nom: form.nom, prenom: form.prenom, sexe: form.sexe, phone: form.phone,
+          email: form.email, specialite: form.specialite, password: form.password,
+        });
+      } else {
+        if (!form.phone2) { setNotice('Un deuxieme telephone est obligatoire pour ce poste (Direction).'); return; }
+        created = await api.createDirection({
+          nom: form.nom, prenom: form.prenom, phone: form.phone, phone2: form.phone2,
+          fonction: form.fonction, email: form.email, password: form.password,
+        });
+      }
+      setRows((current) => [personnelRow(created), ...current]);
+      setForm(EMPTY_PERSONNEL);
+      setNotice(`${form.fonction} cree avec succes.`);
     } catch (err) {
-      setNotice(err.message || "Creation de l'enseignant impossible.");
+      setNotice(err.message || 'Creation impossible.');
     }
   }
 
   async function handleDelete(row) {
-    if (!window.confirm(`Supprimer l'enseignant "${row.name}" ?`)) return;
+    if (!window.confirm(`Supprimer "${row.name}" (${row.fonction}) ?`)) return;
     try {
       await api.deleteProfesseur(row.id);
       setRows((current) => current.filter((r) => r.id !== row.id));
@@ -145,27 +173,44 @@ export function OperationalTeachersPage() {
 
   return (
     <>
-      <PageHeader title="Enseignants" description="Creation et suivi des enseignants de l'etablissement." actions={<Button form="teacher-form"><UserPlus size={16} /> Creer</Button>} />
-      <Notice message={loading ? 'Chargement des enseignants...' : error} tone={error ? 'amber' : 'blue'} />
+      <PageHeader title="Personnel" description="Enseignants, censeurs, directeurs d'etudes et surveillants de l'etablissement." />
+      <Notice message={loading ? 'Chargement du personnel...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
-      <DataTable title="Liste des enseignants" columns={[
+      <DataTable title="Liste du personnel" columns={[
         { key: 'name', label: 'Nom' },
-        { key: 'subjects', label: 'Specialite' },
+        { key: 'fonction', label: 'Fonction', render: (row) => <Badge tone={row.fonction === 'Enseignant' ? 'blue' : 'amber'}>{row.fonction}</Badge> },
         { key: 'phone', label: 'Telephone' },
         { key: 'status', label: 'Statut', render: (row) => <Badge tone={row.status === 'Actif' ? 'emerald' : 'rose'}>{row.status}</Badge> },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
-        <h2 className="mb-4 font-bold">Creer un professeur</h2>
-        <form id="teacher-form" className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
+        <h2 className="mb-4 font-bold">Ajouter un membre du personnel</h2>
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Fonction</span>
+            <Select value={form.fonction} onChange={(e) => setForm({ ...form, fonction: e.target.value })}>
+              <option value="Enseignant">Enseignant</option>
+              {STAFF_FUNCTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+            </Select>
+          </label>
+          {isTeacher && (
+            <Select value={form.sexe} onChange={(e) => setForm({ ...form, sexe: e.target.value })}><option value="M">Masculin</option><option value="F">Feminin</option></Select>
+          )}
           <Input required placeholder="Nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} />
           <Input placeholder="Prenom" value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} />
-          <Select value={form.sexe} onChange={(e) => setForm({ ...form, sexe: e.target.value })}><option value="M">Masculin</option><option value="F">Feminin</option></Select>
           <Input required placeholder="Telephone principal" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          {!isTeacher && (
+            <Input required placeholder="Telephone secondaire (obligatoire)" value={form.phone2} onChange={(e) => setForm({ ...form, phone2: e.target.value })} />
+          )}
           <Input type="email" placeholder="Email facultatif" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <Input placeholder="Specialite" value={form.specialite} onChange={(e) => setForm({ ...form, specialite: e.target.value })} />
-          <Input placeholder="Diplome" value={form.diplome} onChange={(e) => setForm({ ...form, diplome: e.target.value })} />
-          <Input type="password" placeholder="Mot de passe initial" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          {isTeacher && (
+            <Input placeholder="Specialite" value={form.specialite} onChange={(e) => setForm({ ...form, specialite: e.target.value })} />
+          )}
+          <Input required type="password" placeholder="Mot de passe initial" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          <div className="md:col-span-2 flex justify-end">
+            <Button type="submit"><UserPlus size={16} /> Creer</Button>
+          </div>
         </form>
+        <p className="mt-3 text-xs text-slate-400">Les censeurs et directeurs d'etudes peuvent saisir les notes depuis le menu Notes.</p>
       </Card>
     </>
   );
@@ -207,7 +252,7 @@ export function OperationalClassesPage() {
 
   return (
     <>
-      <PageHeader title="Classes" description="Creation de classes standard ou speciales." actions={<Button form="class-form"><Plus size={16} /> Creer</Button>} />
+      <PageHeader title="Classes" description="Creation de classes standard ou speciales." />
       <Notice message={loading ? 'Chargement des classes...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
       <DataTable title="Classes" columns={[
@@ -227,6 +272,9 @@ export function OperationalClassesPage() {
             {levelOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </Select>
           <Input placeholder="Serie ou specialite" value={form.series_code} onChange={(e) => setForm({ ...form, series_code: e.target.value })} />
+          <div className="md:col-span-2 flex justify-end">
+            <Button type="submit"><Plus size={16} /> Creer la classe</Button>
+          </div>
         </form>
       </Card>
     </>
@@ -281,7 +329,7 @@ export function OperationalStudentsPage() {
 
   return (
     <>
-      <PageHeader title="Eleves" description="Inscription operationnelle avec parent et classe." actions={<Button form="student-form"><UserPlus size={16} /> Inscrire</Button>} />
+      <PageHeader title="Eleves" description="Inscription operationnelle avec parent et classe." />
       <Notice message={loading ? 'Chargement des eleves...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
       <DataTable title="Registre des eleves" columns={[
@@ -304,6 +352,9 @@ export function OperationalStudentsPage() {
           </Select>
           <Input placeholder="Nom parent/tuteur" value={form.parent_nom} onChange={(e) => setForm({ ...form, parent_nom: e.target.value })} />
           <Input placeholder="Telephone parent" value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} />
+          <div className="md:col-span-2 flex justify-end">
+            <Button type="submit"><UserPlus size={16} /> Inscrire l'eleve</Button>
+          </div>
         </form>
       </Card>
     </>
@@ -313,9 +364,11 @@ export function OperationalStudentsPage() {
 export function OperationalSubjectsPage() {
   const loadClasses = useCallback(async () => (await api.fetchClasses()).map(classRow), []);
   const loadSubjects = useCallback(async () => (await api.fetchMatieres()).map(subjectRow), []);
+  const loadTeachers = useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []);
   const { rows, setRows, loading, error } = useLoad(loadSubjects, emptyRows);
   const { rows: classRows } = useLoad(loadClasses, []);
-  const [form, setForm] = useState({ classe_id: '', nom: '', coefficient: 1, volume_horaire: '' });
+  const { rows: teacherRows } = useLoad(loadTeachers, emptyRows);
+  const [form, setForm] = useState({ classe_id: '', nom: '', coefficient: 1, volume_horaire: '', enseignant_id: '' });
   const [notice, setNotice] = useState('');
 
   async function submit(event) {
@@ -324,8 +377,8 @@ export function OperationalSubjectsPage() {
       const created = await api.createMatiere(form);
       const classe = classRows.find((item) => String(item.id) === String(form.classe_id));
       setRows((current) => [subjectRow(created, classe), ...current]);
-      setForm({ classe_id: '', nom: '', coefficient: 1, volume_horaire: '' });
-      setNotice('Matiere creee pour la classe.');
+      setForm({ classe_id: '', nom: '', coefficient: 1, volume_horaire: '', enseignant_id: '' });
+      setNotice(form.enseignant_id ? 'Matiere creee et professeur associe.' : 'Matiere creee pour la classe.');
     } catch (err) {
       setNotice(err.message || 'Creation de matiere impossible.');
     }
@@ -333,7 +386,7 @@ export function OperationalSubjectsPage() {
 
   return (
     <>
-      <PageHeader title="Matieres" description="Creation de matieres speciales et affectation par classe." actions={<Button form="subject-form"><BookOpen size={16} /> Creer</Button>} />
+      <PageHeader title="Matieres" description="Creation de matieres speciales et affectation par classe." />
       <Notice message={loading ? 'Chargement des matieres...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
       <DataTable title="Matieres de classe" columns={[
@@ -353,6 +406,13 @@ export function OperationalSubjectsPage() {
           <Input required placeholder="Nom de la matiere" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} />
           <Input required type="number" min="0" step="0.5" placeholder="Coefficient" value={form.coefficient} onChange={(e) => setForm({ ...form, coefficient: e.target.value })} />
           <Input type="number" min="0" placeholder="Volume horaire/semaine" value={form.volume_horaire} onChange={(e) => setForm({ ...form, volume_horaire: e.target.value })} />
+          <Select value={form.enseignant_id} onChange={(e) => setForm({ ...form, enseignant_id: e.target.value })}>
+            <option value="">Associer un professeur (facultatif)</option>
+            {teacherRows.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}
+          </Select>
+          <div className="md:col-span-2 flex justify-end">
+            <Button type="submit"><BookOpen size={16} /> Creer la matiere</Button>
+          </div>
         </form>
       </Card>
     </>
@@ -382,7 +442,7 @@ function GradesWorkspace({ professor = false }) {
       setSubjects(nextSubjects);
       setSelectedSubject(nextSubjects[0]?.id ? String(nextSubjects[0].id) : '');
     });
-  }, [selectedClass]);
+  }, [selectedClass, classRows]);
 
   async function submit(event) {
     event.preventDefault();
@@ -409,7 +469,7 @@ function GradesWorkspace({ professor = false }) {
 
   return (
     <>
-      <PageHeader title={professor ? 'Mes notes' : 'Notes'} description="Saisie groupée des notes par classe, matiere, trimestre et sequence." actions={<Button form="grades-form"><CheckCircle2 size={16} /> Enregistrer</Button>} />
+      <PageHeader title={professor ? 'Mes notes' : 'Notes'} description="Saisie groupée des notes par classe, matiere, trimestre et sequence." />
       <Notice message={notice} />
       <Card className="p-5">
         <form id="grades-form" onSubmit={submit}>
@@ -432,6 +492,9 @@ function GradesWorkspace({ professor = false }) {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="mt-5 flex justify-end">
+            <Button type="submit"><CheckCircle2 size={16} /> Enregistrer les notes</Button>
           </div>
         </form>
       </Card>
@@ -462,7 +525,7 @@ function BulletinsWorkspace({ professor = false }) {
     ]);
     setStudents(nextStudents);
     setBulletins(Array.isArray(nextBulletins) ? nextBulletins : []);
-  }, [selectedClass, trimestre]);
+  }, [selectedClass, trimestre, classRows]);
 
   useEffect(() => {
     loadClassData();

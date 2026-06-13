@@ -104,6 +104,13 @@ def list_direction(db: Session = Depends(get_db), ctx: TenantContext = Depends(r
     return [_row(p) for p in crud.list_personnel(db, ctx.tenant_id, ROLE_DIRECTION)]
 
 
+# ════════════════════════════ TOUT LE PERSONNEL ══════════════════════════════
+@app.get("/personnel", response_model=list[PersonnelRow], tags=["personnel"])
+def list_all_personnel(db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
+    """Liste l'ensemble du personnel (enseignants + direction/administration)."""
+    return [_row(p) for p in crud.list_personnel(db, ctx.tenant_id)]
+
+
 # ════════════════════════════════ COMMUN ═════════════════════════════════════
 @app.get("/personnel/{personnel_id}", response_model=PersonnelDetail, tags=["personnel"])
 def get_personnel(
@@ -126,5 +133,17 @@ def update_personnel(
 ):
     try:
         return _detail(crud.update_personnel(db, ctx.tenant_id, personnel_id, payload))
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+
+@app.delete("/personnel/{personnel_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["personnel"])
+def delete_personnel(
+    personnel_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        crud.delete_personnel(db, ctx.tenant_id, personnel_id)
     except crud.NotFound as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))

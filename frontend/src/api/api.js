@@ -438,6 +438,31 @@ export async function fetchProfesseurs() {
   return handleResponse(res);
 }
 
+// Tout le personnel (enseignants + direction/administration).
+export async function fetchPersonnel() {
+  const res = await fetch('/personnel', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+// Direction / administration (Censeur, Directeur d'études, Surveillant…) — 2 téléphones.
+export async function createDirection(data) {
+  const res = await fetch('/personnel/direction', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      nom: data.nom,
+      prenom: data.prenom || null,
+      phone: data.phone,
+      phone2: data.phone2,
+      fonction: data.fonction,
+      email: data.email || null,
+      password: data.password || undefined,
+    }),
+  });
+  const out = await handleResponse(res);
+  return out.personnel || out;
+}
+
 export async function createProfesseur(profData) {
   const res = await fetch('/personnel/enseignants', {
     method: 'POST',
@@ -508,6 +533,11 @@ export async function fetchMatieres() {
   const lists = await Promise.all(
     classes.map((classe) => fetch(`/pedagogie/classes/${classe.id}/matieres`, { headers: getHeaders() })
       .then(handleResponse)
+      .then((items) => items.map((item) => ({
+        ...item,
+        classe_id: classe.id,
+        classe_nom: classe.nom || classe.nom_personnalise,
+      })))
       .catch(() => [])),
   );
   const byId = new Map();
@@ -533,7 +563,15 @@ export async function createSpecialMatiere(classId, matiereData) {
       volume_horaire: matiereData.volume_horaire ? Number(matiereData.volume_horaire) : null,
     }),
   });
-  return normalizeMatiere(await handleResponse(res));
+  const created = normalizeMatiere(await handleResponse(res));
+  if (matiereData.enseignant_id || matiereData.professeur_id) {
+    const updated = await updateMatiere(created.id, {
+      classe_id: classId,
+      enseignant_id: Number(matiereData.enseignant_id || matiereData.professeur_id),
+    });
+    return { ...updated, classe_id: Number(classId) };
+  }
+  return { ...created, classe_id: Number(classId) };
 }
 
 export async function deleteMatiere(matiereId) {
@@ -746,22 +784,39 @@ export async function importElevesFile(file, defaultClasseId = null) {
 
 // ── Admin Années scolaires ────────────────────────────────
 export async function fetchAnneesScolaires() {
-  return [];
+  const res = await fetch('/pedagogie/annees-scolaires', { headers: getHeaders() });
+  return handleResponse(res);
 }
 
 export async function createAnneeScolaire(data) {
-  void data;
-  unsupported("La création d'année scolaire");
+  const res = await fetch('/pedagogie/annees-scolaires', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
 }
 
 export async function activerAnneeScolaire(anneeId) {
-  void anneeId;
-  unsupported("L'activation d'année scolaire");
+  const res = await fetch(`/pedagogie/annees-scolaires/${anneeId}/activer`, {
+    method: 'PUT',
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
 }
 
 export async function deleteAnneeScolaire(anneeId) {
   void anneeId;
   unsupported("La suppression d'année scolaire");
+}
+
+export async function passageAnneeScolaire(data = {}) {
+  const res = await fetch('/pedagogie/annees-scolaires/passage', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
 }
 
 // ── Admin Stats ───────────────────────────────────────────

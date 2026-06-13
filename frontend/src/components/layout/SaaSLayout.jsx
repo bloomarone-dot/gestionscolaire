@@ -12,7 +12,7 @@ const nav = [
   { to: '/app/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { to: '/app/students', label: 'Eleves', icon: Users },
   { to: '/app/parents', label: 'Parents', icon: UserCog },
-  { to: '/app/teachers', label: 'Enseignants', icon: GraduationCap },
+  { to: '/app/teachers', label: 'Personnel', icon: UserCog },
   { to: '/app/classes', label: 'Classes', icon: School },
   { to: '/app/subjects', label: 'Matieres', icon: BookOpen },
   { to: '/app/schedules', label: 'Emplois du temps', icon: CalendarDays },
