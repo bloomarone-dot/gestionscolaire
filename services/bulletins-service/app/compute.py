@@ -40,32 +40,39 @@ def compute_class_bulletins(
     subjects: list[dict],
     notes: list[dict],
     lang: str = "fr",
+    trimestre: int = 1,
 ) -> dict:
     """Calcule les bulletins de tous les élèves d'une classe pour une période.
 
+    Les deux évaluations affichées dépendent du trimestre :
+    T1 → séquences 1 & 2, T2 → 3 & 4, T3 → 5 & 6.
+
     students : [{eleve_id, matricule, nom, prenom}]
-    subjects : [{matiere_id, nom, coefficient, source, enseignant_id}] (activées)
-    notes    : [{eleve_id, matiere_id, valeur}]
+    subjects : [{matiere_id, nom, coefficient, source, enseignant_id, groupe}] (activées)
+    notes    : [{eleve_id, matiere_id, valeur, type_evaluation}]
     """
     official = [s for s in subjects if s.get("source", "OFFICIELLE") != "SPECIALE"]
     special = [s for s in subjects if s.get("source") == "SPECIALE"]
 
-    # Notes par (élève, matière) → {type_evaluation: valeur} (1e/2e séquence…)
+    seq_a = f"sequence_{2 * trimestre - 1}"
+    seq_b = f"sequence_{2 * trimestre}"
+
+    # Notes par (élève, matière) → {type_evaluation: valeur}
     bucket: dict[tuple[int, int], dict[str, float]] = {}
     for n in notes:
         key = (n["eleve_id"], n["matiere_id"])
-        bucket.setdefault(key, {})[n.get("type_evaluation") or "sequence_1"] = n["valeur"]
+        bucket.setdefault(key, {})[n.get("type_evaluation") or seq_a] = n["valeur"]
 
     def subject_seqs(eleve_id: int, matiere_id: int):
-        """Retourne (seq1, seq2, moyenne) — moyenne des évaluations disponibles."""
+        """Retourne (seqA, seqB, moyenne) pour les deux séquences du trimestre."""
         d = bucket.get((eleve_id, matiere_id), {})
-        seq1 = d.get("sequence_1")
-        seq2 = d.get("sequence_2")
-        present = [v for v in (seq1, seq2) if v is not None]
-        if not present and d:          # autres types (ex. trimestre) sans séquences
+        s_a = d.get(seq_a)
+        s_b = d.get(seq_b)
+        present = [v for v in (s_a, s_b) if v is not None]
+        if not present and d:          # tolérance : autres types saisis
             present = list(d.values())
         moyenne = _round(mean(present)) if present else None
-        return seq1, seq2, moyenne
+        return s_a, s_b, moyenne
 
     # Moyennes générales (officielles) + collecte pour les rangs par matière
     gen_avgs: dict[int, Optional[float]] = {}
@@ -109,9 +116,11 @@ def compute_class_bulletins(
         student_rows[eid] = {
             "eleve_id": eid, "matricule": st.get("matricule"),
             "nom": st.get("nom"), "prenom": st.get("prenom"),
+            "sexe": st.get("sexe"), "redoublant": st.get("redoublant"),
             "subjects": off_rows, "special_subjects": sp_rows,
             "total_coefficient": _round(total_coeff), "total_points": _round(total_points),
             "moyenne_generale": moyenne_generale,
+            "appreciation_generale": appreciation(moyenne_generale, lang),
         }
 
     # Rangs par matière

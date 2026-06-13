@@ -3,9 +3,17 @@ from typing import Optional
 
 from common.tenant import TenantContext
 
+from datetime import date
+
 from app import clients
 from app.compute import compute_class_bulletins
-from app.labels import LABELS, decision, lang_for_subsystem
+from app.labels import LABELS, decision, lang_for_subsystem, term_label
+
+
+def _default_school_year() -> str:
+    today = date.today()
+    start = today.year if today.month >= 9 else today.year - 1
+    return f"{start}/{start + 1}"
 
 
 def _header(classe: dict, school: dict, lang: str, trimestre: int) -> dict:
@@ -14,12 +22,17 @@ def _header(classe: dict, school: dict, lang: str, trimestre: int) -> dict:
         "logo_url": school.get("logo_url"),
         "po_box": school.get("bulletin_po_box"),
         "motto": school.get("bulletin_motto"),
+        "delegation_regional": school.get("bulletin_delegation_regional"),
+        "delegation_departementale": school.get("bulletin_delegation_departementale"),
+        "next_term": school.get("bulletin_next_term_note"),
+        "school_year": school.get("school_year") or _default_school_year(),
         "classe": classe.get("nom_personnalise"),
         "subsystem_code": classe.get("subsystem_code"),
         "type_code": classe.get("type_code"),
         "level_code": classe.get("level_code"),
         "series_code": classe.get("series_code"),
-        "term": f"{LABELS[lang]['term']} {trimestre}",
+        "trimestre": trimestre,
+        "term": term_label(trimestre, lang),
         "labels": LABELS[lang],
     }
 
@@ -43,7 +56,8 @@ def build_class_bulletins(
     ]
     students = [
         {"eleve_id": s["id"], "matricule": s.get("matricule"),
-         "nom": s.get("nom"), "prenom": s.get("prenom")}
+         "nom": s.get("nom"), "prenom": s.get("prenom"),
+         "sexe": s.get("sexe"), "redoublant": s.get("redoublant")}
         for s in clients.get_students(ctx, classe_id)
     ]
     # type_evaluation=None → on récupère 1e ET 2e séquence pour le trimestre.
@@ -53,7 +67,7 @@ def build_class_bulletins(
         for n in clients.get_notes(ctx, classe_id, trimestre, type_evaluation)
     ]
 
-    result = compute_class_bulletins(students, subjects, notes, lang)
+    result = compute_class_bulletins(students, subjects, notes, lang, trimestre)
     result["header"] = _header(classe, school, lang, trimestre)
     result["header"]["effectif"] = result["effectif"]
     for b in result["bulletins"]:

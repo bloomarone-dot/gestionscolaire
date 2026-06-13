@@ -99,7 +99,10 @@ def test_groupe_passthrough():
 def test_lang_and_labels():
     assert lang_for_subsystem("ANGLOPHONE") == "en"
     assert lang_for_subsystem("FRANCOPHONE") == "fr"
-    assert decision(14.5, "fr") == "ADMIS"
+    assert decision(14.5, "fr") == "ADMIS(E)"
     assert decision(8, "en") == "FAILED"
-    assert appreciation(16, "en") == "Very Good"
+    assert appreciation(16, "en") == "A"          # codes officiels EN
+    assert appreciation(19, "en") == "EXCELLENT"
+    assert appreciation(7, "en") == "CNA"
+    assert appreciation(12, "en") == "IPA"
     assert appreciation(None, "fr") == ""

@@ -1,94 +1,91 @@
-"""Libellés bilingues FR/EN du bulletin (cahier §11.2/§11.3).
+"""Libellés bilingues + barème d'appréciation du bulletin (modèle officiel Cameroun).
 
-Le format est identique entre les deux langues ; seuls les libellés et la liste
-des matières changent. FR pour le sous-système francophone, EN pour l'anglophone.
+Reproduit le « STUDENT'S PROGRESS REPORT CARD » anglophone (et son équivalent
+francophone). Mise en page identique ; seuls les libellés et la liste des
+matières changent selon le sous-système.
 """
 from typing import Optional
 
 LABELS = {
     "fr": {
-        "report_card": "BULLETIN DE NOTES",
-        "term": "Trimestre",
-        "subject": "Matière",
+        "report_title": "BULLETIN DE NOTES",
+        "subjects": "MATIÈRES",
         "average": "Moyenne",
-        "coefficient": "Coef.",
-        "points": "Moy. × Coef.",
+        "coefficient": "Coef",
+        "total_marks": "Total points",
         "rank": "Rang",
-        "appreciation": "Appréciation",
-        "total_coeff": "Total des coefficients",
-        "total_points": "Total des points",
-        "general_average": "Moyenne générale",
-        "general_rank": "Rang général",
-        "class_average": "Moyenne de la classe",
-        "complementary": "Matières complémentaires de l'établissement",
-        "official_subjects": "Matières officielles",
-        "group_1": "Premier groupe",
-        "group_2": "Deuxième groupe",
-        "teacher_principal": "Prof. Principal",
-        "head": "Principal",
-        "parent": "Parents / Tuteurs",
-        "decision_pass": "ADMIS",
-        "decision_fail": "AJOURNÉ",
-        "report_title": "BULLETIN",
-        "eval1": "1e éval",
-        "eval2": "2e éval",
-        "mark": "Notes",
-        "teacher": "Professeur",
-        "decision": "Décision",
-        "observation": "Observation",
-        "absences": "Absences",
-        "redoublant": "Redoublant",
-        "effectif": "Effectif",
-        "matricule": "Matricule",
-        "serie": "Série",
-        "name_field": "Nom",
-        "school_year": "Année",
+        "appreciation": "Appr.",
+        "teacher_sign": "Émargement (M./Mme/Mlle)",
+        "group_1": "PREMIER GROUPE",
+        "group_2": "DEUXIÈME GROUPE",
+        "group_3": "TROISIÈME GROUPE",
+        "name": "NOM",
+        "class": "CLASSE",
+        "class_enrollment": "EFFECTIF",
+        "repeater": "Redoublant",
+        "unique_id": "MATRICULE",
+        "year": "ANNÉE",
+        "total": "TOTAL",
+        "class_average": "MOYENNE DE CLASSE",
+        "term_average": "MOYENNE DU TRIMESTRE",
+        "absences": "Absences (heures)",
+        "sanctions": "SANCTIONS",
+        "position": "RANG",
+        "out_of": "SUR",
+        "remark": "DÉCISION",
+        "passed": "ADMIS(E)",
+        "failed": "AJOURNÉ(E)",
+        "observation": "OBSERVATION",
+        "parents": "PARENTS/TUTEURS",
+        "sdm": "SURV. GÉNÉRAL",
+        "principal": "LE PRINCIPAL",
+        "date": "DATE",
+        "next_term": "Prochaine rentrée",
         "country": "RÉPUBLIQUE DU CAMEROUN",
-        "motto_nat": "Paix – Travail – Patrie",
+        "motto_nat": "Paix - Travail - Patrie",
         "ministry": "MINISTÈRE DES ENSEIGNEMENTS SECONDAIRES",
-        "date": "Date",
+        "terms": {1: "1er TRIMESTRE", 2: "2e TRIMESTRE", 3: "3e TRIMESTRE"},
+        "seqs": {1: ("1ère Séq", "2e Séq"), 2: ("3e Séq", "4e Séq"), 3: ("5e Séq", "6e Séq")},
     },
     "en": {
-        "report_card": "REPORT CARD",
-        "term": "Term",
-        "subject": "Subject",
+        "report_title": "STUDENT'S PROGRESS REPORT CARD",
+        "subjects": "SUBJECTS",
         "average": "Average",
-        "coefficient": "Coef.",
-        "points": "Avg × Coef.",
-        "rank": "Position",
-        "appreciation": "Remark",
-        "teacher": "Teacher",
-        "total_coeff": "Total coefficients",
-        "total_points": "Total points",
-        "general_average": "General Average",
-        "general_rank": "Overall Position",
-        "class_average": "Class Average",
-        "complementary": "School complementary subjects",
-        "official_subjects": "Official subjects",
-        "group_1": "1st Group",
-        "group_2": "2nd Group",
-        "teacher_principal": "Class Master",
-        "head": "Principal",
-        "parent": "Parents / Guardians",
-        "decision_pass": "PASSED",
-        "decision_fail": "FAILED",
-        "report_title": "REPORT CARD",
-        "eval1": "1st test",
-        "eval2": "2nd test",
-        "mark": "Mark",
-        "decision": "Decision",
-        "observation": "Remarks",
-        "absences": "Absences",
-        "redoublant": "Repeater",
-        "effectif": "Class size",
-        "matricule": "Reg. No.",
-        "serie": "Series",
-        "name_field": "Name",
-        "school_year": "Year",
+        "coefficient": "Coef",
+        "total_marks": "Total marks",
+        "rank": "Rank",
+        "appreciation": "Appre.",
+        "teacher_sign": "Teacher's sign.(MR/MRS/MISS)",
+        "group_1": "FIRST GROUP",
+        "group_2": "SECOND GROUP",
+        "group_3": "THIRD GROUP",
+        "name": "NAME",
+        "class": "CLASS",
+        "class_enrollment": "CLASS ENROLLMENT",
+        "repeater": "Repeater",
+        "unique_id": "UNIQUE ID",
+        "year": "YEAR",
+        "total": "TOTAL",
+        "class_average": "CLASS AVERAGE",
+        "term_average": "TERM AVERAGE",
+        "absences": "Absences (hours)",
+        "sanctions": "SANCTIONS",
+        "position": "POSITION",
+        "out_of": "OUT OF",
+        "remark": "REMARK",
+        "passed": "PASSED",
+        "failed": "FAILED",
+        "observation": "OBSERVATION",
+        "parents": "PARENTS/GUARDIANS",
+        "sdm": "S.D.M",
+        "principal": "PRINCIPAL",
+        "date": "DATE",
+        "next_term": "Next term re-opens",
         "country": "REPUBLIC OF CAMEROON",
-        "motto_nat": "Peace – Work – Fatherland",
+        "motto_nat": "Peace-Work-Fatherland",
         "ministry": "MINISTRY OF SECONDARY EDUCATION",
-        "date": "Date",
+        "terms": {1: "1ST TERM", 2: "2ND TERM", 3: "3RD TERM"},
+        "seqs": {1: ("1st SEQ", "2nd SEQ"), 2: ("3rd SEQ", "4th SEQ"), 3: ("5th SEQ", "6th SEQ")},
     },
 }
 
@@ -97,25 +94,52 @@ def lang_for_subsystem(subsystem_code: Optional[str]) -> str:
     return "en" if subsystem_code == "ANGLOPHONE" else "fr"
 
 
+def term_label(trimestre: int, lang: str) -> str:
+    return LABELS[lang]["terms"].get(trimestre, LABELS[lang]["terms"][1])
+
+
+def seq_labels(trimestre: int, lang: str) -> tuple[str, str]:
+    return LABELS[lang]["seqs"].get(trimestre, LABELS[lang]["seqs"][1])
+
+
 def appreciation(moyenne: Optional[float], lang: str) -> str:
+    """Codes officiels : EN → EXCELLENT/A/IPA/CNA ; FR → équivalents."""
     if moyenne is None:
         return ""
-    scale_fr = [
-        (18, "Excellent"), (16, "Très Bien"), (14, "Bien"),
-        (12, "Assez Bien"), (10, "Passable"), (0, "Insuffisant"),
-    ]
-    scale_en = [
-        (18, "Excellent"), (16, "Very Good"), (14, "Good"),
-        (12, "Fairly Good"), (10, "Average"), (0, "Weak"),
-    ]
-    scale = scale_en if lang == "en" else scale_fr
-    for threshold, label in scale:
-        if moyenne >= threshold:
-            return label
-    return scale[-1][1]
+    if lang == "en":
+        if moyenne >= 18:
+            return "EXCELLENT"
+        if moyenne >= 16:
+            return "A"
+        if moyenne >= 10:
+            return "IPA"
+        return "CNA"
+    # Francophone
+    if moyenne >= 18:
+        return "EXCELLENT"
+    if moyenne >= 16:
+        return "TB"
+    if moyenne >= 14:
+        return "B"
+    if moyenne >= 12:
+        return "AB"
+    if moyenne >= 10:
+        return "PASSABLE"
+    return "INSUFFISANT"
 
 
 def decision(moyenne_generale: Optional[float], lang: str) -> str:
     passed = (moyenne_generale or 0) >= 10
-    key = "decision_pass" if passed else "decision_fail"
-    return LABELS[lang][key]
+    return LABELS[lang]["passed" if passed else "failed"]
+
+
+def ordinal(n: Optional[int], lang: str) -> str:
+    if not n:
+        return ""
+    if lang == "en":
+        if 10 <= n % 100 <= 20:
+            suf = "th"
+        else:
+            suf = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+        return f"{n}{suf}"
+    return "1er" if n == 1 else f"{n}e"
