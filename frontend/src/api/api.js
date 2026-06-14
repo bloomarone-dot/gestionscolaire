@@ -862,6 +862,47 @@ export async function fetchReferentielTree() {
   return handleResponse(res);
 }
 
+// ── Référentiel — gestion admin plateforme (§1, superadmin) ───────
+export async function adminListSubjects() {
+  const res = await fetch('/referentiel/admin/subjects', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function createReferentielSubject(payload) {
+  const res = await fetch('/referentiel/subjects', {
+    method: 'POST', headers: getHeaders(), body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function updateReferentielSubject(subjectId, name) {
+  const res = await fetch(`/referentiel/subjects/${subjectId}`, {
+    method: 'PUT', headers: getHeaders(), body: JSON.stringify({ name }),
+  });
+  return handleResponse(res);
+}
+
+export async function deleteReferentielSubject(subjectId) {
+  return deleteRequest(`/referentiel/subjects/${subjectId}`);
+}
+
+export async function adminListEligibility(subjectCode = null) {
+  const q = subjectCode ? `?subject=${encodeURIComponent(subjectCode)}` : '';
+  const res = await fetch(`/referentiel/admin/eligibility${q}`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function createReferentielEligibility(payload) {
+  const res = await fetch('/referentiel/eligibility', {
+    method: 'POST', headers: getHeaders(), body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function deleteReferentielEligibility(eligId) {
+  return deleteRequest(`/referentiel/eligibility/${eligId}`);
+}
+
 // ── Communication : historique des notifications (§12) ────
 export async function fetchNotifications() {
   const res = await fetch('/notifications', { headers: getHeaders() });

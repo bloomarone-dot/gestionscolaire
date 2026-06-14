@@ -68,3 +68,25 @@ class EligibilityCreate(BaseModel):
     default_coefficient: float
     is_obligatoire: bool = False
     groupe: Optional[int] = None
+
+
+class SubjectUpdate(BaseModel):
+    name: str
+
+
+class SubjectOut(BaseModel):
+    id: int
+    code: str
+    name: str
+    model_config = {"from_attributes": True}
+
+
+class EligibilityOut(BaseModel):
+    id: int
+    subject_code: str
+    subject_name: str
+    level_code: str
+    series_code: Optional[str] = None
+    default_coefficient: float
+    is_obligatoire: bool
+    groupe: Optional[int] = None

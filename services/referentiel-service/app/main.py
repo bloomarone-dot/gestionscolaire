@@ -18,10 +18,13 @@ from app.models import Level, SeriesSpecialty, Subject, SubjectEligibility
 from app.schemas import (
     CycleOut,
     EligibilityCreate,
+    EligibilityOut,
     LevelOut,
     ResolvedSubjectOut,
     SeriesOut,
     SubjectCreate,
+    SubjectOut,
+    SubjectUpdate,
     SubsystemOut,
     TeachingTypeOut,
 )
@@ -188,3 +191,81 @@ def create_eligibility(
     db.add(elig)
     db.commit()
     return {"id": elig.id}
+
+
+# ── Gestion (liste/édition/suppression) — admin plateforme ───────────────────
+@app.get("/referentiel/admin/subjects", response_model=list[SubjectOut], tags=["admin"])
+def admin_list_subjects(
+    db: Session = Depends(get_db),
+    _: TenantContext = Depends(require_roles("superadmin")),
+):
+    return db.query(Subject).order_by(Subject.name).all()
+
+
+@app.put("/referentiel/subjects/{subject_id}", response_model=SubjectOut, tags=["admin"])
+def update_subject(
+    subject_id: int,
+    payload: SubjectUpdate,
+    db: Session = Depends(get_db),
+    _: TenantContext = Depends(require_roles("superadmin")),
+):
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if not subject:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Matière introuvable")
+    subject.name = payload.name
+    db.commit()
+    db.refresh(subject)
+    return subject
+
+
+@app.delete("/referentiel/subjects/{subject_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["admin"])
+def delete_subject(
+    subject_id: int,
+    db: Session = Depends(get_db),
+    _: TenantContext = Depends(require_roles("superadmin")),
+):
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if not subject:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Matière introuvable")
+    # Supprime aussi ses éligibilités (les classes existantes gardent leur copie).
+    db.query(SubjectEligibility).filter(SubjectEligibility.subject_id == subject_id).delete()
+    db.delete(subject)
+    db.commit()
+
+
+@app.get("/referentiel/admin/eligibility", response_model=list[EligibilityOut], tags=["admin"])
+def admin_list_eligibility(
+    subject: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _: TenantContext = Depends(require_roles("superadmin")),
+):
+    q = (
+        db.query(SubjectEligibility, Subject, Level, SeriesSpecialty)
+        .join(Subject, SubjectEligibility.subject_id == Subject.id)
+        .join(Level, SubjectEligibility.level_id == Level.id)
+        .outerjoin(SeriesSpecialty, SubjectEligibility.series_id == SeriesSpecialty.id)
+    )
+    if subject:
+        q = q.filter(Subject.code == subject)
+    out = []
+    for elig, subj, level, series in q.all():
+        out.append(EligibilityOut(
+            id=elig.id, subject_code=subj.code, subject_name=subj.name,
+            level_code=level.code, series_code=series.code if series else None,
+            default_coefficient=elig.default_coefficient,
+            is_obligatoire=elig.is_obligatoire, groupe=elig.groupe,
+        ))
+    return out
+
+
+@app.delete("/referentiel/eligibility/{elig_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["admin"])
+def delete_eligibility(
+    elig_id: int,
+    db: Session = Depends(get_db),
+    _: TenantContext = Depends(require_roles("superadmin")),
+):
+    elig = db.query(SubjectEligibility).filter(SubjectEligibility.id == elig_id).first()
+    if not elig:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Éligibilité introuvable")
+    db.delete(elig)
+    db.commit()

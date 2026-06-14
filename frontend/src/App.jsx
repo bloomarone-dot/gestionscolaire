@@ -7,6 +7,7 @@ import ProfessorLayout from './components/layout/ProfessorLayout';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/modern/Dashboard';
 import SuperAdminConsole from './pages/modern/SuperAdminConsole';
+import ReferentielAdminPage from './pages/modern/ReferentielAdminPage';
 import {
   AttendancePage,
   PaymentsPage,
@@ -85,6 +86,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<SuperAdminConsole tab="dashboard" />} />
         <Route path="schools" element={<SuperAdminConsole tab="schools" />} />
         <Route path="admins" element={<SuperAdminConsole tab="admins" />} />
+        <Route path="referentiel" element={<ReferentielAdminPage />} />
         <Route path="settings" element={<SuperAdminConsole tab="settings" />} />
       </Route>
       <Route path="/professor" element={<ProtectedProfessor />}>

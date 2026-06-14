@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  Bell, Building2, ChevronDown, ChevronLeft, LayoutDashboard, LogOut, Menu, Search,
+  Bell, Building2, ChevronDown, ChevronLeft, LayoutDashboard, Library, LogOut, Menu, Search,
   Settings, ShieldCheck, UserPlus, X,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
@@ -11,6 +11,7 @@ const nav = [
   { to: '/superadmin/dashboard', label: 'Vue plateforme', icon: LayoutDashboard },
   { to: '/superadmin/schools', label: 'Etablissements', icon: Building2 },
   { to: '/superadmin/admins', label: 'Admins etablissements', icon: UserPlus },
+  { to: '/superadmin/referentiel', label: 'Référentiel national', icon: Library },
   { to: '/superadmin/settings', label: 'Parametres plateforme', icon: Settings },
 ];
 
