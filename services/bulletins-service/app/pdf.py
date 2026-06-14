@@ -53,6 +53,11 @@ def render_bulletin_pdf(data: dict) -> bytes:
         _title_bar(header.get("report_title") or L["report_title"]),
         _identity(header, b, L),
         _subjects(b, L, seq_lbls),
+    ]
+    # §11.3 : section séparée pour les matières complémentaires (spéciales).
+    if b.get("special_subjects"):
+        story.append(_special_subjects(b, L, seq_lbls))
+    story += [
         _footer(b, data, header, L),
         _signatures(header, L),
         _next_term(header, L),
@@ -168,6 +173,35 @@ def _subjects(b, L, seq_lbls) -> Table:
 
     t = Table(rows, colWidths=[c * cm for c in col_widths], repeatRows=1)
     t.setStyle(TableStyle(style))
+    return t
+
+
+def _special_subjects(b, L, seq_lbls) -> Table:
+    """§11.3 — matières « Spéciales » de l'école, section séparée (hors stats officielles)."""
+    n = len(seq_lbls)
+    title = [_p(L["complementary"], bold=True, align=TA_CENTER, color=colors.white)] + [""] * (n + 4)
+    head = [L["subjects"], *seq_lbls, L["average"], L["coefficient"], L["total_marks"], L["appreciation"]]
+    rows = [title, [_p(h, bold=True, align=TA_CENTER, color=colors.white) for h in head]]
+    for s in b.get("special_subjects", []):
+        seqs = s.get("seqs") or []
+        seq_cells = [_p(_fmt(seqs[i] if i < len(seqs) else None), align=TA_CENTER) for i in range(n)]
+        rows.append([
+            _p(s["nom"], bold=True), *seq_cells,
+            _p(_fmt(s.get("moyenne")), align=TA_CENTER), _p(_fmt(s.get("coefficient")), align=TA_CENTER),
+            _p(_fmt(s.get("points")), align=TA_CENTER), _p(s.get("appreciation", ""), align=TA_CENTER),
+        ])
+    subj_w = 5.0
+    seq_w = max((19 - (subj_w + 1.5 + 0.9 + 1.4 + 2.0)) / n, 0.8)
+    col_widths = [subj_w] + [seq_w] * n + [1.5, 0.9, 1.4, 2.0]
+    t = Table(rows, colWidths=[c * cm for c in col_widths], repeatRows=2)
+    t.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, BLACK),
+        ("SPAN", (0, 0), (-1, 0)),
+        ("BACKGROUND", (0, 0), (-1, 0), BLUE),
+        ("BACKGROUND", (0, 1), (-1, 1), BLUE_DK),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 1.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5),
+    ]))
     return t
 
 

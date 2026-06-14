@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as api from '../api/api';
 
 /**
@@ -6,39 +6,59 @@ import * as api from '../api/api';
  * Chaque liste dépend des choix précédents ; la série est sautée si le niveau n'en a pas.
  * Partagé entre la création de classe (§4) et l'inscription élève (§6).
  *
- * Options :
- *  - enabledSubsystems / enabledTypes : codes activés pour l'école (§14, filtre amont).
- *    `null`/absent = tout proposé.
+ * §14 — filtre amont : la cascade ne propose que les sous-systèmes / types **activés**
+ * dans le profil de l'école. Si le profil n'est pas configuré (listes vides), tout est
+ * proposé (rien n'est bloqué). Des overrides explicites restent possibles via options.
  */
 export function useReferentielCascade({ enabledSubsystems = null, enabledTypes = null } = {}) {
-  const [subsystems, setSubsystems] = useState([]);
-  const [types, setTypes] = useState([]);
+  const [rawSubsystems, setRawSubsystems] = useState([]);
+  const [rawTypes, setRawTypes] = useState([]);
   const [cycles, setCycles] = useState([]);
   const [levels, setLevels] = useState([]);
   const [series, setSeries] = useState([]);
+  const [profile, setProfile] = useState(null);
 
   const [value, setValue] = useState({
     subsystem_code: '', type_code: '', cycle_code: '', level_code: '', series_code: '',
   });
 
-  const allow = (list, enabled) =>
-    (enabled == null ? list : list.filter((x) => enabled.includes(x.code)));
+  // Profil école (§14) — best-effort ; en cas d'échec, on ne filtre pas.
+  useEffect(() => {
+    api.fetchMySchool().then(setProfile).catch(() => setProfile(null));
+  }, []);
 
   // Sous-systèmes (au montage).
   useEffect(() => {
     api.fetchSubsystems()
-      .then((data) => setSubsystems(allow(Array.isArray(data) ? data : [], enabledSubsystems)))
-      .catch(() => setSubsystems([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      .then((data) => setRawSubsystems(Array.isArray(data) ? data : []))
+      .catch(() => setRawSubsystems([]));
   }, []);
+
+  // Codes activés : option explicite > profil école > tout (null).
+  const enabledSubs = useMemo(
+    () => enabledSubsystems ?? (profile?.subsystems?.length ? profile.subsystems : null),
+    [enabledSubsystems, profile],
+  );
+  const enabledTyp = useMemo(
+    () => enabledTypes ?? (profile?.teaching_types?.length ? profile.teaching_types : null),
+    [enabledTypes, profile],
+  );
+
+  const subsystems = useMemo(
+    () => (enabledSubs == null ? rawSubsystems : rawSubsystems.filter((x) => enabledSubs.includes(x.code))),
+    [rawSubsystems, enabledSubs],
+  );
+  const types = useMemo(
+    () => (enabledTyp == null ? rawTypes : rawTypes.filter((x) => enabledTyp.includes(x.code))),
+    [rawTypes, enabledTyp],
+  );
 
   // Types selon le sous-système.
   useEffect(() => {
-    if (!value.subsystem_code) { setTypes([]); return; }
+    if (!value.subsystem_code) { setRawTypes([]); return; }
     api.fetchTeachingTypes(value.subsystem_code)
-      .then((data) => setTypes(allow(Array.isArray(data) ? data : [], enabledTypes)))
-      .catch(() => setTypes([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      .then((data) => setRawTypes(Array.isArray(data) ? data : []))
+      .catch(() => setRawTypes([]));
   }, [value.subsystem_code]);
 
   // Cycles selon sous-système + type.
@@ -82,7 +102,6 @@ export function useReferentielCascade({ enabledSubsystems = null, enabledTypes =
   }), []);
 
   const hasSeries = series.length > 0;
-  // Cascade complète : série renseignée si elle existe pour le niveau.
   const isComplete = Boolean(value.level_code) && (!hasSeries || Boolean(value.series_code));
 
   return { subsystems, types, cycles, levels, series, value, select, reset, hasSeries, isComplete };
