@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, Trash2, UserPlus } from 'lucide-react';
+import { ArrowRightLeft, BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, Trash2, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard, Textarea } from '../../components/ui';
 import { useReferentielCascade } from '../../hooks/useReferentielCascade';
@@ -424,6 +424,32 @@ export function OperationalStudentsPage() {
   const [notice, setNotice] = useState('');
   const cascade = useReferentielCascade();
   const [filteredClasses, setFilteredClasses] = useState([]);
+  const [allClasses, setAllClasses] = useState([]);
+  const [transfer, setTransfer] = useState(null); // §6.3 : { student, targetId }
+
+  useEffect(() => { api.fetchClasses().then(setAllClasses).catch(() => setAllClasses([])); }, []);
+
+  // Classes éligibles au transfert : même niveau (et même série si définie), §6.3.
+  function eligibleFor(student) {
+    const cur = allClasses.find((c) => String(c.id) === String(student.classe_id));
+    if (!cur) return allClasses.filter((c) => String(c.id) !== String(student.classe_id));
+    return allClasses.filter((c) => c.level_code === cur.level_code
+      && (cur.series_code ? c.series_code === cur.series_code : true)
+      && String(c.id) !== String(student.classe_id));
+  }
+
+  async function confirmTransfer() {
+    if (!transfer?.targetId) { setNotice('Choisissez la classe de destination.'); return; }
+    try {
+      await api.transferEleve(transfer.student.id, transfer.targetId);
+      const target = allClasses.find((c) => String(c.id) === String(transfer.targetId));
+      const targetName = target?.nom || target?.nom_personnalise || transfer.student.className;
+      setRows((cur) => cur.map((r) => (r.id === transfer.student.id
+        ? { ...r, classe_id: Number(transfer.targetId), className: targetName } : r)));
+      setNotice('Élève transféré — historique des notes conservé.');
+      setTransfer(null);
+    } catch (err) { setNotice(err.message); }
+  }
 
   // §6 étape 5 : ne proposer que les classes correspondant exactement au profil choisi.
   useEffect(() => {
@@ -482,6 +508,21 @@ export function OperationalStudentsPage() {
       <PageHeader title="Eleves" description="Inscription operationnelle avec parent et classe." />
       <Notice message={loading ? 'Chargement des eleves...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
+      {transfer && (
+        <Card className="mb-4 p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <p className="text-sm font-semibold text-slate-700">Transférer <span className="text-blue-700">{transfer.student.name}</span> vers :</p>
+            <Select className="md:w-72" value={transfer.targetId} onChange={(e) => setTransfer({ ...transfer, targetId: e.target.value })}>
+              <option value="">Classe de destination (même niveau)…</option>
+              {eligibleFor(transfer.student).map((c) => <option key={c.id} value={c.id}>{c.nom || c.nom_personnalise}</option>)}
+            </Select>
+            <div className="flex gap-2">
+              <Button onClick={confirmTransfer}><ArrowRightLeft size={16} /> Confirmer</Button>
+              <Button variant="secondary" onClick={() => setTransfer(null)}>Annuler</Button>
+            </div>
+          </div>
+        </Card>
+      )}
       <DataTable title="Registre des élèves" columns={[
         { key: 'matricule', label: 'Matricule' },
         { key: 'name', label: 'Nom complet' },
@@ -493,7 +534,12 @@ export function OperationalStudentsPage() {
         { key: 'sexe', label: 'Sexe' },
         { key: 'parent', label: 'Contact parent' },
         { key: 'status', label: 'Statut', render: (row) => <Badge tone="emerald">{row.status}</Badge> },
-      ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
+      ]} rows={rows} renderActions={(row) => (
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" className="px-2" title="Transférer (§6.3)" onClick={() => setTransfer({ student: row, targetId: '' })}><ArrowRightLeft size={16} /></Button>
+          <Button variant="danger" className="px-2" title="Supprimer" onClick={() => handleDelete(row)}><Trash2 size={16} /></Button>
+        </div>
+      )} />
       <Card className="mt-6 p-5">
         <h2 className="mb-1 font-bold">Inscrire un élève</h2>
         <p className="mb-4 text-sm text-slate-500">Choix en cascade ; la liste des classes est filtrée selon le profil.</p>

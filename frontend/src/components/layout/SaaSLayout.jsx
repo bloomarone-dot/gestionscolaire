@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, GraduationCap, LayoutDashboard,
-  Layers, Library, Menu, Receipt, Search, Settings, Users, UserCog, WalletCards, X,
+  Layers, Library, Megaphone, Menu, Receipt, Search, Settings, Users, UserCog, WalletCards, X,
   BarChart3, ClipboardCheck, ClipboardList, School, LogOut, ArrowRightLeft, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
@@ -41,6 +41,7 @@ const nav = [
   },
   {
     group: 'Communication', icon: Bell, items: [
+      { to: '/app/announcements', label: 'Annonces', icon: Megaphone },
       { to: '/app/notifications', label: 'Notifications', icon: Bell },
     ],
   },

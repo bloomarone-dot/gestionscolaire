@@ -20,6 +20,7 @@ import { SettingsPage } from './pages/modern/SchoolSettings';
 import PromotionsPage from './pages/modern/PromotionsPage';
 import ReferentielPage from './pages/modern/ReferentielPage';
 import NotificationsPage from './pages/modern/NotificationsPage';
+import AnnouncementsPage from './pages/modern/AnnouncementsPage';
 import {
   OperationalBulletinsPage,
   OperationalClassesPage,
@@ -109,6 +110,7 @@ function AppRoutes() {
         <Route path="grades" element={<OperationalGradesPage />} />
         <Route path="bulletins" element={<OperationalBulletinsPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
+        <Route path="announcements" element={<AnnouncementsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="expenses" element={<ExpensesPage />} />

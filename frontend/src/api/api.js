@@ -846,6 +846,16 @@ export async function deleteEleve_admin(eleveId) {
   return deleteRequest(`/eleves/${eleveId}`);
 }
 
+// §6.3 — transfert d'un élève vers une autre classe (même niveau).
+export async function transferEleve(eleveId, newClasseId) {
+  const res = await fetch(`/eleves/${eleveId}/transfer`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ new_classe_id: Number(newClasseId) }),
+  });
+  return normalizeEleve(await handleResponse(res));
+}
+
 // ── Référentiel MINESEC (lecture seule, §8) ───────────────
 export async function fetchReferentielTree() {
   const res = await fetch('/referentiel/tree', { headers: getHeaders() });
