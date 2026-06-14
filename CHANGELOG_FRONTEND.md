@@ -41,6 +41,15 @@
 - Correction des dépendances du hook de chargement dans `NotesEntry`.
 - Validation finale avec `npm run build` et `npm run lint` sans erreur ni warning.
 
+## Affectations et années scolaires
+
+- Création professeur enrichie avec affectation immédiate à une matière de classe.
+- Création matière enrichie avec association facultative immédiate à un professeur.
+- Les matières chargées depuis l'API conservent maintenant leur `classe_id` et `classe_nom`.
+- Ajout d'une gestion des années scolaires dans les paramètres: préparation, activation, archivage et passage à l'année suivante.
+- Backend `pedagogie-service`: ajout du modèle `AnneeScolaire`, rattachement optionnel des classes à l'année active, endpoints de création/liste/activation/passage d'année.
+- Backend `pedagogie-service`: création d'une matière spéciale avec `enseignant_id` optionnel pour affecter un professeur dès la création.
+
 ## Prochaines améliorations
 
 - Rebrancher les modules restants: paiements, présences, notes, bulletins et rapports.

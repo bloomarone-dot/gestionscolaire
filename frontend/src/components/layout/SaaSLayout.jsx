@@ -1,30 +1,69 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, GraduationCap, LayoutDashboard,
-  Menu, Receipt, Search, Settings, Users, UserCog, WalletCards, X,
-  BarChart3, ClipboardCheck, School, LogOut,
+  Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, GraduationCap, LayoutDashboard,
+  Layers, Library, Menu, Receipt, Search, Settings, Users, UserCog, WalletCards, X,
+  BarChart3, ClipboardCheck, ClipboardList, School, LogOut, ArrowRightLeft, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { Avatar, Button } from '../ui';
 
+// Sidebar conforme à l'ordre hiérarchique §8 du cahier des charges.
+// Rubriques dépliables ; rubrique « Extra » = fonctionnalités hors cahier (conservées).
+// (Référentiel MINESEC → lot P2-C ; Communication/Annonces → lot P2-D.)
 const nav = [
   { to: '/app/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  { to: '/app/students', label: 'Eleves', icon: Users },
-  { to: '/app/parents', label: 'Parents', icon: UserCog },
-  { to: '/app/teachers', label: 'Personnel', icon: UserCog },
-  { to: '/app/classes', label: 'Classes', icon: School },
-  { to: '/app/subjects', label: 'Matieres', icon: BookOpen },
-  { to: '/app/schedules', label: 'Emplois du temps', icon: CalendarDays },
-  { to: '/app/attendance', label: 'Presences', icon: ClipboardCheck },
-  { to: '/app/grades', label: 'Notes', icon: BarChart3 },
-  { to: '/app/bulletins', label: 'Bulletins', icon: Receipt },
-  { to: '/app/payments', label: 'Paiements', icon: WalletCards },
-  { to: '/app/expenses', label: 'Depenses', icon: WalletCards },
-  { to: '/app/reports', label: 'Rapports', icon: BarChart3 },
-  { to: '/app/users', label: 'Utilisateurs', icon: UserCog },
-  { to: '/app/settings', label: 'Parametres', icon: Settings },
+  {
+    group: 'Structure Pédagogique', icon: Layers, items: [
+      { to: '/app/classes', label: 'Classes', icon: School },
+      { to: '/app/subjects', label: 'Matières', icon: BookOpen },
+      { to: '/app/referentiel', label: 'Référentiel MINESEC', icon: Library },
+    ],
+  },
+  {
+    group: 'Personnel', icon: UserCog, items: [
+      { to: '/app/teachers?fonction=enseignant', label: 'Enseignants', icon: GraduationCap },
+      { to: '/app/teachers?fonction=direction', label: 'Direction / Administration', icon: UserCog },
+    ],
+  },
+  {
+    group: 'Élèves', icon: Users, items: [
+      { to: '/app/students', label: 'Liste des élèves', icon: Users },
+      { to: '/app/students?tab=inscription', label: 'Inscriptions', icon: ClipboardList },
+      { to: '/app/promotions', label: 'Promotions / Passages', icon: ArrowRightLeft },
+    ],
+  },
+  {
+    group: 'Évaluations', icon: BarChart3, items: [
+      { to: '/app/grades', label: 'Saisie des notes', icon: BarChart3 },
+      { to: '/app/bulletins', label: 'Bulletins', icon: Receipt },
+    ],
+  },
+  {
+    group: 'Communication', icon: Bell, items: [
+      { to: '/app/notifications', label: 'Notifications', icon: Bell },
+    ],
+  },
+  {
+    group: 'Paramètres', icon: Settings, items: [
+      { to: '/app/settings', label: "Profil de l'école", icon: School },
+      { to: '/app/users', label: 'Utilisateurs & Droits', icon: UserCog },
+    ],
+  },
+  {
+    group: 'Extra', icon: Sparkles, items: [
+      { to: '/app/parents', label: 'Parents', icon: UserCog },
+      { to: '/app/schedules', label: 'Emplois du temps', icon: CalendarDays },
+      { to: '/app/attendance', label: 'Présences', icon: ClipboardCheck },
+      { to: '/app/payments', label: 'Paiements', icon: WalletCards },
+      { to: '/app/expenses', label: 'Dépenses', icon: WalletCards },
+      { to: '/app/reports', label: 'Rapports', icon: BarChart3 },
+    ],
+  },
 ];
+
+// Tous les liens à plat (pour la recherche et le rail réduit).
+const flatNav = nav.flatMap((entry) => (entry.items ? entry.items : [entry]));
 
 export default function SaaSLayout() {
   const [open, setOpen] = useState(false);
@@ -34,7 +73,15 @@ export default function SaaSLayout() {
   const [query, setQuery] = useState('');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'Admin Ecole';
+
+  // Rubriques dépliées : toutes ouvertes par défaut, plus celle de la route active.
+  const [expanded, setExpanded] = useState(() =>
+    Object.fromEntries(nav.filter((e) => e.items).map((e) => [e.group, true])),
+  );
+  const toggleGroup = (group) => setExpanded((prev) => ({ ...prev, [group]: !prev[group] }));
+  const isItemActive = (to) => location.pathname === to.split('?')[0];
 
   const handleLogout = () => {
     logout();
@@ -45,7 +92,7 @@ export default function SaaSLayout() {
     event.preventDefault();
     const value = query.trim().toLowerCase();
     if (!value) return;
-    const target = nav.find((item) => item.label.toLowerCase().includes(value));
+    const target = flatNav.find((item) => item.label.toLowerCase().includes(value));
     if (target) navigate(target.to);
   };
 
@@ -68,22 +115,78 @@ export default function SaaSLayout() {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {nav.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => setOpen(false)}
-                className={({ isActive }) => `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
-                  isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
-                }`}
-              >
-                <Icon size={20} />
-                {!collapsed && <span>{item.label}</span>}
-              </NavLink>
-            );
-          })}
+          {collapsed
+            ? flatNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    title={item.label}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center justify-center rounded-xl px-3 py-2.5 transition ${
+                      isItemActive(item.to) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon size={20} />
+                  </NavLink>
+                );
+              })
+            : nav.map((entry) => {
+                // Lien simple (ex. Tableau de bord).
+                if (!entry.items) {
+                  const Icon = entry.icon;
+                  return (
+                    <NavLink
+                      key={entry.to}
+                      to={entry.to}
+                      onClick={() => setOpen(false)}
+                      className={({ isActive }) => `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                        isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                      }`}
+                    >
+                      <Icon size={20} />
+                      <span>{entry.label}</span>
+                    </NavLink>
+                  );
+                }
+                // Rubrique dépliable.
+                const GroupIcon = entry.icon;
+                const isOpen = expanded[entry.group];
+                return (
+                  <div key={entry.group}>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(entry.group)}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                    >
+                      <GroupIcon size={18} />
+                      <span className="flex-1 text-left">{entry.group}</span>
+                      <ChevronRight size={15} className={`transition ${isOpen ? 'rotate-90' : ''}`} />
+                    </button>
+                    {isOpen && (
+                      <div className="mt-0.5 space-y-0.5 pl-3">
+                        {entry.items.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <NavLink
+                              key={item.to}
+                              to={item.to}
+                              onClick={() => setOpen(false)}
+                              className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                                isItemActive(item.to) ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                              }`}
+                            >
+                              <Icon size={18} />
+                              <span>{item.label}</span>
+                            </NavLink>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
         </nav>
 
         <div className="border-t border-slate-200 p-3">

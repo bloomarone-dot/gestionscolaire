@@ -75,6 +75,13 @@ def update_eleve(db: Session, tenant_id: int, eleve_id: int, payload: EleveUpdat
     return e
 
 
+def delete_eleve(db: Session, tenant_id: int, eleve_id: int) -> None:
+    """Supprime un élève (et ses parents en cascade)."""
+    e = get_eleve(db, tenant_id, eleve_id)
+    db.delete(e)
+    db.commit()
+
+
 def transfer(db: Session, tenant_id: int, eleve_id: int, new_classe_id: int) -> tuple[Eleve, Optional[int]]:
     """§6.3 — change de classe (même niveau). L'historique des notes (autre service) est conservé."""
     e = get_eleve(db, tenant_id, eleve_id)

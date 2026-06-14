@@ -54,7 +54,7 @@ def render_bulletin_pdf(data: dict) -> bytes:
         _identity(header, b, L),
         _subjects(b, L, seq_lbls),
         _footer(b, data, header, L),
-        _signatures(L),
+        _signatures(header, L),
         _next_term(header, L),
     ]
     doc.build(story)
@@ -200,16 +200,28 @@ def _footer(b, data, header, L) -> Table:
     return t
 
 
-def _signatures(L) -> Table:
+def _signatures(header, L) -> Table:
+    prof = header.get("prof_principal")
     rows = [[_p(L["parents"], bold=True, align=TA_CENTER), _p(L["sdm"], bold=True, align=TA_CENTER),
              _p(L["principal"], bold=True, align=TA_CENTER), _p(L["date"], bold=True, align=TA_CENTER)],
             ["", "", "", ""]]
-    t = Table(rows, colWidths=[4.75 * cm] * 4, rowHeights=[0.55 * cm, 1.7 * cm])
-    t.setStyle(TableStyle([
+    row_heights = [0.55 * cm, 1.7 * cm]
+    style = [
         ("BOX", (0, 0), (-1, -1), 0.8, BLACK),
         ("INNERGRID", (0, 0), (-1, -1), 0.5, BLACK),
         ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
-    ]))
+    ]
+    if prof:
+        # Bandeau Professeur Principal (le template n'a pas de colonne dédiée).
+        rows.insert(0, [_p(f'{L["class_master"]} : {prof}', bold=True, align=TA_CENTER), "", "", ""])
+        row_heights.insert(0, 0.5 * cm)
+        style += [
+            ("SPAN", (0, 0), (-1, 0)),
+            ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.5, BLACK),
+        ]
+    t = Table(rows, colWidths=[4.75 * cm] * 4, rowHeights=row_heights)
+    t.setStyle(TableStyle(style))
     return t
 
 

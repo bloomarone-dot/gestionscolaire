@@ -82,6 +82,7 @@ def build_class_bulletins(
     result = compute_class_bulletins(students, subjects, notes, lang, trimestre, scope)
     result["header"] = _header(classe, school, lang, trimestre, scope)
     result["header"]["effectif"] = result["effectif"]
+    result["header"]["prof_principal"] = teacher_names.get(classe.get("prof_principal_id"))
     for b in result["bulletins"]:
         b["decision"] = decision(b["moyenne_generale"], lang)
     return result

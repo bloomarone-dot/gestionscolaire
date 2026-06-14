@@ -17,6 +17,9 @@ import {
   UsersPage,
 } from './pages/modern/ListPages';
 import { SettingsPage } from './pages/modern/SchoolSettings';
+import PromotionsPage from './pages/modern/PromotionsPage';
+import ReferentielPage from './pages/modern/ReferentielPage';
+import NotificationsPage from './pages/modern/NotificationsPage';
 import {
   OperationalBulletinsPage,
   OperationalClassesPage,
@@ -100,10 +103,13 @@ function AppRoutes() {
         <Route path="teachers" element={<OperationalTeachersPage />} />
         <Route path="classes" element={<OperationalClassesPage />} />
         <Route path="subjects" element={<OperationalSubjectsPage />} />
+        <Route path="referentiel" element={<ReferentielPage />} />
         <Route path="schedules" element={<SchedulesPage />} />
         <Route path="attendance" element={<AttendancePage />} />
         <Route path="grades" element={<OperationalGradesPage />} />
         <Route path="bulletins" element={<OperationalBulletinsPage />} />
+        <Route path="promotions" element={<PromotionsPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="expenses" element={<ExpensesPage />} />
         <Route path="reports" element={<ReportsPage />} />

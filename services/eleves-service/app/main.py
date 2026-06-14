@@ -118,6 +118,14 @@ def update_eleve(
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
 
+@app.delete("/eleves/{eleve_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["eleves"])
+def delete_eleve(eleve_id: int, db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
+    try:
+        crud.delete_eleve(db, ctx.tenant_id, eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+
 @app.get("/eleves/{eleve_id}/matieres", tags=["eleves"])
 def inherited_subjects(
     eleve_id: int,

@@ -799,6 +799,38 @@ export async function deleteEleve_admin(eleveId) {
   return deleteRequest(`/eleves/${eleveId}`);
 }
 
+// ── Référentiel MINESEC (lecture seule, §8) ───────────────
+export async function fetchReferentielTree() {
+  const res = await fetch('/referentiel/tree', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+// ── Communication : historique des notifications (§12) ────
+export async function fetchNotifications() {
+  const res = await fetch('/notifications', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function sendAnnouncement(payload) {
+  const res = await fetch('/notifications/announce', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+// ── Promotions / Passages de fin d'année (§10) ────────────
+// payload: { source_classe_id, items: [{ eleve_id, status, dest_classe_id, new_series_code }] }
+export async function applyPromotions(payload) {
+  const res = await fetch('/eleves/promotions/apply', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
 export async function downloadElevesImportTemplate() {
   unsupported("Le modèle d'import des élèves");
 }

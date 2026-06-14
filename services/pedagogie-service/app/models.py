@@ -12,6 +12,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
+    Date,
     Column,
     DateTime,
     Float,
@@ -49,9 +50,28 @@ class Classe(Base):
 
     effectif_max = Column(Integer, nullable=True)
     prof_principal_id = Column(Integer, nullable=True)
+    annee_scolaire_id = Column(Integer, ForeignKey("annees_scolaires.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     matieres = relationship("ClasseMatiere", cascade="all, delete-orphan", back_populates="classe")
+    annee_scolaire = relationship("AnneeScolaire", back_populates="classes")
+
+
+class AnneeScolaire(Base):
+    """Année scolaire d'un établissement, une seule active par tenant."""
+    __tablename__ = "annees_scolaires"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    annee = Column(String(20), nullable=False)
+    date_debut = Column(Date, nullable=True)
+    date_fin = Column(Date, nullable=True)
+    is_active = Column(Boolean, default=False, nullable=False)
+    is_archived = Column(Boolean, default=False, nullable=False)
+    archived_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    classes = relationship("Classe", back_populates="annee_scolaire")
 
 
 class SpecialSubject(Base):

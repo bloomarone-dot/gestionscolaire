@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from common.db import Base
 from app import crud
-from app.schemas import ClasseCreate, MatiereUpdate, SpecialMatiereCreate
+from app.schemas import AnneeScolaireCreate, ClasseCreate, MatiereUpdate, PassageAnneeIn, SpecialMatiereCreate
 
 TENANT = 1
 OTHER_TENANT = 2
@@ -82,6 +82,37 @@ def test_add_special_matiere(db):
     assert m.nom == "Mandarin"
     matieres = crud.list_matieres(db, TENANT, classe.id)
     assert any(x.source == "SPECIALE" for x in matieres)
+
+
+def test_add_special_matiere_with_teacher(db):
+    classe = _make_tle_c(db)
+    m = crud.add_special_matiere(
+        db, TENANT, classe.id, SpecialMatiereCreate(nom="Robotique", coefficient=2, enseignant_id=42)
+    )
+    assert m.enseignant_id == 42
+
+
+def test_school_year_activation_and_rollover(db):
+    y1 = crud.create_annee(db, TENANT, AnneeScolaireCreate(annee="2025-2026", is_active=True))
+    y2 = crud.create_annee(db, TENANT, AnneeScolaireCreate(annee="2026-2027"))
+
+    active = crud.activate_annee(db, TENANT, y2.id)
+    db.refresh(y1)
+    assert active.annee == "2026-2027"
+    assert y1.is_archived is True
+    assert y1.is_active is False
+
+    next_year = crud.passage_annee(db, TENANT, PassageAnneeIn())
+    db.refresh(y2)
+    assert next_year.annee == "2027-2028"
+    assert next_year.is_active is True
+    assert y2.is_archived is True
+
+
+def test_class_uses_active_school_year(db):
+    year = crud.create_annee(db, TENANT, AnneeScolaireCreate(annee="2025-2026", is_active=True))
+    classe = _make_tle_c(db)
+    assert classe.annee_scolaire_id == year.id
 
 
 def test_tenant_isolation(db):

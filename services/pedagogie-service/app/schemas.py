@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, model_validator
@@ -9,6 +9,7 @@ class ClasseCreate(BaseModel):
     nom_personnalise: str
     effectif_max: Optional[int] = None
     prof_principal_id: Optional[int] = None
+    annee_scolaire_id: Optional[int] = None
 
     # Cascade (classe standard)
     subsystem_code: Optional[str] = None
@@ -59,6 +60,8 @@ class ClasseListItem(BaseModel):
     specialite_libre: Optional[str] = None
     effectif_max: Optional[int] = None
     prof_principal_id: Optional[int] = None
+    annee_scolaire_id: Optional[int] = None
+    annee_scolaire: Optional[str] = None
     nb_matieres: int
     statut: str            # « Standard » | « Spéciale »
 
@@ -68,6 +71,12 @@ class ClasseDetail(ClasseListItem):
     cycle_code: Optional[str] = None
     created_at: datetime
     matieres: List[MatiereOut] = []
+
+
+class ClasseUpdate(BaseModel):
+    nom_personnalise: Optional[str] = None
+    effectif_max: Optional[int] = None
+    prof_principal_id: Optional[int] = None
 
 
 class MatiereUpdate(BaseModel):
@@ -83,3 +92,29 @@ class SpecialMatiereCreate(BaseModel):
     nom: str
     coefficient: float = 1
     volume_horaire: Optional[int] = None
+    enseignant_id: Optional[int] = None
+
+
+class AnneeScolaireCreate(BaseModel):
+    annee: str
+    date_debut: Optional[date] = None
+    date_fin: Optional[date] = None
+    is_active: bool = False
+
+
+class AnneeScolaireOut(BaseModel):
+    id: int
+    annee: str
+    date_debut: Optional[date] = None
+    date_fin: Optional[date] = None
+    is_active: bool
+    is_archived: bool
+    archived_at: Optional[datetime] = None
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+
+class PassageAnneeIn(BaseModel):
+    next_annee: Optional[str] = None
+    date_debut: Optional[date] = None
+    date_fin: Optional[date] = None
