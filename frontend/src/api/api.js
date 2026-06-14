@@ -497,30 +497,77 @@ export async function deleteProfesseur(profId) {
 }
 
 // ── Classes (Admin) ──────────────────────────────────────
-export async function fetchClasses() {
-  const res = await fetch('/pedagogie/classes', { headers: getHeaders() });
+// Filtres de cascade (§6 étape 5) : ne renvoyer que les classes correspondant au profil.
+export async function fetchClasses(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.subsystem) params.set('subsystem', filters.subsystem);
+  if (filters.type) params.set('type', filters.type);
+  if (filters.level) params.set('level', filters.level);
+  if (filters.series) params.set('series', filters.series);
+  const query = params.toString() ? `?${params}` : '';
+  const res = await fetch(`/pedagogie/classes${query}`, { headers: getHeaders() });
   const data = await handleResponse(res);
   return data.map(normalizeClasse);
 }
 
+// §4 — création en cascade. Le formulaire fournit les codes officiels du référentiel ;
+// seul `nom_personnalise` est saisi librement (sauf classe spéciale §4.3).
 export async function createClasse(classeData) {
-  const section = classeData.section === 'anglophone' ? 'ANGLOPHONE' : 'FRANCOPHONE';
+  const isSpecial = Boolean(classeData.is_special);
+  const payload = {
+    nom_personnalise: classeData.nom_personnalise || classeData.nom,
+    effectif_max: Number(classeData.effectif_max ?? classeData.capacite) || null,
+    prof_principal_id: classeData.prof_principal_id ? Number(classeData.prof_principal_id) : null,
+    is_special: isSpecial,
+  };
+  if (isSpecial) {
+    payload.niveau_libre = classeData.niveau_libre || null;
+    payload.specialite_libre = classeData.specialite_libre || null;
+  } else {
+    payload.subsystem_code = classeData.subsystem_code;
+    payload.type_code = classeData.type_code;
+    payload.cycle_code = classeData.cycle_code || null;
+    payload.level_code = classeData.level_code;
+    payload.series_code = classeData.series_code || null;
+  }
   const res = await fetch('/pedagogie/classes', {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({
-      nom_personnalise: classeData.nom_personnalise || classeData.nom,
-      effectif_max: Number(classeData.effectif_max ?? classeData.capacite) || null,
-      subsystem_code: section,
-      type_code: classeData.type_code || 'GENERAL',
-      level_code: classeData.level_code || null,
-      series_code: classeData.series_code || classeData.serie || null,
-      is_special: !classeData.level_code,
-      niveau_libre: classeData.niveau_libre || classeData.niveau || classeData.nom,
-      specialite_libre: classeData.specialite_libre || classeData.serie || null,
-    }),
+    body: JSON.stringify(payload),
   });
   return normalizeClasse(await handleResponse(res));
+}
+
+// ── Référentiel MINESEC : cascade (§4.1) ──────────────────
+export async function fetchSubsystems() {
+  const res = await fetch('/referentiel/subsystems', { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function fetchTeachingTypes(subsystem) {
+  const q = subsystem ? `?subsystem=${encodeURIComponent(subsystem)}` : '';
+  const res = await fetch(`/referentiel/teaching-types${q}`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function fetchCycles(subsystem, type) {
+  const params = new URLSearchParams({ subsystem });
+  if (type) params.set('type', type);
+  const res = await fetch(`/referentiel/cycles?${params}`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function fetchLevels(subsystem, type, cycle) {
+  const params = new URLSearchParams({ subsystem });
+  if (type) params.set('type', type);
+  if (cycle) params.set('cycle', cycle);
+  const res = await fetch(`/referentiel/levels?${params}`, { headers: getHeaders() });
+  return handleResponse(res);
+}
+
+export async function fetchLevelSeries(levelCode) {
+  const res = await fetch(`/referentiel/levels/${encodeURIComponent(levelCode)}/series`, { headers: getHeaders() });
+  return handleResponse(res);
 }
 
 export async function deleteClasse(classeId) {

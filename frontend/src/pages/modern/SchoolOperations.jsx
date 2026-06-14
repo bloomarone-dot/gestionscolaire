@@ -1,13 +1,40 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, Trash2, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard, Textarea } from '../../components/ui';
+import { useReferentielCascade } from '../../hooks/useReferentielCascade';
 
-const levelOptions = [
-  ['6E', '6eme'], ['5E', '5eme'], ['4E', '4eme'], ['3E', '3eme'],
-  ['2ND', '2nde'], ['1ERE', '1ere'], ['TLE', 'Terminale'],
-  ['F1', 'Form 1'], ['F2', 'Form 2'], ['F3', 'Form 3'], ['F4', 'Form 4'], ['F5', 'Form 5'],
-];
+// §4.1 — sélecteurs en cascade (Sous-système → Type → Cycle → Niveau → Série).
+// Réutilisé pour la création de classe (§4) et l'inscription élève (§6).
+function CascadeFields({ cascade }) {
+  const { subsystems, types, cycles, levels, series, value, select, hasSeries } = cascade;
+  return (
+    <>
+      <Select value={value.subsystem_code} onChange={(e) => select('subsystem_code', e.target.value)}>
+        <option value="">Sous-système…</option>
+        {subsystems.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
+      </Select>
+      <Select disabled={!value.subsystem_code} value={value.type_code} onChange={(e) => select('type_code', e.target.value)}>
+        <option value="">Type d'enseignement…</option>
+        {types.map((t) => <option key={t.code} value={t.code}>{t.name_fr}</option>)}
+      </Select>
+      <Select disabled={!value.type_code} value={value.cycle_code} onChange={(e) => select('cycle_code', e.target.value)}>
+        <option value="">Cycle…</option>
+        {cycles.map((c) => <option key={c.code} value={c.code}>{c.name_fr}</option>)}
+      </Select>
+      <Select disabled={!value.cycle_code} value={value.level_code} onChange={(e) => select('level_code', e.target.value)}>
+        <option value="">Niveau…</option>
+        {levels.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
+      </Select>
+      {hasSeries && (
+        <Select value={value.series_code} onChange={(e) => select('series_code', e.target.value)}>
+          <option value="">Série / Spécialité…</option>
+          {series.map((s) => <option key={s.code} value={s.code}>{s.code} — {s.name_fr}</option>)}
+        </Select>
+      )}
+    </>
+  );
+}
 
 const evaluationTypes = [
   ['sequence_1', 'Sequence 1'],
@@ -220,8 +247,10 @@ export function OperationalClassesPage() {
   const loadClasses = useCallback(async () => (await api.fetchClasses()).map(classRow), []);
   const { rows, setRows, loading, error } = useLoad(loadClasses, []);
   const { rows: teacherRows } = useLoad(useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []), []);
-  const [form, setForm] = useState({ nom: '', effectif_max: 40, level_code: '', series_code: '', section: 'francophone' });
+  const [form, setForm] = useState({ nom: '', effectif_max: 40, prof_principal_id: '', niveau_libre: '', specialite_libre: '' });
+  const [special, setSpecial] = useState(false);
   const [notice, setNotice] = useState('');
+  const cascade = useReferentielCascade();
 
   async function assignProfPrincipal(row, profId) {
     try {
@@ -233,19 +262,25 @@ export function OperationalClassesPage() {
 
   async function submit(event) {
     event.preventDefault();
+    if (!special && !cascade.isComplete) {
+      setNotice('Veuillez compléter la cascade (sous-système → … → niveau/série).');
+      return;
+    }
     try {
-      const created = await api.createClasse({
-        nom: form.nom,
+      const base = {
         nom_personnalise: form.nom,
         effectif_max: form.effectif_max,
-        level_code: form.level_code || null,
-        series_code: form.series_code || null,
-        section: form.section,
-        niveau_libre: form.level_code ? '' : form.nom,
-      });
+        prof_principal_id: form.prof_principal_id || null,
+      };
+      const payload = special
+        ? { ...base, is_special: true, niveau_libre: form.niveau_libre, specialite_libre: form.specialite_libre }
+        : { ...base, is_special: false, ...cascade.value };
+      const created = await api.createClasse(payload);
       setRows((current) => [classRow(created), ...current]);
-      setForm({ nom: '', effectif_max: 40, level_code: '', series_code: '', section: 'francophone' });
-      setNotice('Classe creee avec succes.');
+      setForm({ nom: '', effectif_max: 40, prof_principal_id: '', niveau_libre: '', specialite_libre: '' });
+      cascade.reset();
+      setSpecial(false);
+      setNotice(special ? 'Classe spéciale créée.' : 'Classe créée — matières héritées du référentiel.');
     } catch (err) {
       setNotice(err.message || 'Creation de classe impossible.');
     }
@@ -277,18 +312,35 @@ export function OperationalClassesPage() {
         ) },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
-        <h2 className="mb-4 font-bold">Creer une classe</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-bold">Créer une classe</h2>
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+            <input type="checkbox" checked={special} onChange={(e) => setSpecial(e.target.checked)} />
+            Classe spéciale (hors référentiel MINESEC)
+          </label>
+        </div>
         <form id="class-form" className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
-          <Input required placeholder="Nom de la classe" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} />
-          <Input type="number" min="1" placeholder="Capacite" value={form.effectif_max} onChange={(e) => setForm({ ...form, effectif_max: e.target.value })} />
-          <Select value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })}><option value="francophone">Francophone</option><option value="anglophone">Anglophone</option></Select>
-          <Select value={form.level_code} onChange={(e) => setForm({ ...form, level_code: e.target.value })}>
-            <option value="">Classe speciale / niveau libre</option>
-            {levelOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          {special ? (
+            <>
+              <Input required placeholder="Niveau (libre)" value={form.niveau_libre} onChange={(e) => setForm({ ...form, niveau_libre: e.target.value })} />
+              <Input placeholder="Spécialité (libre)" value={form.specialite_libre} onChange={(e) => setForm({ ...form, specialite_libre: e.target.value })} />
+            </>
+          ) : (
+            <CascadeFields cascade={cascade} />
+          )}
+          <Input required placeholder="Nom personnalisé (ex. Tle D1)" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} />
+          <Input type="number" min="1" placeholder="Effectif maximum" value={form.effectif_max} onChange={(e) => setForm({ ...form, effectif_max: e.target.value })} />
+          <Select value={form.prof_principal_id} onChange={(e) => setForm({ ...form, prof_principal_id: e.target.value })}>
+            <option value="">Professeur principal (optionnel)</option>
+            {teacherRows.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </Select>
-          <Input placeholder="Serie ou specialite" value={form.series_code} onChange={(e) => setForm({ ...form, series_code: e.target.value })} />
+          {special && (
+            <p className="md:col-span-2 text-xs text-amber-600">
+              Classe hors référentiel : aucune matière n'est pré-remplie. Étiquette « Spéciale » appliquée partout.
+            </p>
+          )}
           <div className="md:col-span-2 flex justify-end">
-            <Button type="submit"><Plus size={16} /> Creer la classe</Button>
+            <Button type="submit"><Plus size={16} /> Créer la classe</Button>
           </div>
         </form>
       </Card>
@@ -308,27 +360,51 @@ export function OperationalStudentsPage() {
     }));
     return eleves.map((eleve) => studentRow(eleve, classLookup));
   }, []);
-  const loadClasses = useCallback(async () => (await api.fetchClasses()).map(classRow), []);
   const { rows, setRows, loading, error } = useLoad(loadStudents, []);
-  const { rows: classRows } = useLoad(loadClasses, []);
-  const [form, setForm] = useState({ nom: '', prenom: '', matricule: '', sexe: '', classe_id: '', parent_nom: '', parent_phone: '' });
+  const [form, setForm] = useState({ nom: '', prenom: '', matricule: '', sexe: '', classe_id: '', parent_nom: '', parent_phone: '', parent_phone2: '', parent_adresse: '' });
   const [notice, setNotice] = useState('');
+  const cascade = useReferentielCascade();
+  const [filteredClasses, setFilteredClasses] = useState([]);
+
+  // §6 étape 5 : ne proposer que les classes correspondant exactement au profil choisi.
+  useEffect(() => {
+    if (!cascade.isComplete) { setFilteredClasses([]); return; }
+    api.fetchClasses({
+      subsystem: cascade.value.subsystem_code,
+      type: cascade.value.type_code,
+      level: cascade.value.level_code,
+      series: cascade.value.series_code || undefined,
+    })
+      .then((data) => setFilteredClasses(data.map(classRow)))
+      .catch(() => setFilteredClasses([]));
+    setForm((f) => ({ ...f, classe_id: '' }));
+  }, [cascade.isComplete, cascade.value.subsystem_code, cascade.value.type_code, cascade.value.level_code, cascade.value.series_code]);
 
   async function submit(event) {
     event.preventDefault();
+    if (!cascade.isComplete) { setNotice('Complétez la cascade (sous-système → … → niveau/série).'); return; }
+    if (!form.classe_id) { setNotice('Choisissez une classe correspondant au profil.'); return; }
     try {
       const created = await api.createEleve_admin({
         nom: form.nom,
         prenom: form.prenom || null,
         matricule: form.matricule || null,
         sexe: form.sexe || null,
+        subsystem_code: cascade.value.subsystem_code,
+        type_code: cascade.value.type_code,
+        cycle_code: cascade.value.cycle_code || null,
+        level_code: cascade.value.level_code,
+        series_code: cascade.value.series_code || null,
         classe_id: form.classe_id ? Number(form.classe_id) : null,
-        parents: form.parent_nom && form.parent_phone ? [{ nom: form.parent_nom, phone: form.parent_phone }] : [],
+        parents: form.parent_nom && form.parent_phone
+          ? [{ nom: form.parent_nom, phone: form.parent_phone, phone2: form.parent_phone2 || null, adresse: form.parent_adresse || null }]
+          : [],
       });
-      const classLookup = Object.fromEntries(classRows.map((classe) => [String(classe.id), classe.name]));
+      const classLookup = Object.fromEntries(filteredClasses.map((classe) => [String(classe.id), classe.name]));
       setRows((current) => [studentRow(created, classLookup), ...current]);
-      setForm({ nom: '', prenom: '', matricule: '', sexe: '', classe_id: '', parent_nom: '', parent_phone: '' });
-      setNotice('Eleve cree avec succes.');
+      setForm({ nom: '', prenom: '', matricule: '', sexe: '', classe_id: '', parent_nom: '', parent_phone: '', parent_phone2: '', parent_adresse: '' });
+      cascade.reset();
+      setNotice('Élève inscrit — il hérite des matières de sa classe.');
     } catch (err) {
       setNotice(err.message || "Creation de l'eleve impossible.");
     }
@@ -355,20 +431,29 @@ export function OperationalStudentsPage() {
         { key: 'status', label: 'Statut', render: (row) => <Badge tone="emerald">{row.status}</Badge> },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
-        <h2 className="mb-4 font-bold">Inscrire un eleve</h2>
+        <h2 className="mb-1 font-bold">Inscrire un élève</h2>
+        <p className="mb-4 text-sm text-slate-500">Choix en cascade ; la liste des classes est filtrée selon le profil.</p>
         <form id="student-form" className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
           <Input required placeholder="Nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} />
-          <Input placeholder="Prenom" value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} />
-          <Input placeholder="Matricule auto si vide" value={form.matricule} onChange={(e) => setForm({ ...form, matricule: e.target.value })} />
-          <Select value={form.sexe} onChange={(e) => setForm({ ...form, sexe: e.target.value })}><option value="">Sexe</option><option value="M">Masculin</option><option value="F">Feminin</option></Select>
-          <Select value={form.classe_id} onChange={(e) => setForm({ ...form, classe_id: e.target.value })}>
-            <option value="">Classe</option>
-            {classRows.map((classe) => <option key={classe.id} value={classe.id}>{classe.name}</option>)}
-          </Select>
+          <Input placeholder="Prénom" value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} />
+          <Input placeholder="Matricule (auto si vide)" value={form.matricule} onChange={(e) => setForm({ ...form, matricule: e.target.value })} />
+          <Select value={form.sexe} onChange={(e) => setForm({ ...form, sexe: e.target.value })}><option value="">Sexe</option><option value="M">Masculin</option><option value="F">Féminin</option></Select>
+
+          <div className="md:col-span-2 grid gap-4 md:grid-cols-2 rounded-lg bg-slate-50 p-4">
+            <p className="md:col-span-2 text-xs font-bold uppercase tracking-wide text-slate-400">Profil (cascade)</p>
+            <CascadeFields cascade={cascade} />
+            <Select className="md:col-span-2" value={form.classe_id} onChange={(e) => setForm({ ...form, classe_id: e.target.value })} disabled={!cascade.isComplete}>
+              <option value="">{cascade.isComplete ? (filteredClasses.length ? 'Classe correspondante…' : 'Aucune classe pour ce profil') : 'Complétez la cascade'}</option>
+              {filteredClasses.map((classe) => <option key={classe.id} value={classe.id}>{classe.name}</option>)}
+            </Select>
+          </div>
+
           <Input placeholder="Nom parent/tuteur" value={form.parent_nom} onChange={(e) => setForm({ ...form, parent_nom: e.target.value })} />
-          <Input placeholder="Telephone parent" value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} />
+          <Input placeholder="Téléphone parent (obligatoire)" value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} />
+          <Input placeholder="2e téléphone (optionnel)" value={form.parent_phone2} onChange={(e) => setForm({ ...form, parent_phone2: e.target.value })} />
+          <Input placeholder="Adresse (optionnel)" value={form.parent_adresse} onChange={(e) => setForm({ ...form, parent_adresse: e.target.value })} />
           <div className="md:col-span-2 flex justify-end">
-            <Button type="submit"><UserPlus size={16} /> Inscrire l'eleve</Button>
+            <Button type="submit"><UserPlus size={16} /> Inscrire l'élève</Button>
           </div>
         </form>
       </Card>
