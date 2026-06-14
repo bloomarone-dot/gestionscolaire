@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Library, Plus, Save, Trash2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Save, Trash2 } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select } from '../../components/ui';
 
@@ -10,12 +11,11 @@ function Notice({ notice }) {
   return <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-semibold ${tone}`}>{notice.message}</div>;
 }
 
+// ── Liste (matières + éligibilités) ─────────────────────────────────────────
 export default function ReferentielAdminPage() {
   const [subjects, setSubjects] = useState([]);
   const [eligibility, setEligibility] = useState([]);
   const [notice, setNotice] = useState(null);
-  const [subjectForm, setSubjectForm] = useState({ code: '', name: '' });
-  const [eligForm, setEligForm] = useState({ subject_code: '', level_code: '', series_code: '', default_coefficient: 1, is_obligatoire: false, groupe: '' });
   const [editing, setEditing] = useState({}); // { [id]: name }
 
   const reload = useCallback(async () => {
@@ -28,16 +28,6 @@ export default function ReferentielAdminPage() {
     }
   }, []);
   useEffect(() => { reload(); }, [reload]);
-
-  async function addSubject(e) {
-    e.preventDefault();
-    try {
-      await api.createReferentielSubject({ code: subjectForm.code.trim(), name: subjectForm.name.trim() });
-      setSubjectForm({ code: '', name: '' });
-      setNotice({ message: 'Matière ajoutée au référentiel.', tone: 'emerald' });
-      reload();
-    } catch (err) { setNotice({ message: err.message, tone: 'rose' }); }
-  }
 
   async function saveSubject(row) {
     const name = editing[row.id];
@@ -56,23 +46,6 @@ export default function ReferentielAdminPage() {
     catch (err) { setNotice({ message: err.message, tone: 'rose' }); }
   }
 
-  async function addEligibility(e) {
-    e.preventDefault();
-    try {
-      await api.createReferentielEligibility({
-        subject_code: eligForm.subject_code,
-        level_code: eligForm.level_code.trim(),
-        series_code: eligForm.series_code.trim() || null,
-        default_coefficient: Number(eligForm.default_coefficient),
-        is_obligatoire: eligForm.is_obligatoire,
-        groupe: eligForm.groupe ? Number(eligForm.groupe) : null,
-      });
-      setEligForm({ subject_code: '', level_code: '', series_code: '', default_coefficient: 1, is_obligatoire: false, groupe: '' });
-      setNotice({ message: 'Éligibilité ajoutée.', tone: 'emerald' });
-      reload();
-    } catch (err) { setNotice({ message: err.message, tone: 'rose' }); }
-  }
-
   async function removeEligibility(row) {
     if (!window.confirm('Supprimer cette éligibilité ?')) return;
     try { await api.deleteReferentielEligibility(row.id); reload(); }
@@ -81,11 +54,14 @@ export default function ReferentielAdminPage() {
 
   return (
     <div>
-      <PageHeader title="Référentiel national" breadcrumb="Plateforme" description="Gestion des matières officielles et de leurs éligibilités (niveau / série / coefficient). Réservé à l'administrateur de la plateforme." />
+      <PageHeader title="Référentiel national" breadcrumb="Plateforme" description="Matières officielles et éligibilités (niveau / série / coefficient). Réservé à l'administrateur de la plateforme." />
       <Notice notice={notice} />
 
       <Card className="mb-6 p-5">
-        <h2 className="mb-4 font-bold">Matières officielles</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-bold">Matières officielles</h2>
+          <Link to="/superadmin/referentiel/matiere/nouveau"><Button><Plus size={16} /> Nouvelle matière</Button></Link>
+        </div>
         <DataTable
           title={`${subjects.length} matière(s)`}
           columns={[
@@ -106,15 +82,13 @@ export default function ReferentielAdminPage() {
             </div>
           )}
         />
-        <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={addSubject}>
-          <Input className="w-40" required placeholder="Code (ex. MATH)" value={subjectForm.code} onChange={(e) => setSubjectForm({ ...subjectForm, code: e.target.value })} />
-          <Input className="w-64" required placeholder="Nom de la matière" value={subjectForm.name} onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })} />
-          <Button><Plus size={16} /> Ajouter la matière</Button>
-        </form>
       </Card>
 
       <Card className="p-5">
-        <h2 className="mb-4 font-bold">Éligibilités (matière ↔ niveau ↔ série)</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-bold">Éligibilités (matière ↔ niveau ↔ série)</h2>
+          <Link to="/superadmin/referentiel/eligibilite/nouveau"><Button><Plus size={16} /> Nouvelle éligibilité</Button></Link>
+        </div>
         <DataTable
           title={`${eligibility.length} éligibilité(s)`}
           columns={[
@@ -128,19 +102,88 @@ export default function ReferentielAdminPage() {
           rows={eligibility}
           renderActions={(r) => <div className="flex justify-end"><Button variant="danger" className="px-2" title="Supprimer" onClick={() => removeEligibility(r)}><Trash2 size={16} /></Button></div>}
         />
-        <form className="mt-4 grid gap-3 md:grid-cols-3 lg:grid-cols-6" onSubmit={addEligibility}>
-          <Select required value={eligForm.subject_code} onChange={(e) => setEligForm({ ...eligForm, subject_code: e.target.value })}>
+      </Card>
+    </div>
+  );
+}
+
+// ── Création d'une matière ──────────────────────────────────────────────────
+export function SubjectCreatePage() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ code: '', name: '' });
+  const [notice, setNotice] = useState(null);
+
+  async function submit(e) {
+    e.preventDefault();
+    try {
+      await api.createReferentielSubject({ code: form.code.trim(), name: form.name.trim() });
+      navigate('/superadmin/referentiel');
+    } catch (err) { setNotice({ message: err.message, tone: 'rose' }); }
+  }
+
+  return (
+    <div>
+      <PageHeader title="Nouvelle matière" breadcrumb="Référentiel national"
+        actions={<Link to="/superadmin/referentiel"><Button variant="secondary">Retour à la liste</Button></Link>} />
+      <Notice notice={notice} />
+      <Card className="p-5">
+        <form className="flex flex-wrap items-end gap-3" onSubmit={submit}>
+          <Input className="w-40" required placeholder="Code (ex. MATH)" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+          <Input className="w-64" required placeholder="Nom de la matière" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Link to="/superadmin/referentiel"><Button type="button" variant="secondary">Annuler</Button></Link>
+          <Button><Plus size={16} /> Ajouter la matière</Button>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
+// ── Création d'une éligibilité ──────────────────────────────────────────────
+export function EligibilityCreatePage() {
+  const navigate = useNavigate();
+  const [subjects, setSubjects] = useState([]);
+  const [form, setForm] = useState({ subject_code: '', level_code: '', series_code: '', default_coefficient: 1, is_obligatoire: false, groupe: '' });
+  const [notice, setNotice] = useState(null);
+
+  useEffect(() => { api.adminListSubjects().then((d) => setSubjects(Array.isArray(d) ? d : [])).catch(() => setSubjects([])); }, []);
+
+  async function submit(e) {
+    e.preventDefault();
+    try {
+      await api.createReferentielEligibility({
+        subject_code: form.subject_code,
+        level_code: form.level_code.trim(),
+        series_code: form.series_code.trim() || null,
+        default_coefficient: Number(form.default_coefficient),
+        is_obligatoire: form.is_obligatoire,
+        groupe: form.groupe ? Number(form.groupe) : null,
+      });
+      navigate('/superadmin/referentiel');
+    } catch (err) { setNotice({ message: err.message, tone: 'rose' }); }
+  }
+
+  return (
+    <div>
+      <PageHeader title="Nouvelle éligibilité" breadcrumb="Référentiel national" description="Lie une matière à un niveau (et une série), avec coefficient officiel."
+        actions={<Link to="/superadmin/referentiel"><Button variant="secondary">Retour à la liste</Button></Link>} />
+      <Notice notice={notice} />
+      <Card className="p-5">
+        <form className="grid gap-3 md:grid-cols-3" onSubmit={submit}>
+          <Select required value={form.subject_code} onChange={(e) => setForm({ ...form, subject_code: e.target.value })}>
             <option value="">Matière…</option>
             {subjects.map((s) => <option key={s.id} value={s.code}>{s.name}</option>)}
           </Select>
-          <Input required placeholder="Niveau (ex. TLE)" value={eligForm.level_code} onChange={(e) => setEligForm({ ...eligForm, level_code: e.target.value })} />
-          <Input placeholder="Série (ex. D)" value={eligForm.series_code} onChange={(e) => setEligForm({ ...eligForm, series_code: e.target.value })} />
-          <Input type="number" step="0.5" min="0" placeholder="Coef." value={eligForm.default_coefficient} onChange={(e) => setEligForm({ ...eligForm, default_coefficient: e.target.value })} />
-          <Input type="number" min="1" placeholder="Groupe" value={eligForm.groupe} onChange={(e) => setEligForm({ ...eligForm, groupe: e.target.value })} />
+          <Input required placeholder="Niveau (ex. TLE)" value={form.level_code} onChange={(e) => setForm({ ...form, level_code: e.target.value })} />
+          <Input placeholder="Série (ex. D)" value={form.series_code} onChange={(e) => setForm({ ...form, series_code: e.target.value })} />
+          <Input type="number" step="0.5" min="0" placeholder="Coefficient" value={form.default_coefficient} onChange={(e) => setForm({ ...form, default_coefficient: e.target.value })} />
+          <Input type="number" min="1" placeholder="Groupe (optionnel)" value={form.groupe} onChange={(e) => setForm({ ...form, groupe: e.target.value })} />
           <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-            <input type="checkbox" checked={eligForm.is_obligatoire} onChange={(e) => setEligForm({ ...eligForm, is_obligatoire: e.target.checked })} /> Obligatoire
+            <input type="checkbox" checked={form.is_obligatoire} onChange={(e) => setForm({ ...form, is_obligatoire: e.target.checked })} /> Obligatoire
           </label>
-          <Button className="md:col-span-3 lg:col-span-6 justify-self-start"><Plus size={16} /> Ajouter l'éligibilité</Button>
+          <div className="md:col-span-3 flex justify-end gap-2">
+            <Link to="/superadmin/referentiel"><Button type="button" variant="secondary">Annuler</Button></Link>
+            <Button><Plus size={16} /> Ajouter l'éligibilité</Button>
+          </div>
         </form>
       </Card>
     </div>

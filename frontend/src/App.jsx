@@ -7,7 +7,7 @@ import ProfessorLayout from './components/layout/ProfessorLayout';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/modern/Dashboard';
 import SuperAdminConsole from './pages/modern/SuperAdminConsole';
-import ReferentielAdminPage from './pages/modern/ReferentielAdminPage';
+import ReferentielAdminPage, { SubjectCreatePage, EligibilityCreatePage } from './pages/modern/ReferentielAdminPage';
 import {
   AttendancePage,
   PaymentsPage,
@@ -23,12 +23,15 @@ import ReferentielPage from './pages/modern/ReferentielPage';
 import NotificationsPage from './pages/modern/NotificationsPage';
 import AnnouncementsPage from './pages/modern/AnnouncementsPage';
 import {
+  ClasseCreatePage,
+  EleveCreatePage,
   OperationalBulletinsPage,
   OperationalClassesPage,
   OperationalGradesPage,
   OperationalStudentsPage,
   OperationalSubjectsPage,
   OperationalTeachersPage,
+  PersonnelCreatePage,
   ProfessorBulletinsPage,
   ProfessorClassesPage,
   ProfessorDashboardPage,
@@ -87,6 +90,8 @@ function AppRoutes() {
         <Route path="schools" element={<SuperAdminConsole tab="schools" />} />
         <Route path="admins" element={<SuperAdminConsole tab="admins" />} />
         <Route path="referentiel" element={<ReferentielAdminPage />} />
+        <Route path="referentiel/matiere/nouveau" element={<SubjectCreatePage />} />
+        <Route path="referentiel/eligibilite/nouveau" element={<EligibilityCreatePage />} />
         <Route path="settings" element={<SuperAdminConsole tab="settings" />} />
       </Route>
       <Route path="/professor" element={<ProtectedProfessor />}>
@@ -102,9 +107,12 @@ function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="students" element={<OperationalStudentsPage />} />
+        <Route path="students/nouveau" element={<EleveCreatePage />} />
         <Route path="parents" element={<ParentsPage />} />
         <Route path="teachers" element={<OperationalTeachersPage />} />
+        <Route path="teachers/nouveau" element={<PersonnelCreatePage />} />
         <Route path="classes" element={<OperationalClassesPage />} />
+        <Route path="classes/nouveau" element={<ClasseCreatePage />} />
         <Route path="subjects" element={<OperationalSubjectsPage />} />
         <Route path="referentiel" element={<ReferentielPage />} />
         <Route path="schedules" element={<SchedulesPage />} />

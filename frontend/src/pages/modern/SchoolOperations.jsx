@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRightLeft, BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, Trash2, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard, Textarea } from '../../components/ui';
@@ -206,33 +206,7 @@ export function OperationalTeachersPage() {
     });
   }, []);
   const { rows, setRows, loading, error } = useLoad(loadPersonnel, []);
-  const [form, setForm] = useState(EMPTY_PERSONNEL);
   const [notice, setNotice] = useState('');
-  const isTeacher = form.fonction === 'Enseignant';
-
-  async function submit(event) {
-    event.preventDefault();
-    try {
-      let created;
-      if (isTeacher) {
-        created = await api.createProfesseur({
-          nom: form.nom, prenom: form.prenom, sexe: form.sexe, phone: form.phone,
-          email: form.email, specialite: form.specialite, password: form.password,
-        });
-      } else {
-        if (!form.phone2) { setNotice('Un deuxieme telephone est obligatoire pour ce poste (Direction).'); return; }
-        created = await api.createDirection({
-          nom: form.nom, prenom: form.prenom, phone: form.phone, phone2: form.phone2,
-          fonction: form.fonction, email: form.email, password: form.password,
-        });
-      }
-      setRows((current) => [personnelRow(created), ...current]);
-      setForm(EMPTY_PERSONNEL);
-      setNotice(`${form.fonction} cree avec succes.`);
-    } catch (err) {
-      setNotice(err.message || 'Creation impossible.');
-    }
-  }
 
   async function handleDelete(row) {
     if (!window.confirm(`Supprimer "${row.name}" (${row.fonction}) ?`)) return;
@@ -244,7 +218,8 @@ export function OperationalTeachersPage() {
 
   return (
     <>
-      <PageHeader title="Personnel" description="Enseignants, censeurs, directeurs d'etudes et surveillants de l'etablissement." />
+      <PageHeader title="Personnel" description="Enseignants, censeurs, directeurs d'études et surveillants."
+        actions={<Link to="/app/teachers/nouveau"><Button><UserPlus size={16} /> Nouveau membre</Button></Link>} />
       <Notice message={loading ? 'Chargement du personnel...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
       <DataTable title="Liste du personnel" columns={[
@@ -255,8 +230,43 @@ export function OperationalTeachersPage() {
         { key: 'classes', label: 'Classes assignées' },
         { key: 'status', label: 'Statut', render: (row) => <Badge tone={row.status === 'Actif' ? 'emerald' : 'rose'}>{row.status}</Badge> },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
-      <Card className="mt-6 p-5">
-        <h2 className="mb-4 font-bold">Ajouter un membre du personnel</h2>
+    </>
+  );
+}
+
+export function PersonnelCreatePage() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState(EMPTY_PERSONNEL);
+  const [notice, setNotice] = useState('');
+  const isTeacher = form.fonction === 'Enseignant';
+
+  async function submit(event) {
+    event.preventDefault();
+    try {
+      if (isTeacher) {
+        await api.createProfesseur({
+          nom: form.nom, prenom: form.prenom, sexe: form.sexe, phone: form.phone,
+          email: form.email, specialite: form.specialite, password: form.password,
+        });
+      } else {
+        if (!form.phone2) { setNotice('Un deuxieme telephone est obligatoire pour ce poste (Direction).'); return; }
+        await api.createDirection({
+          nom: form.nom, prenom: form.prenom, phone: form.phone, phone2: form.phone2,
+          fonction: form.fonction, email: form.email, password: form.password,
+        });
+      }
+      navigate('/app/teachers');
+    } catch (err) {
+      setNotice(err.message || 'Creation impossible.');
+    }
+  }
+
+  return (
+    <>
+      <PageHeader title="Nouveau membre du personnel" breadcrumb="Personnel" description="Connexion par téléphone ; email facultatif. Direction = 2 téléphones obligatoires."
+        actions={<Link to="/app/teachers"><Button variant="secondary">Retour à la liste</Button></Link>} />
+      <Notice message={notice} tone="rose" />
+      <Card className="p-5">
         <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">Fonction</span>
@@ -279,11 +289,12 @@ export function OperationalTeachersPage() {
             <Input placeholder="Specialite" value={form.specialite} onChange={(e) => setForm({ ...form, specialite: e.target.value })} />
           )}
           <Input required type="password" placeholder="Mot de passe initial" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-          <div className="md:col-span-2 flex justify-end">
-            <Button type="submit"><UserPlus size={16} /> Creer</Button>
+          <div className="md:col-span-2 flex justify-end gap-2">
+            <Link to="/app/teachers"><Button type="button" variant="secondary">Annuler</Button></Link>
+            <Button type="submit"><UserPlus size={16} /> Créer</Button>
           </div>
         </form>
-        <p className="mt-3 text-xs text-slate-400">Les censeurs et directeurs d'etudes peuvent saisir les notes depuis le menu Notes.</p>
+        <p className="mt-3 text-xs text-slate-400">Les censeurs et directeurs d'études peuvent saisir les notes depuis le menu Notes.</p>
       </Card>
     </>
   );
@@ -302,10 +313,7 @@ export function OperationalClassesPage() {
   }, []);
   const { rows, setRows, loading, error } = useLoad(loadClasses, []);
   const { rows: teacherRows } = useLoad(useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []), []);
-  const [form, setForm] = useState({ nom: '', effectif_max: 40, prof_principal_id: '', niveau_libre: '', specialite_libre: '' });
-  const [special, setSpecial] = useState(false);
   const [notice, setNotice] = useState('');
-  const cascade = useReferentielCascade();
 
   async function assignProfPrincipal(row, profId) {
     try {
@@ -313,32 +321,6 @@ export function OperationalClassesPage() {
       setRows((current) => current.map((r) => (r.id === row.id ? { ...r, prof_principal_id: profId ? Number(profId) : null } : r)));
       setNotice('Professeur principal mis a jour.');
     } catch (err) { setNotice(err.message); }
-  }
-
-  async function submit(event) {
-    event.preventDefault();
-    if (!special && !cascade.isComplete) {
-      setNotice('Veuillez compléter la cascade (sous-système → … → niveau/série).');
-      return;
-    }
-    try {
-      const base = {
-        nom_personnalise: form.nom,
-        effectif_max: form.effectif_max,
-        prof_principal_id: form.prof_principal_id || null,
-      };
-      const payload = special
-        ? { ...base, is_special: true, niveau_libre: form.niveau_libre, specialite_libre: form.specialite_libre }
-        : { ...base, is_special: false, ...cascade.value };
-      const created = await api.createClasse(payload);
-      setRows((current) => [classRow(created), ...current]);
-      setForm({ nom: '', effectif_max: 40, prof_principal_id: '', niveau_libre: '', specialite_libre: '' });
-      cascade.reset();
-      setSpecial(false);
-      setNotice(special ? 'Classe spéciale créée.' : 'Classe créée — matières héritées du référentiel.');
-    } catch (err) {
-      setNotice(err.message || 'Creation de classe impossible.');
-    }
   }
 
   async function handleDelete(row) {
@@ -351,7 +333,8 @@ export function OperationalClassesPage() {
 
   return (
     <>
-      <PageHeader title="Classes" description="Creation de classes standard ou speciales." />
+      <PageHeader title="Classes" description="Classes standard et spéciales de l'établissement."
+        actions={<Link to="/app/classes/nouveau"><Button><Plus size={16} /> Nouvelle classe</Button></Link>} />
       <Notice message={loading ? 'Chargement des classes...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
       <DataTable title="Classes" columns={[
@@ -370,9 +353,48 @@ export function OperationalClassesPage() {
         { key: 'nb_matieres', label: 'Matières' },
         { key: 'statut', label: 'Statut', render: (row) => <Badge tone={row.statut === 'Spéciale' ? 'amber' : 'slate'}>{row.statut}</Badge> },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
-      <Card className="mt-6 p-5">
+    </>
+  );
+}
+
+export function ClasseCreatePage() {
+  const navigate = useNavigate();
+  const { rows: teacherRows } = useLoad(useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []), []);
+  const [form, setForm] = useState({ nom: '', effectif_max: 40, prof_principal_id: '', niveau_libre: '', specialite_libre: '' });
+  const [special, setSpecial] = useState(false);
+  const [notice, setNotice] = useState('');
+  const cascade = useReferentielCascade();
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!special && !cascade.isComplete) {
+      setNotice('Veuillez compléter la cascade (sous-système → … → niveau/série).');
+      return;
+    }
+    try {
+      const base = {
+        nom_personnalise: form.nom,
+        effectif_max: form.effectif_max,
+        prof_principal_id: form.prof_principal_id || null,
+      };
+      const payload = special
+        ? { ...base, is_special: true, niveau_libre: form.niveau_libre, specialite_libre: form.specialite_libre }
+        : { ...base, is_special: false, ...cascade.value };
+      await api.createClasse(payload);
+      navigate('/app/classes');
+    } catch (err) {
+      setNotice(err.message || 'Creation de classe impossible.');
+    }
+  }
+
+  return (
+    <>
+      <PageHeader title="Nouvelle classe" breadcrumb="Classes" description="Création par cascade ou classe spéciale (hors référentiel)."
+        actions={<Link to="/app/classes"><Button variant="secondary">Retour à la liste</Button></Link>} />
+      <Notice message={notice} tone="rose" />
+      <Card className="p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-bold">Créer une classe</h2>
+          <h2 className="font-bold">Informations de la classe</h2>
           <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
             <input type="checkbox" checked={special} onChange={(e) => setSpecial(e.target.checked)} />
             Classe spéciale (hors référentiel MINESEC)
@@ -398,7 +420,8 @@ export function OperationalClassesPage() {
               Classe hors référentiel : aucune matière n'est pré-remplie. Étiquette « Spéciale » appliquée partout.
             </p>
           )}
-          <div className="md:col-span-2 flex justify-end">
+          <div className="md:col-span-2 flex justify-end gap-2">
+            <Link to="/app/classes"><Button type="button" variant="secondary">Annuler</Button></Link>
             <Button type="submit"><Plus size={16} /> Créer la classe</Button>
           </div>
         </form>
@@ -420,10 +443,7 @@ export function OperationalStudentsPage() {
     return eleves.map((eleve) => studentRow(eleve, classLookup));
   }, []);
   const { rows, setRows, loading, error } = useLoad(loadStudents, []);
-  const [form, setForm] = useState({ nom: '', prenom: '', matricule: '', sexe: '', classe_id: '', parent_nom: '', parent_phone: '', parent_phone2: '', parent_adresse: '' });
   const [notice, setNotice] = useState('');
-  const cascade = useReferentielCascade();
-  const [filteredClasses, setFilteredClasses] = useState([]);
   const [allClasses, setAllClasses] = useState([]);
   const [transfer, setTransfer] = useState(null); // §6.3 : { student, targetId }
 
@@ -451,50 +471,6 @@ export function OperationalStudentsPage() {
     } catch (err) { setNotice(err.message); }
   }
 
-  // §6 étape 5 : ne proposer que les classes correspondant exactement au profil choisi.
-  useEffect(() => {
-    if (!cascade.isComplete) { setFilteredClasses([]); return; }
-    api.fetchClasses({
-      subsystem: cascade.value.subsystem_code,
-      type: cascade.value.type_code,
-      level: cascade.value.level_code,
-      series: cascade.value.series_code || undefined,
-    })
-      .then((data) => setFilteredClasses(data.map(classRow)))
-      .catch(() => setFilteredClasses([]));
-    setForm((f) => ({ ...f, classe_id: '' }));
-  }, [cascade.isComplete, cascade.value.subsystem_code, cascade.value.type_code, cascade.value.level_code, cascade.value.series_code]);
-
-  async function submit(event) {
-    event.preventDefault();
-    if (!cascade.isComplete) { setNotice('Complétez la cascade (sous-système → … → niveau/série).'); return; }
-    if (!form.classe_id) { setNotice('Choisissez une classe correspondant au profil.'); return; }
-    try {
-      const created = await api.createEleve_admin({
-        nom: form.nom,
-        prenom: form.prenom || null,
-        matricule: form.matricule || null,
-        sexe: form.sexe || null,
-        subsystem_code: cascade.value.subsystem_code,
-        type_code: cascade.value.type_code,
-        cycle_code: cascade.value.cycle_code || null,
-        level_code: cascade.value.level_code,
-        series_code: cascade.value.series_code || null,
-        classe_id: form.classe_id ? Number(form.classe_id) : null,
-        parents: form.parent_nom && form.parent_phone
-          ? [{ nom: form.parent_nom, phone: form.parent_phone, phone2: form.parent_phone2 || null, adresse: form.parent_adresse || null }]
-          : [],
-      });
-      const classLookup = Object.fromEntries(filteredClasses.map((classe) => [String(classe.id), classe.name]));
-      setRows((current) => [studentRow(created, classLookup), ...current]);
-      setForm({ nom: '', prenom: '', matricule: '', sexe: '', classe_id: '', parent_nom: '', parent_phone: '', parent_phone2: '', parent_adresse: '' });
-      cascade.reset();
-      setNotice('Élève inscrit — il hérite des matières de sa classe.');
-    } catch (err) {
-      setNotice(err.message || "Creation de l'eleve impossible.");
-    }
-  }
-
   async function handleDelete(row) {
     if (!window.confirm(`Supprimer l'eleve "${row.name}" ?`)) return;
     try {
@@ -505,7 +481,8 @@ export function OperationalStudentsPage() {
 
   return (
     <>
-      <PageHeader title="Eleves" description="Inscription operationnelle avec parent et classe." />
+      <PageHeader title="Élèves" description="Registre des élèves inscrits."
+        actions={<Link to="/app/students/nouveau"><Button><UserPlus size={16} /> Nouvel élève</Button></Link>} />
       <Notice message={loading ? 'Chargement des eleves...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
       {transfer && (
@@ -540,9 +517,63 @@ export function OperationalStudentsPage() {
           <Button variant="danger" className="px-2" title="Supprimer" onClick={() => handleDelete(row)}><Trash2 size={16} /></Button>
         </div>
       )} />
-      <Card className="mt-6 p-5">
-        <h2 className="mb-1 font-bold">Inscrire un élève</h2>
-        <p className="mb-4 text-sm text-slate-500">Choix en cascade ; la liste des classes est filtrée selon le profil.</p>
+    </>
+  );
+}
+
+export function EleveCreatePage() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ nom: '', prenom: '', matricule: '', sexe: '', classe_id: '', parent_nom: '', parent_phone: '', parent_phone2: '', parent_adresse: '' });
+  const [notice, setNotice] = useState('');
+  const cascade = useReferentielCascade();
+  const [filteredClasses, setFilteredClasses] = useState([]);
+
+  // §6 étape 5 : ne proposer que les classes correspondant exactement au profil choisi.
+  useEffect(() => {
+    if (!cascade.isComplete) { setFilteredClasses([]); return; }
+    api.fetchClasses({
+      subsystem: cascade.value.subsystem_code,
+      type: cascade.value.type_code,
+      level: cascade.value.level_code,
+      series: cascade.value.series_code || undefined,
+    })
+      .then((data) => setFilteredClasses(data.map(classRow)))
+      .catch(() => setFilteredClasses([]));
+    setForm((f) => ({ ...f, classe_id: '' }));
+  }, [cascade.isComplete, cascade.value.subsystem_code, cascade.value.type_code, cascade.value.level_code, cascade.value.series_code]);
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!cascade.isComplete) { setNotice('Complétez la cascade (sous-système → … → niveau/série).'); return; }
+    if (!form.classe_id) { setNotice('Choisissez une classe correspondant au profil.'); return; }
+    try {
+      await api.createEleve_admin({
+        nom: form.nom,
+        prenom: form.prenom || null,
+        matricule: form.matricule || null,
+        sexe: form.sexe || null,
+        subsystem_code: cascade.value.subsystem_code,
+        type_code: cascade.value.type_code,
+        cycle_code: cascade.value.cycle_code || null,
+        level_code: cascade.value.level_code,
+        series_code: cascade.value.series_code || null,
+        classe_id: form.classe_id ? Number(form.classe_id) : null,
+        parents: form.parent_nom && form.parent_phone
+          ? [{ nom: form.parent_nom, phone: form.parent_phone, phone2: form.parent_phone2 || null, adresse: form.parent_adresse || null }]
+          : [],
+      });
+      navigate('/app/students');
+    } catch (err) {
+      setNotice(err.message || "Creation de l'eleve impossible.");
+    }
+  }
+
+  return (
+    <>
+      <PageHeader title="Nouvel élève" breadcrumb="Élèves" description="Choix en cascade ; la liste des classes est filtrée selon le profil."
+        actions={<Link to="/app/students"><Button variant="secondary">Retour à la liste</Button></Link>} />
+      <Notice message={notice} tone="rose" />
+      <Card className="p-5">
         <form id="student-form" className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
           <Input required placeholder="Nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} />
           <Input placeholder="Prénom" value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} />
@@ -562,7 +593,8 @@ export function OperationalStudentsPage() {
           <Input placeholder="Téléphone parent (obligatoire)" value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} />
           <Input placeholder="2e téléphone (optionnel)" value={form.parent_phone2} onChange={(e) => setForm({ ...form, parent_phone2: e.target.value })} />
           <Input placeholder="Adresse (optionnel)" value={form.parent_adresse} onChange={(e) => setForm({ ...form, parent_adresse: e.target.value })} />
-          <div className="md:col-span-2 flex justify-end">
+          <div className="md:col-span-2 flex justify-end gap-2">
+            <Link to="/app/students"><Button type="button" variant="secondary">Annuler</Button></Link>
             <Button type="submit"><UserPlus size={16} /> Inscrire l'élève</Button>
           </div>
         </form>
