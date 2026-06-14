@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, Trash2, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard, Textarea } from '../../components/ui';
@@ -103,11 +104,13 @@ function studentRow(eleve, classLookup = {}) {
   const classeId = eleve.classe_id || eleve.class_id;
   return {
     id: eleve.id,
+    classe_id: classeId ?? null,
     matricule: eleve.matricule || `EL-${eleve.id}`,
     name: [eleve.nom, eleve.prenom].filter(Boolean).join(' ') || eleve.name || 'Eleve',
     className: eleve.classe_nom || eleve.className || eleve.classe?.nom || classLookup[String(classeId)] || '-',
+    sexe: eleve.sexe === 'F' ? 'F' : (eleve.sexe === 'M' ? 'M' : '-'),
     parent: eleve.contact_parent || eleve.parent || '-',
-    status: eleve.statut || eleve.status || 'Actif',
+    status: eleve.statut || eleve.status || 'Inscrit',
   };
 }
 
@@ -117,17 +120,36 @@ function teacherRow(teacher) {
     name: [teacher.nom, teacher.prenom].filter(Boolean).join(' ') || teacher.name || 'Enseignant',
     phone: teacher.phone || '-',
     subjects: teacher.specialite || teacher.matieres?.join(', ') || teacher.subjects || '-',
+    classes: '-',
     status: teacher.is_active === false ? 'Inactif' : 'Actif',
   };
+}
+
+// Libellés badges référentiel.
+function subsystemLabel(code, fallbackSection) {
+  if (code === 'ANGLOPHONE') return 'Anglophone';
+  if (code === 'FRANCOPHONE') return 'Francophone';
+  return fallbackSection === 'anglophone' ? 'Anglophone' : 'Francophone';
+}
+function typeLabel(code) {
+  if (code === 'TECHNIQUE') return 'Technique';
+  if (code === 'GENERAL') return 'Général';
+  return '-';
 }
 
 function classRow(classe) {
   return {
     id: classe.id,
     name: classe.nom || classe.nom_personnalise || classe.name,
+    subsystem: subsystemLabel(classe.subsystem_code, classe.section),
+    subsystem_code: classe.subsystem_code || null,
+    type: typeLabel(classe.type_code),
     level: classe.niveau || classe.level_code || classe.niveau_libre || classe.level || '-',
-    students: classe.effectif || classe.students || 0,
+    serie: classe.serie || classe.series_code || classe.specialite_libre || '—',
+    students: classe.effectif ?? classe.students ?? 0,
     capacity: classe.capacite || classe.effectif_max || '-',
+    nb_matieres: classe.nb_matieres ?? 0,
+    statut: classe.statut || (classe.is_special ? 'Spéciale' : 'Standard'),
     prof_principal_id: classe.prof_principal_id ?? null,
   };
 }
@@ -160,7 +182,29 @@ function personnelRow(p) {
 const EMPTY_PERSONNEL = { fonction: 'Enseignant', nom: '', prenom: '', sexe: 'M', phone: '', phone2: '', email: '', specialite: '', password: '' };
 
 export function OperationalTeachersPage() {
-  const loadPersonnel = useCallback(async () => (await api.fetchPersonnel()).map(personnelRow), []);
+  const loadPersonnel = useCallback(async () => {
+    const [personnel, matieres] = await Promise.all([
+      api.fetchPersonnel(),
+      api.fetchMatieres().catch(() => []),
+    ]);
+    // Matières enseignées + classes assignées par enseignant (§9.2).
+    const byTeacher = {};
+    matieres.forEach((m) => {
+      if (m.enseignant_id == null) return;
+      const k = String(m.enseignant_id);
+      byTeacher[k] = byTeacher[k] || { subjects: new Set(), classes: new Set() };
+      if (m.nom) byTeacher[k].subjects.add(m.nom);
+      if (m.classe_nom) byTeacher[k].classes.add(m.classe_nom);
+    });
+    return personnel.map((p) => {
+      const agg = byTeacher[String(p.id)];
+      return {
+        ...personnelRow(p),
+        subjects: agg ? [...agg.subjects].join(', ') : '—',
+        classes: agg ? [...agg.classes].join(', ') : '—',
+      };
+    });
+  }, []);
   const { rows, setRows, loading, error } = useLoad(loadPersonnel, []);
   const [form, setForm] = useState(EMPTY_PERSONNEL);
   const [notice, setNotice] = useState('');
@@ -204,9 +248,11 @@ export function OperationalTeachersPage() {
       <Notice message={loading ? 'Chargement du personnel...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
       <DataTable title="Liste du personnel" columns={[
-        { key: 'name', label: 'Nom' },
+        { key: 'name', label: 'Nom complet' },
         { key: 'fonction', label: 'Fonction', render: (row) => <Badge tone={row.fonction === 'Enseignant' ? 'blue' : 'amber'}>{row.fonction}</Badge> },
-        { key: 'phone', label: 'Telephone' },
+        { key: 'phone', label: 'Téléphone' },
+        { key: 'subjects', label: 'Matières enseignées' },
+        { key: 'classes', label: 'Classes assignées' },
         { key: 'status', label: 'Statut', render: (row) => <Badge tone={row.status === 'Actif' ? 'emerald' : 'rose'}>{row.status}</Badge> },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
@@ -244,7 +290,16 @@ export function OperationalTeachersPage() {
 }
 
 export function OperationalClassesPage() {
-  const loadClasses = useCallback(async () => (await api.fetchClasses()).map(classRow), []);
+  const loadClasses = useCallback(async () => {
+    const [classes, eleves] = await Promise.all([
+      api.fetchClasses(),
+      api.fetchEleves_admin().catch(() => []),
+    ]);
+    // Effectif réel par classe (cross-service eleves).
+    const counts = {};
+    eleves.forEach((e) => { const c = e.classe_id ?? e.class_id; if (c != null) counts[c] = (counts[c] || 0) + 1; });
+    return classes.map((c) => ({ ...classRow(c), students: counts[c.id] || 0 }));
+  }, []);
   const { rows, setRows, loading, error } = useLoad(loadClasses, []);
   const { rows: teacherRows } = useLoad(useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []), []);
   const [form, setForm] = useState({ nom: '', effectif_max: 40, prof_principal_id: '', niveau_libre: '', specialite_libre: '' });
@@ -301,15 +356,19 @@ export function OperationalClassesPage() {
       <Notice message={notice} />
       <DataTable title="Classes" columns={[
         { key: 'name', label: 'Classe' },
+        { key: 'subsystem', label: 'Sous-système', render: (row) => <Badge tone={row.subsystem_code === 'ANGLOPHONE' ? 'cyan' : 'violet'}>{row.subsystem}</Badge> },
+        { key: 'type', label: 'Type' },
         { key: 'level', label: 'Niveau' },
-        { key: 'capacity', label: 'Capacite' },
-        { key: 'students', label: 'Effectif' },
+        { key: 'serie', label: 'Série / Spécialité' },
+        { key: 'effectif', label: 'Effectif', render: (row) => `${row.students} / ${row.capacity}` },
         { key: 'prof_principal_id', label: 'Prof. principal', render: (row) => (
           <Select value={String(row.prof_principal_id ?? '')} onChange={(e) => assignProfPrincipal(row, e.target.value)}>
             <option value="">Aucun</option>
             {teacherRows.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </Select>
         ) },
+        { key: 'nb_matieres', label: 'Matières' },
+        { key: 'statut', label: 'Statut', render: (row) => <Badge tone={row.statut === 'Spéciale' ? 'amber' : 'slate'}>{row.statut}</Badge> },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">
         <div className="mb-4 flex items-center justify-between">
@@ -423,11 +482,16 @@ export function OperationalStudentsPage() {
       <PageHeader title="Eleves" description="Inscription operationnelle avec parent et classe." />
       <Notice message={loading ? 'Chargement des eleves...' : error} tone={error ? 'amber' : 'blue'} />
       <Notice message={notice} />
-      <DataTable title="Registre des eleves" columns={[
+      <DataTable title="Registre des élèves" columns={[
         { key: 'matricule', label: 'Matricule' },
-        { key: 'name', label: 'Nom' },
-        { key: 'className', label: 'Classe' },
-        { key: 'parent', label: 'Parent' },
+        { key: 'name', label: 'Nom complet' },
+        { key: 'className', label: 'Classe', render: (row) => (
+          row.classe_id
+            ? <Link to="/app/classes" className="font-semibold text-blue-600 hover:underline">{row.className}</Link>
+            : row.className
+        ) },
+        { key: 'sexe', label: 'Sexe' },
+        { key: 'parent', label: 'Contact parent' },
         { key: 'status', label: 'Statut', render: (row) => <Badge tone="emerald">{row.status}</Badge> },
       ]} rows={rows} renderActions={(row) => deleteAction(() => handleDelete(row))} />
       <Card className="mt-6 p-5">

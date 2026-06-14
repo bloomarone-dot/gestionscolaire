@@ -13,8 +13,31 @@ const DECISIONS = [
 
 const DECISION_TONE = { ADMIS: 'emerald', REDOUBLE: 'amber', REORIENTE: 'blue', SORTANT: 'rose' };
 
+// §10.2 — niveau supérieur logique selon le référentiel MINESEC (codes niveaux).
+const NEXT_LEVEL = {
+  // Francophone général
+  '6E': '5E', '5E': '4E', '4E': '3E', '3E': '2ND', '2ND': '1ERE', '1ERE': 'TLE', TLE: null,
+  // Francophone technique
+  '1CETIC': '2CETIC', '2CETIC': '3CETIC', '3CETIC': null,
+  '2ND-T': '1ERE-T', '1ERE-T': 'TLE-T', 'TLE-T': null,
+  // Anglophone général
+  F1: 'F2', F2: 'F3', F3: 'F4', F4: 'F5', F5: 'LS', LS: 'US', US: null,
+  // Anglophone technique
+  TF1: 'TF2', TF2: 'TF3', TF3: 'TF4', TF4: 'TF5', TF5: 'LST', LST: 'UST', UST: null,
+};
+
 function className(classe) {
   return classe?.nom || classe?.nom_personnalise || classe?.name || `Classe ${classe?.id}`;
+}
+
+// Classe de destination « logique » : niveau suivant, même série si possible (§10.2).
+function suggestDestination(classes, source) {
+  if (!source) return '';
+  const next = NEXT_LEVEL[source.level_code];
+  if (!next) return '';
+  const others = classes.filter((c) => c.level_code === next && String(c.id) !== String(source.id));
+  const match = (source.series_code ? others.find((c) => c.series_code === source.series_code) : null) || others[0];
+  return match ? String(match.id) : '';
 }
 
 function Notice({ message, tone = 'emerald' }) {
@@ -40,12 +63,10 @@ export default function PromotionsPage() {
     api.fetchClasses().then(setClasses).catch(() => setClasses([]));
   }, []);
 
-  const destOptions = useMemo(
-    () => classes.filter((c) => String(c.id) !== String(sourceId)),
-    [classes, sourceId],
-  );
+  // Toutes les classes sont sélectionnables (la source elle-même = cas « Redouble »).
+  const destOptions = classes;
 
-  const loadStudents = useCallback(async (classeId) => {
+  const loadStudents = useCallback(async (classeId, suggestedDestId = '') => {
     if (!classeId) { setRows([]); return; }
     setLoading(true);
     setNotice(null);
@@ -56,7 +77,7 @@ export default function PromotionsPage() {
         name: [e.nom, e.prenom].filter(Boolean).join(' ') || e.name || `Élève ${e.id}`,
         matricule: e.matricule || `EL-${e.id}`,
         status: 'ADMIS',
-        dest_classe_id: '',
+        dest_classe_id: suggestedDestId,  // §10.2 : pré-rempli sur la destination logique
       })));
     } catch (err) {
       setRows([]);
@@ -68,8 +89,14 @@ export default function PromotionsPage() {
 
   function onSourceChange(value) {
     setSourceId(value);
-    setBulkDest('');
-    loadStudents(value);
+    const source = classes.find((c) => String(c.id) === String(value));
+    const suggestion = suggestDestination(classes, source);
+    setBulkDest(suggestion);
+    loadStudents(value, suggestion);
+    if (suggestion) {
+      const dest = classes.find((c) => String(c.id) === String(suggestion));
+      setTimeout(() => setNotice({ message: `Destination proposée pour les admis : ${className(dest)} (modifiable).`, tone: 'blue' }), 0);
+    }
   }
 
   function patchRow(id, patch) {
@@ -136,10 +163,12 @@ export default function PromotionsPage() {
         <Select
           value={row.status}
           className="min-w-[16rem]"
-          onChange={(e) => patchRow(row.id, {
-            status: e.target.value,
-            dest_classe_id: e.target.value === 'SORTANT' ? '' : row.dest_classe_id,
-          })}
+          onChange={(e) => {
+            const status = e.target.value;
+            // Redouble → reste dans la classe source ; Sortant → aucune destination ; sinon inchangé.
+            const dest = status === 'SORTANT' ? '' : status === 'REDOUBLE' ? String(sourceId) : row.dest_classe_id;
+            patchRow(row.id, { status, dest_classe_id: dest });
+          }}
         >
           {DECISIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </Select>
