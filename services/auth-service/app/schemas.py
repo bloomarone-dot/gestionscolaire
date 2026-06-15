@@ -1,11 +1,26 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def normalize_phone(value: str) -> str:
+    digits = "".join(c for c in str(value or "") if c.isdigit())
+    if digits.startswith("237") and len(digits) > 9:
+        return digits[3:]
+    return digits
 
 
 class LoginRequest(BaseModel):
     phone: str = Field(..., description="Numéro de téléphone (identifiant de connexion)")
     password: str
+
+    @field_validator("phone")
+    @classmethod
+    def _normalize_phone(cls, value: str) -> str:
+        normalized = normalize_phone(value)
+        if not normalized:
+            raise ValueError("Numéro de téléphone invalide")
+        return normalized
 
 
 class TokenResponse(BaseModel):

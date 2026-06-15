@@ -115,8 +115,8 @@ async function deleteRequest(url) {
   return { success: true };
 }
 
-async function handleResponse(res) {
-  if (res.status === 401) {
+async function handleResponse(res, { authFailure = false } = {}) {
+  if (res.status === 401 && !authFailure) {
     clearAuthSession();
     if (!window.location.pathname.startsWith('/login')) {
       window.location.replace('/login');
@@ -130,14 +130,27 @@ async function handleResponse(res) {
   return res.json();
 }
 
+function normalizePhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.startsWith('237') && digits.length > 9) {
+    return digits.slice(3);
+  }
+  return digits;
+}
+
+async function handleAuthResponse(res) {
+  return handleResponse(res, { authFailure: true });
+}
+
 // ── Authentification ──────────────────────────────────────
 export async function login(username, password) {
+  const phone = normalizePhone(username);
   const res = await fetch('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: username, password }),
+    body: JSON.stringify({ phone, password: String(password || '').trim() }),
   });
-  return normalizeAuthUser(await handleResponse(res));
+  return normalizeAuthUser(await handleAuthResponse(res));
 }
 
 // ── Élèves (tenant — API admin) ───────────────────────────

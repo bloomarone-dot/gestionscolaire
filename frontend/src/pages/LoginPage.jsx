@@ -1,7 +1,16 @@
-import { useState } from 'react';
-import { GraduationCap, Lock, Phone } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Eye, EyeOff, GraduationCap, Lock, Phone } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { Button, Card, Input } from '../components/ui';
+
+function clearDemoSession() {
+  const token = localStorage.getItem('access_token') || '';
+  if (token.startsWith('demo-')) {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('selectedSchool');
+  }
+}
 
 export default function LoginPage() {
   const { login, loginDemo } = useAuth();
@@ -9,6 +18,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    clearDemoSession();
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -19,7 +33,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError('');
-      await login(username, password);
+      await login(username.trim(), password);
     } catch (err) {
       setError(err.message || 'Identifiants incorrects.');
     } finally {
@@ -39,6 +53,12 @@ export default function LoginPage() {
         </div>
 
         <Card className="p-6">
+          <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            <p className="font-semibold">Compte superadmin (premier acces)</p>
+            <p className="mt-1">Telephone : <code className="font-mono">690000000</code></p>
+            <p>Mot de passe : <code className="font-mono">ChangeMe2026!</code></p>
+          </div>
+
           {error && <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -53,13 +73,19 @@ export default function LoginPage() {
               <span className="mb-1 block text-sm font-semibold text-slate-700">Mot de passe</span>
               <span className="relative block">
                 <Lock className="pointer-events-none absolute left-3 top-2.5 text-slate-400" size={18} />
-                <Input className="pl-10" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" autoComplete="current-password" />
+                <Input className="pl-10 pr-10" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="ChangeMe2026!" autoComplete="current-password" />
+                <button type="button" className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </span>
             </label>
             <Button className="w-full" disabled={loading}>{loading ? 'Connexion...' : 'Se connecter'}</Button>
           </form>
 
           <div className="mt-3 grid gap-2">
+            <Button type="button" variant="secondary" className="w-full" onClick={() => { setUsername('690000000'); setPassword('ChangeMe2026!'); }}>
+              Remplir identifiants superadmin
+            </Button>
             <Button type="button" variant="secondary" className="w-full" onClick={() => loginDemo('admin')}>
               Demo admin ecole
             </Button>
@@ -74,6 +100,8 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-5 text-center text-xs text-slate-500">
+            Premier acces ? Superadmin : <strong>690000000</strong> / <strong>ChangeMe2026!</strong>
+            <br />
             Identifiant oublie ? Contactez l'administration de votre etablissement.
           </p>
         </Card>
