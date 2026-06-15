@@ -85,8 +85,8 @@ def _national_header(header) -> Table:
     fr = "<br/>".join(FR_HEAD + [reg, dep, f"<b>{school}</b>", motto, f"BP: {pobox}"])
     center = _p(f"<b>{school}</b><br/>{motto}", size=8, align=TA_CENTER)
 
-    t = Table([[_p(en, align=TA_LEFT), center, _p(fr, align=TA_LEFT)]],
-              colWidths=[7.5 * cm, 4 * cm, 7.5 * cm])
+    t = Table([[_p(en, align=TA_CENTER), center, _p(fr, align=TA_CENTER)]],
+              colWidths=[7.5 * cm, 4 * cm, 7.5 * cm], hAlign="CENTER")
     t.setStyle(TableStyle([
         ("BOX", (0, 0), (-1, -1), 0.8, BLACK),
         ("INNERGRID", (0, 0), (-1, -1), 0.6, BLACK),

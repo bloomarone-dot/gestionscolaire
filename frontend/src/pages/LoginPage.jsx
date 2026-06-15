@@ -1,23 +1,23 @@
-import { useEffect, useState } from 'react';
-import { Eye, EyeOff, GraduationCap, Lock, Phone } from 'lucide-react';
-import { useAuth } from '../context/useAuth';
-import { Button, Card, Input } from '../components/ui';
+import { useEffect, useState } from "react";
+import { Eye, EyeOff, GraduationCap, Lock, Phone } from "lucide-react";
+import { useAuth } from "../context/useAuth";
+import { Button, Card, Input } from "../components/ui";
 
 function clearDemoSession() {
-  const token = localStorage.getItem('access_token') || '';
-  if (token.startsWith('demo-')) {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('selectedSchool');
+  const token = localStorage.getItem("access_token") || "";
+  if (token.startsWith("demo-")) {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("selectedSchool");
   }
 }
 
 export default function LoginPage() {
-  const { login, loginDemo } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const { login } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -27,15 +27,15 @@ export default function LoginPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!username || !password) {
-      setError('Veuillez renseigner le telephone et le mot de passe.');
+      setError("Veuillez renseigner le telephone et le mot de passe.");
       return;
     }
     try {
       setLoading(true);
-      setError('');
+      setError("");
       await login(username.trim(), password);
     } catch (err) {
-      setError(err.message || 'Identifiants incorrects.');
+      setError(err.message || "Identifiants incorrects.");
     } finally {
       setLoading(false);
     }
@@ -48,62 +48,74 @@ export default function LoginPage() {
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
             <GraduationCap size={28} />
           </span>
-          <h1 className="mt-4 text-2xl font-extrabold text-slate-950">EduGestion</h1>
-          <p className="mt-2 text-sm text-slate-500">Connectez-vous a votre espace de gestion scolaire.</p>
+          <h1 className="mt-4 text-2xl font-extrabold text-slate-950">
+            EduGestion
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Connectez-vous a votre espace de gestion scolaire.
+          </p>
         </div>
 
         <Card className="p-6">
-          <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-            <p className="font-semibold">Compte superadmin (premier acces)</p>
-            <p className="mt-1">Telephone : <code className="font-mono">690000000</code></p>
-            <p>Mot de passe : <code className="font-mono">ChangeMe2026!</code></p>
-          </div>
-
-          {error && <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+          {error && (
+            <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-slate-700">Telephone</span>
+              <span className="mb-1 block text-sm font-semibold text-slate-700">
+                Telephone
+              </span>
               <span className="relative block">
-                <Phone className="pointer-events-none absolute left-3 top-2.5 text-slate-400" size={18} />
-                <Input className="pl-10" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Ex: 699112233" autoComplete="username" />
+                <Phone
+                  className="pointer-events-none absolute left-3 top-2.5 text-slate-400"
+                  size={18}
+                />
+                <Input
+                  className="pl-10"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Ex: 699112233"
+                  autoComplete="username"
+                />
               </span>
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-slate-700">Mot de passe</span>
+              <span className="mb-1 block text-sm font-semibold text-slate-700">
+                Mot de passe
+              </span>
               <span className="relative block">
-                <Lock className="pointer-events-none absolute left-3 top-2.5 text-slate-400" size={18} />
-                <Input className="pl-10 pr-10" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="ChangeMe2026!" autoComplete="current-password" />
-                <button type="button" className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                <Lock
+                  className="pointer-events-none absolute left-3 top-2.5 text-slate-400"
+                  size={18}
+                />
+                <Input
+                  className="pl-10 pr-10"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={
+                    showPassword
+                      ? "Masquer le mot de passe"
+                      : "Afficher le mot de passe"
+                  }
+                >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </span>
             </label>
-            <Button className="w-full" disabled={loading}>{loading ? 'Connexion...' : 'Se connecter'}</Button>
+            <Button className="w-full" disabled={loading}>
+              {loading ? "Connexion..." : "Se connecter"}
+            </Button>
           </form>
-
-          <div className="mt-3 grid gap-2">
-            <Button type="button" variant="secondary" className="w-full" onClick={() => { setUsername('690000000'); setPassword('ChangeMe2026!'); }}>
-              Remplir identifiants superadmin
-            </Button>
-            <Button type="button" variant="secondary" className="w-full" onClick={() => loginDemo('admin')}>
-              Demo admin ecole
-            </Button>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button type="button" variant="secondary" className="w-full" onClick={() => loginDemo('professeur')}>
-                Demo professeur
-              </Button>
-              <Button type="button" variant="secondary" className="w-full" onClick={() => loginDemo('superadmin')}>
-                Demo superadmin
-              </Button>
-            </div>
-          </div>
-
-          <p className="mt-5 text-center text-xs text-slate-500">
-            Premier acces ? Superadmin : <strong>690000000</strong> / <strong>ChangeMe2026!</strong>
-            <br />
-            Identifiant oublie ? Contactez l'administration de votre etablissement.
-          </p>
         </Card>
       </div>
     </main>
