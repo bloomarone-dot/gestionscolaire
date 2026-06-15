@@ -1,0 +1,124 @@
+import { useState, useCallback } from 'react';
+import { login as apiLogin, loginProfessor as apiLoginProfessor } from '../api/api';
+import { AuthContext } from './useAuth';
+
+function readStoredUser() {
+  try {
+    const stored = localStorage.getItem('user');
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (parsed?.role === 'enseignant') parsed.role = 'professeur';
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function getAccessToken() {
+  const stored = localStorage.getItem('access_token');
+  if (stored) return stored;
+  const user = readStoredUser();
+  return user?.token || null;
+}
+
+function syncAccessToken(user) {
+  if (!user?.token) return;
+  const current = localStorage.getItem('access_token');
+  if (!current || current !== user.token) {
+    localStorage.setItem('access_token', user.token);
+  }
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    const parsed = readStoredUser();
+    syncAccessToken(parsed);
+    return parsed;
+  });
+
+  const [selectedSchool, setSelectedSchool] = useState(() => {
+    const stored = localStorage.getItem('selectedSchool');
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  const login = useCallback(async (username, password) => {
+    const data = await apiLogin(username, password);
+    const userData = {
+      id: data.id,
+      username: data.username,
+      role: data.role === 'enseignant' ? 'professeur' : data.role,
+      school_id: data.school_id,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      token: data.access_token,
+    };
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    return userData;
+  }, []);
+
+  const loginProfessor = useCallback(async (username, password, schoolId = null) => {
+    const data = await apiLoginProfessor(username, password, schoolId);
+    const userData = {
+      id: data.id,
+      username: data.username,
+      role: data.role === 'enseignant' ? 'professeur' : data.role,
+      school_id: data.school_id,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      token: data.access_token,
+    };
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    return userData;
+  }, []);
+
+  const loginDemo = useCallback((role = 'admin') => {
+    const isSuperAdmin = role === 'superadmin';
+    const isProfessor = role === 'professeur';
+    const userData = {
+      id: isSuperAdmin ? 0 : isProfessor ? 2 : 1,
+      username: isSuperAdmin ? 'demo-superadmin' : isProfessor ? 'demo-professeur' : 'demo-admin',
+      role: isSuperAdmin ? 'superadmin' : isProfessor ? 'professeur' : 'admin',
+      school_id: isSuperAdmin ? null : 1,
+      tenant_id: isSuperAdmin ? null : 1,
+      first_name: 'Demo',
+      last_name: isSuperAdmin ? 'Superadmin' : isProfessor ? 'Professeur' : 'Admin',
+      token: `demo-${isSuperAdmin ? 'superadmin' : isProfessor ? 'professeur' : 'admin'}-token`,
+    };
+    localStorage.setItem('access_token', userData.token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    return userData;
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('selectedSchool');
+    setUser(null);
+    setSelectedSchool(null);
+  }, []);
+
+  const switchSchool = useCallback((school) => {
+    localStorage.setItem('selectedSchool', JSON.stringify(school));
+    setSelectedSchool(school);
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      login,
+      loginProfessor,
+      loginDemo,
+      logout,
+      isAuthenticated: !!user && !!getAccessToken(),
+      selectedSchool,
+      switchSchool
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
