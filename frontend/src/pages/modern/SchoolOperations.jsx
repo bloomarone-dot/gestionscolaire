@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRightLeft, BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, School, Trash2, UserPlus } from 'lucide-react';
+import { ArrowRightLeft, BookOpen, CheckCircle2, Download, Eye, FileText, GraduationCap, Plus, Printer, School, Trash2, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard, Textarea } from '../../components/ui';
 import { useReferentielCascade } from '../../hooks/useReferentielCascade';
@@ -36,17 +36,6 @@ function CascadeFields({ cascade }) {
     </>
   );
 }
-
-const evaluationTypes = [
-  ['sequence_1', 'Sequence 1'],
-  ['sequence_2', 'Sequence 2'],
-  ['sequence_3', 'Sequence 3'],
-  ['sequence_4', 'Sequence 4'],
-  ['sequence_5', 'Sequence 5'],
-  ['sequence_6', 'Sequence 6'],
-  ['devoir', 'Devoir'],
-  ['composition', 'Composition'],
-];
 
 const emptyRows = [];
 
@@ -179,7 +168,7 @@ function personnelRow(p) {
   };
 }
 
-const EMPTY_PERSONNEL = { fonction: 'Enseignant', nom: '', prenom: '', sexe: 'M', phone: '', phone2: '', email: '', specialite: '', password: '' };
+const EMPTY_PERSONNEL = { fonction: 'Enseignant', nom: '', prenom: '', sexe: 'M', phone: '', phone2: '', email: '', specialite: '', password: '', assignment: '' };
 
 export function OperationalTeachersPage() {
   const [searchParams] = useSearchParams();
@@ -249,6 +238,7 @@ export function PersonnelCreatePage() {
   const [searchParams] = useSearchParams();
   const defaultFonction = searchParams.get('fonction') === 'direction' ? 'Censeur' : 'Enseignant';
   const listHref = searchParams.get('fonction') === 'direction' ? '/app/teachers?fonction=direction' : '/app/teachers';
+  const { rows: subjectRows } = useLoad(useCallback(async () => (await api.fetchMatieres()).map(subjectRow), []), emptyRows);
   const [form, setForm] = useState({ ...EMPTY_PERSONNEL, fonction: defaultFonction });
   const [notice, setNotice] = useState('');
   const isTeacher = form.fonction === 'Enseignant';
@@ -257,10 +247,18 @@ export function PersonnelCreatePage() {
     event.preventDefault();
     try {
       if (isTeacher) {
-        await api.createProfesseur({
+        const created = await api.createProfesseur({
           nom: form.nom, prenom: form.prenom, sexe: form.sexe, phone: form.phone,
           email: form.email, specialite: form.specialite, password: form.password,
         });
+        if (form.assignment) {
+          const [classeId, matiereId] = form.assignment.split(':');
+          await api.createAttribution({
+            classe_id: Number(classeId),
+            matiere_id: Number(matiereId),
+            professeur_id: created.id,
+          });
+        }
       } else {
         if (!form.phone2) { setNotice('Un deuxieme telephone est obligatoire pour ce poste (Direction).'); return; }
         await api.createDirection({
@@ -300,6 +298,18 @@ export function PersonnelCreatePage() {
           <Input type="email" placeholder="Email facultatif" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           {isTeacher && (
             <Input placeholder="Specialite" value={form.specialite} onChange={(e) => setForm({ ...form, specialite: e.target.value })} />
+          )}
+          {isTeacher && (
+            <Select value={form.assignment} onChange={(e) => setForm({ ...form, assignment: e.target.value })}>
+              <option value="">Affecter une matière maintenant (facultatif)</option>
+              {subjectRows
+                .filter((subject) => subject.classe_id)
+                .map((subject) => (
+                  <option key={`${subject.classe_id}:${subject.id}`} value={`${subject.classe_id}:${subject.id}`}>
+                    {subject.name} - {subject.className}
+                  </option>
+                ))}
+            </Select>
           )}
           <Input required type="password" placeholder="Mot de passe initial" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
           <div className="md:col-span-2 flex justify-end gap-2">
@@ -647,6 +657,23 @@ export function OperationalSubjectsPage() {
     } catch (err) { setNotice(err.message); }
   }
 
+  function changeCoefficient(m, value) {
+    setMatieres((ms) => ms.map((x) => (x.id === m.id ? { ...x, coefficient: value } : x)));
+  }
+
+  async function saveCoefficient(m) {
+    const coefficient = Number(m.coefficient);
+    if (!Number.isFinite(coefficient) || coefficient < 0) {
+      setNotice('Le coefficient doit etre un nombre positif.');
+      return;
+    }
+    try {
+      const updated = await api.updateMatiere(m.id, { classe_id: selectedClass, coefficient });
+      setMatieres((ms) => ms.map((x) => (x.id === m.id ? { ...x, coefficient: updated.coefficient ?? coefficient } : x)));
+      setNotice('Coefficient enregistre.');
+    } catch (err) { setNotice(err.message); }
+  }
+
   async function toggleActivated(m) {
     const next = !m.activated;
     if (m.activated && m.is_obligatoire
@@ -693,7 +720,6 @@ export function OperationalSubjectsPage() {
                 <th className="px-4 py-3 text-left">Matiere</th>
                 <th className="px-4 py-3 text-center">Coef.</th>
                 <th className="px-4 py-3 text-center">Groupe</th>
-                <th className="px-4 py-3 text-center">Type</th>
                 <th className="px-4 py-3 text-center">Activee</th>
                 <th className="px-4 py-3 text-left">Enseignant assigne</th>
               </tr></thead>
@@ -701,9 +727,24 @@ export function OperationalSubjectsPage() {
                 {matieres.map((m) => (
                   <tr key={m.id} className={m.activated ? '' : 'opacity-50'}>
                     <td className="px-4 py-2 font-semibold">{m.nom}{m.is_obligatoire && <span className="ml-1 text-rose-500" title="Matiere obligatoire">*</span>}</td>
-                    <td className="px-4 py-2 text-center">{m.coefficient}</td>
+                    <td className="px-4 py-2">
+                      <Input
+                        className="mx-auto w-24 text-center"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={m.coefficient ?? ''}
+                        onChange={(e) => changeCoefficient(m, e.target.value)}
+                        onBlur={() => saveCoefficient(m)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                          }
+                        }}
+                      />
+                    </td>
                     <td className="px-4 py-2 text-center">{m.groupe ?? '-'}</td>
-                    <td className="px-4 py-2 text-center"><Badge tone={m.source === 'SPECIALE' ? 'amber' : 'blue'}>{m.type || (m.source === 'SPECIALE' ? 'Speciale' : 'Officielle')}</Badge></td>
                     <td className="px-4 py-2 text-center">
                       <input type="checkbox" checked={!!m.activated} onChange={() => toggleActivated(m)} className="h-4 w-4 cursor-pointer accent-blue-600" />
                     </td>
@@ -745,6 +786,34 @@ function sequencesForTrimestre(t) {
   return [[`sequence_${a}`, `Sequence ${a}`], [`sequence_${b}`, `Sequence ${b}`]];
 }
 
+const reportSequences = ['Seq1', 'Seq2', 'Seq3', 'Seq4', 'Seq5', 'Seq6'];
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function inferCurrentSchoolYear() {
+  const now = new Date();
+  const start = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${start}-${start + 1}`;
+}
+
+function activeYearFromLocalStorage() {
+  try {
+    const years = JSON.parse(localStorage.getItem('schoolYears') || '[]');
+    if (!Array.isArray(years)) return '';
+    const active = years.find((year) => year.statut === 'Active' || year.is_active);
+    return active?.annee || '';
+  } catch {
+    return '';
+  }
+}
+
 function GradesWorkspace({ professor = false }) {
   const loadClasses = useCallback(
     async () => (professor ? await api.getProfessorClasses() : await api.fetchClasses()).map(classRow),
@@ -761,8 +830,23 @@ function GradesWorkspace({ professor = false }) {
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
   const [entryOpen, setEntryOpen] = useState(null);
+  const [schoolYear, setSchoolYear] = useState(() => activeYearFromLocalStorage() || inferCurrentSchoolYear());
 
   const seqOptions = sequencesForTrimestre(trimestre);
+
+  useEffect(() => {
+    let active = true;
+    api.fetchAnneesScolaires()
+      .then((years) => {
+        if (!active || !Array.isArray(years)) return;
+        const current = years.find((year) => year.is_active || year.statut === 'Active') || years[0];
+        if (current?.annee) setSchoolYear(current.annee);
+      })
+      .catch(() => {
+        if (active) setSchoolYear(activeYearFromLocalStorage() || inferCurrentSchoolYear());
+      });
+    return () => { active = false; };
+  }, []);
 
   // Changement de trimestre → recadre la séquence sur celles du trimestre.
   function changeTrimestre(t) {
@@ -839,6 +923,88 @@ function GradesWorkspace({ professor = false }) {
   }
 
   const subjectName = subjects.find((s) => String(s.id) === String(selectedSubject))?.name;
+  const selectedClassName = classNameById(classRows, selectedClass) || '';
+
+  function printGradeReportSheet() {
+    if (!selectedClass || !selectedSubject || !students.length) {
+      setNotice('Selectionnez une classe, une matiere et chargez les eleves avant impression.');
+      return;
+    }
+    const rows = students.map((student, index) => `
+      <tr>
+        <td class="rank">${index + 1}</td>
+        <td>${escapeHtml(student.matricule)}</td>
+        <td>${escapeHtml(student.name)}</td>
+        ${reportSequences.map(() => '<td class="note"></td>').join('')}
+      </tr>
+    `).join('');
+    const html = `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Fiche de report des notes - ${escapeHtml(selectedClassName)} - ${escapeHtml(subjectName)}</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #0f172a; font-family: Arial, sans-serif; font-size: 12px; }
+    .header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px; }
+    .brand { font-size: 18px; font-weight: 800; }
+    .subtitle { margin-top: 4px; color: #475569; }
+    .meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; margin-bottom: 14px; }
+    .meta div { border: 1px solid #cbd5e1; padding: 8px; min-height: 34px; }
+    .meta strong { display: inline-block; min-width: 92px; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { border: 1px solid #334155; padding: 7px 6px; height: 32px; vertical-align: middle; }
+    th { background: #e2e8f0; font-weight: 800; text-align: center; }
+    .rank { width: 36px; text-align: center; }
+    .note { width: 72px; }
+    .footer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 24px; }
+    .sign { border-top: 1px solid #334155; padding-top: 6px; text-align: center; min-height: 42px; }
+    @media print { .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">FICHE DE REPORT DES NOTES</div>
+      <div class="subtitle">Document remis au professeur puis depose chez le censeur pour saisie.</div>
+    </div>
+    <div>Date d'impression : ${new Date().toLocaleDateString('fr-FR')}</div>
+  </div>
+  <div class="meta">
+    <div><strong>Classe :</strong> ${escapeHtml(selectedClassName)}</div>
+    <div><strong>Matiere :</strong> ${escapeHtml(subjectName)}</div>
+    <div><strong>Professeur :</strong> ................................................</div>
+    <div><strong>Annee scolaire :</strong> ${escapeHtml(schoolYear)}</div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th class="rank">N°</th>
+        <th>Matricule</th>
+        <th>Nom et prenom de l'eleve</th>
+        ${reportSequences.map((seq) => `<th class="note">${seq}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">
+    <div class="sign">Signature professeur</div>
+    <div class="sign">Visa censeur</div>
+    <div class="sign">Date de depot</div>
+  </div>
+  <script>window.addEventListener('load', () => { window.print(); });</script>
+</body>
+</html>`;
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1200,height=800');
+    if (!printWindow) {
+      setNotice("Le navigateur a bloque la fenetre d'impression.");
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
 
   return (
     <>
@@ -908,6 +1074,22 @@ function GradesWorkspace({ professor = false }) {
           )}
         </form>
       </Card>
+      {!professor && (
+        <Card className="mt-6 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-lg font-bold">Fiche de report de notes</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Imprimez une fiche par classe et matiere avec les eleves, les colonnes Seq1 a Seq6 et l'annee scolaire en cours.
+              </p>
+              <p className="mt-1 text-xs font-semibold text-slate-400">Annee scolaire: {schoolYear}</p>
+            </div>
+            <Button type="button" variant="secondary" disabled={!selectedClass || !selectedSubject || !students.length} onClick={printGradeReportSheet}>
+              <Printer size={16} /> Imprimer la fiche
+            </Button>
+          </div>
+        </Card>
+      )}
     </>
   );
 }

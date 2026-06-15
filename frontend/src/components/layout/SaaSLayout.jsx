@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, GraduationCap, LayoutDashboard,
-  Layers, Library, Megaphone, Menu, Receipt, Search, Settings, Users, UserCog, WalletCards, X,
+  Layers, Megaphone, Menu, Receipt, Search, Settings, Users, UserCog, WalletCards, X,
   BarChart3, ClipboardCheck, ClipboardList, School, LogOut, ArrowRightLeft, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
@@ -10,14 +10,13 @@ import { Avatar, Button } from '../ui';
 
 // Sidebar conforme à l'ordre hiérarchique §8 du cahier des charges.
 // Rubriques dépliables ; rubrique « Extra » = fonctionnalités hors cahier (conservées).
-// (Référentiel MINESEC → lot P2-C ; Communication/Annonces → lot P2-D.)
+// (Communication/Annonces → lot P2-D.)
 const nav = [
   { to: '/app/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   {
     group: 'Structure Pédagogique', icon: Layers, items: [
       { to: '/app/classes', label: 'Classes', icon: School },
       { to: '/app/subjects', label: 'Matières', icon: BookOpen },
-      { to: '/app/referentiel', label: 'Référentiel MINESEC', icon: Library },
     ],
   },
   {

@@ -11,8 +11,6 @@ const DECISIONS = [
   ['SORTANT', 'Sortant (quitte / diplômé)'],
 ];
 
-const DECISION_TONE = { ADMIS: 'emerald', REDOUBLE: 'amber', REORIENTE: 'blue', SORTANT: 'rose' };
-
 // §10.2 — niveau supérieur logique selon le référentiel MINESEC (codes niveaux).
 const NEXT_LEVEL = {
   // Francophone général
