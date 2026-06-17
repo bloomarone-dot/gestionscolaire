@@ -1,0 +1,23 @@
+import { defineConfig, loadEnv } from 'vite'
+import react from '@vitejs/plugin-react'
+import { cwd } from 'node:process'
+
+// La gateway est exposée sur le port 8082 par docker-compose.yml.
+// Surcharge possible via VITE_GATEWAY_URL (ex. http://127.0.0.1:8000).
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, cwd(), '')
+  const gateway = env.VITE_GATEWAY_URL || 'http://127.0.0.1:8082'
+  const proxied = [
+    '/auth', '/tenants', '/referentiel', '/pedagogie', '/personnel',
+    '/eleves', '/evaluations', '/bulletins', '/notifications',
+  ]
+  return {
+    plugins: [react()],
+    server: {
+      port: 5173,
+      proxy: Object.fromEntries(
+        proxied.map((p) => [p, { target: gateway, changeOrigin: true }]),
+      ),
+    },
+  }
+})

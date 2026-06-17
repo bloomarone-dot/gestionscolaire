@@ -1,0 +1,19 @@
+# NE PAS utiliser tel quel sur le VPS sans l'adapter.
+#
+# L'ancienne stack monolithe utilisait un service "backend" (SQLite).
+# Depuis la migration microservices, ce service n'existe plus dans docker-compose.yml.
+#
+# Si vous avez encore un fichier docker-compose.override.yml avec :
+#
+#   services:
+#     backend:
+#       ports: !override []
+#
+# Docker Compose affiche :
+#   service "backend" has neither an image nor a build context specified
+#
+# Solution : supprimer ou renommer l'override obsolète :
+#   mv docker-compose.override.yml docker-compose.override.yml.bak
+#
+# Puis relancer :
+#   docker compose up --build -d

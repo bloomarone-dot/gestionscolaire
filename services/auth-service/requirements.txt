@@ -1,0 +1,2 @@
+# gs-common fournit fastapi, sqlalchemy, psycopg2, python-jose, passlib, etc.
+uvicorn[standard]>=0.30

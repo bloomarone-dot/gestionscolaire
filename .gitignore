@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+
+# Bases de données locales
+*.db
+*.sqlite
+*.sqlite3
+data/
+backups/
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+
+# Environnement
+.env
+.env.*
+!.env.example
+!infra/.env.example
+
+# IDE / outils
+.vscode/
+.idea/
+.kilocode/
+.cursor/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Données d'import locales (PDF bulletins — ne pas versionner)
+Doc_RoyalPriestHood/
+!Doc_RoyalPriestHood/professeurs.example.json
+
+# Artefacts locaux d'audit / venv temporaire
+.audit-venv/
+
+# Données de déploiement sensibles (SQLite demo)
+deploy-data/*.db
+deploy-data/tenants/
+
+# Legacy monolith (non utilisé par docker-compose actuel)
+backend/
+
+# Logs
+*.log
+logs/

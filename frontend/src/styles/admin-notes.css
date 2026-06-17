@@ -1,0 +1,102 @@
+/* ======================================================
+   Admin Notes & Périodes de saisie
+   ====================================================== */
+
+.admin-notes-page,
+.admin-periode-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.admin-notes-page h2,
+.admin-periode-page h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-notes-intro {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0 0 1.5rem 0;
+  max-width: 720px;
+}
+
+.admin-notes-filters,
+.admin-periode-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.notes-table-wrap,
+.periode-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(22, 27, 39, 0.5);
+}
+
+.admin-notes-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.admin-notes-table th,
+.admin-notes-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.admin-notes-table th {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-notes-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.admin-notes-table .note-input {
+  width: 100%;
+  min-width: 80px;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-800);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+.note-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.periode-form {
+  background: rgba(30, 37, 53, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-section-hint {
+  color: var(--text-secondary);
+  margin: -0.75rem 0 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+  .admin-notes-filters,
+  .admin-periode-filters {
+    grid-template-columns: 1fr;
+  }
+}
