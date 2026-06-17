@@ -273,7 +273,8 @@ def _grades_table(b, L, seq_lbls, lang, th) -> Table:
             L["rank"], L["appreciation"], L["teacher_sign"]]
     rows = [[_p(h, bold=True, align=TA_CENTER, color=th["text"]) for h in head]]
     style_cmds = [
-        ("BACKGROUND", (0, 0), (-1, 0), th["grades_header"]),
+        ("BACKGROUND", (0, 0), (0, 0), th["grade_row"]),
+        ("BACKGROUND", (1, 0), (-1, 0), th["grades_header"]),
         ("ALIGN", (1, 0), (-2, -1), "CENTER"),
     ]
 
@@ -304,7 +305,8 @@ def _grades_table(b, L, seq_lbls, lang, th) -> Table:
                 _p(prof, align=TA_CENTER, size=5.5),
             ])
             gi = len(rows) - 1
-            style_cmds.append(("BACKGROUND", (0, gi), (-1, gi), th["grade_row"]))
+            style_cmds.append(("BACKGROUND", (0, gi), (0, gi), th["grade_row"]))
+            style_cmds.append(("BACKGROUND", (1, gi), (-1, gi), th["grade_row"]))
 
     col_w = _col_widths(n)
     t = Table(rows, colWidths=[w * cm for w in col_w], repeatRows=1)
@@ -333,7 +335,8 @@ def _special_table(b, L, seq_lbls, th) -> Table:
     t.setStyle(_grid(
         ("SPAN", (0, 0), (-1, 0)),
         ("BACKGROUND", (0, 0), (-1, 0), th["group_row"]),
-        ("BACKGROUND", (0, 1), (-1, 1), th["grades_header"]),
+        ("BACKGROUND", (0, 1), (0, 1), th["grade_row"]),
+        ("BACKGROUND", (1, 1), (-1, 1), th["grades_header"]),
     ))
     return t
 

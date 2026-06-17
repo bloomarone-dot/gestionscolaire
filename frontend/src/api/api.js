@@ -4,6 +4,10 @@
 // /evaluations, /bulletins.
 
 import { normalizeBulletinView } from '../utils/normalizeBulletinView';
+import { inferSubsystemFromText, resolveSubsystemCode } from '../utils/section';
+import { isValidAccessToken, readStoredAccessToken } from '../utils/authToken';
+
+let authRedirectPending = false;
 
 const ROLE_TO_UI = {
   enseignant: 'professeur',
@@ -26,10 +30,14 @@ function normalizeAuthUser(data) {
 }
 
 function normalizeClasse(classe) {
+  const subsystemCode = resolveSubsystemCode(classe)
+    || classe.subsystem_code
+    || inferSubsystemFromText(classe.specialite_libre);
   const section = classe.section
-    || (classe.subsystem_code === 'ANGLOPHONE' ? 'anglophone' : 'francophone');
+    || (subsystemCode === 'ANGLOPHONE' ? 'anglophone' : subsystemCode === 'FRANCOPHONE' ? 'francophone' : 'francophone');
   return {
     ...classe,
+    subsystem_code: subsystemCode || classe.subsystem_code,
     nom: classe.nom ?? classe.nom_personnalise,
     nom_personnalise: classe.nom_personnalise ?? classe.nom,
     niveau: classe.niveau ?? classe.level_code ?? classe.niveau_libre ?? '',
@@ -61,13 +69,16 @@ function unsupported(feature) {
 }
 
 function getAccessToken() {
-  const stored = localStorage.getItem('access_token');
-  if (stored) return stored;
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    return user?.token || null;
-  } catch {
-    return null;
+  const token = readStoredAccessToken();
+  return isValidAccessToken(token) ? token : null;
+}
+
+function markAuthExpired() {
+  if (authRedirectPending) return;
+  authRedirectPending = true;
+  clearAuthSession();
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.replace('/login?expired=1');
   }
 }
 
@@ -105,10 +116,10 @@ function clearAuthSession() {
 
 // Helper DELETE (204 attendu) — gère 401 et remonte l'erreur serveur.
 async function deleteRequest(url) {
+  if (authRedirectPending) throw new Error('Session expirée. Reconnectez-vous.');
   const res = await fetch(url, { method: 'DELETE', headers: getHeaders() });
   if (res.status === 401) {
-    clearAuthSession();
-    if (!window.location.pathname.startsWith('/login')) window.location.replace('/login');
+    markAuthExpired();
     throw new Error('Session expirée. Reconnectez-vous.');
   }
   if (!res.ok) {
@@ -118,12 +129,43 @@ async function deleteRequest(url) {
   return { success: true };
 }
 
+async function apiFetch(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch (err) {
+    if (err?.message === 'Failed to fetch') {
+      throw new Error(
+        'Serveur injoignable. Vérifiez que Docker tourne (docker compose up -d), puis rechargez la page (Ctrl+Shift+R).',
+      );
+    }
+    throw err;
+  }
+}
+
+async function apiRequest(path, { method = 'GET', body, auth = true } = {}) {
+  if (auth) {
+    if (authRedirectPending) {
+      throw new Error('Session expirée. Reconnectez-vous.');
+    }
+    if (!getAccessToken()) {
+      markAuthExpired();
+      throw new Error('Session expirée. Reconnectez-vous.');
+    }
+  }
+  const options = {
+    method,
+    headers: getHeaders(auth, body !== undefined),
+  };
+  if (body !== undefined) {
+    options.body = JSON.stringify(body);
+  }
+  const res = await apiFetch(path, options);
+  return handleResponse(res);
+}
+
 async function handleResponse(res, { authFailure = false } = {}) {
   if (res.status === 401 && !authFailure) {
-    clearAuthSession();
-    if (!window.location.pathname.startsWith('/login')) {
-      window.location.replace('/login');
-    }
+    markAuthExpired();
     throw new Error('Session expirée. Reconnectez-vous.');
   }
   if (!res.ok) {
@@ -398,6 +440,14 @@ export async function getSchool(schoolId) {
 
 // Profil de l'établissement de l'utilisateur connecté (admin) — pour la page Paramètres.
 export async function fetchMySchool() {
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const selectedSchool = JSON.parse(localStorage.getItem('selectedSchool') || 'null');
+  if (user?.role === 'superadmin') {
+    if (!selectedSchool?.id) {
+      throw new Error('Sélectionnez un établissement pour charger son profil.');
+    }
+    return getSchool(selectedSchool.id);
+  }
   const res = await fetch('/tenants/me', { headers: getHeaders() });
   return handleResponse(res);
 }
@@ -452,14 +502,12 @@ export async function getSchoolStats(schoolId) {
 
 // ── Professeurs (Admin) ──────────────────────────────────
 export async function fetchProfesseurs() {
-  const res = await fetch('/personnel/enseignants', { headers: getHeaders() });
-  return handleResponse(res);
+  return apiRequest('/personnel/enseignants');
 }
 
 // Tout le personnel (enseignants + direction/administration).
 export async function fetchPersonnel() {
-  const res = await fetch('/personnel', { headers: getHeaders() });
-  return handleResponse(res);
+  return apiRequest('/personnel');
 }
 
 // Direction / administration (Censeur, Directeur d'études, Surveillant…) — 2 téléphones.
@@ -524,9 +572,7 @@ export async function fetchClasses(filters = {}) {
   if (filters.level) params.set('level', filters.level);
   if (filters.series) params.set('series', filters.series);
   const query = params.toString() ? `?${params}` : '';
-  const res = await fetch(`/pedagogie/classes${query}`, { headers: getHeaders() });
-  const data = await handleResponse(res);
-  return data.map(normalizeClasse);
+  return apiRequest(`/pedagogie/classes${query}`).then((data) => data.map(normalizeClasse));
 }
 
 // §4 — création en cascade. Le formulaire fournit les codes officiels du référentiel ;
@@ -747,7 +793,7 @@ export async function getClassEleves(classeId) {
 }
 
 export async function getClassMatieres(classeId) {
-  const res = await fetch(`/pedagogie/classes/${classeId}/matieres`, {
+  const res = await apiFetch(`/pedagogie/classes/${classeId}/matieres`, {
     headers: getHeaders()
   });
   const data = await handleResponse(res);

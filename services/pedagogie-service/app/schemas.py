@@ -77,6 +77,7 @@ class ClasseUpdate(BaseModel):
     nom_personnalise: Optional[str] = None
     effectif_max: Optional[int] = None
     prof_principal_id: Optional[int] = None
+    subsystem_code: Optional[str] = None
 
 
 class MatiereUpdate(BaseModel):

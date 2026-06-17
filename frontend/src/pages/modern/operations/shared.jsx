@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button, Select } from "../../../components/ui";
+import { isAnglophone, resolveSubsystemCode, subsystemLabelFromClasse } from "../../../utils/section";
+import { isValidAccessToken, readStoredAccessToken } from "../../../utils/authToken";
 
 // Helpers partagés par les écrans d'opérations (classes, élèves, personnel,
 // matières, notes, bulletins). Extraits de l'ancien SchoolOperations.jsx.
@@ -126,6 +128,11 @@ export function useLoad(loader, fallback) {
   }, [fallback]);
 
   const reload = useCallback(async () => {
+    const token = readStoredAccessToken();
+    if (!isValidAccessToken(token)) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const data = await loader();
@@ -197,7 +204,13 @@ export function teacherRow(teacher) {
 export function subsystemLabel(code, fallbackSection) {
   if (code === "ANGLOPHONE") return "Anglophone";
   if (code === "FRANCOPHONE") return "Francophone";
-  return fallbackSection === "anglophone" ? "Anglophone" : "Francophone";
+  if (fallbackSection === "anglophone" || String(fallbackSection).toLowerCase().includes("anglo")) {
+    return "Anglophone";
+  }
+  if (fallbackSection === "francophone" || String(fallbackSection).toLowerCase().includes("franco")) {
+    return "Francophone";
+  }
+  return "—";
 }
 export function typeLabel(code) {
   if (code === "TECHNIQUE") return "Technique";
@@ -207,24 +220,26 @@ export function typeLabel(code) {
 
 export function classDisplayName(classe) {
   const name = classe.name || classe.nom || classe.nom_personnalise || `Classe ${classe.id}`;
-  const section = classe.subsystem || subsystemLabel(classe.subsystem_code, classe.section);
-  return section ? `${name} — ${section}` : name;
+  const code = resolveSubsystemCode(classe);
+  const section = subsystemLabel(code, classe.section || classe.specialite_libre);
+  return section && section !== "—" ? `${name} — ${section}` : name;
 }
 
 export function SectionBanner({ classe, context = "default" }) {
-  if (!classe?.subsystem_code && !classe?.subsystem) return null;
-  const isAnglo = classe.subsystem_code === "ANGLOPHONE" || classe.subsystem === "Anglophone";
+  const code = resolveSubsystemCode(classe);
+  if (!code) return null;
+  const anglo = isAnglophone(classe);
   const detail =
     context === "import"
-      ? isAnglo
+      ? anglo
         ? "Tous les élèves importés seront inscrits en section anglophone (bulletin en anglais)."
         : "Tous les élèves importés seront inscrits en section francophone (bulletin en français)."
-      : isAnglo
+      : anglo
         ? "Saisie des notes et bulletin en anglais (Form, SEQ, FIRST GROUP…)."
         : "Saisie des notes et bulletin en français (Trimestre, Séq, PREMIER GROUPE…).";
   return (
-    <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${isAnglo ? "border-cyan-200 bg-cyan-50 text-cyan-900" : "border-violet-200 bg-violet-50 text-violet-900"}`}>
-      <strong>Section {isAnglo ? "anglophone" : "francophone"}</strong>
+    <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${anglo ? "border-cyan-200 bg-cyan-50 text-cyan-900" : "border-violet-200 bg-violet-50 text-violet-900"}`}>
+      <strong>Section {anglo ? "anglophone" : "francophone"}</strong>
       {" · "}
       {detail}
       {context !== "import" && (
@@ -238,11 +253,12 @@ export function SectionBanner({ classe, context = "default" }) {
 }
 
 export function classRow(classe) {
+  const code = resolveSubsystemCode(classe);
   return {
     id: classe.id,
     name: classe.nom || classe.nom_personnalise || classe.name,
-    subsystem: subsystemLabel(classe.subsystem_code, classe.section),
-    subsystem_code: classe.subsystem_code || null,
+    subsystem: subsystemLabel(code, classe.specialite_libre || classe.section),
+    subsystem_code: code,
     type: typeLabel(classe.type_code),
     level:
       classe.niveau ||

@@ -42,10 +42,14 @@ import {
 import OfflineBanner from './components/OfflineBanner';
 
 function ProtectedApp() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, selectedSchool } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role === 'superadmin') return <Navigate to="/superadmin/dashboard" replace />;
-  if (user?.role === 'professeur' || user?.role === 'enseignant') return <Navigate to="/professor/dashboard" replace />;
+  if (user?.role === 'superadmin' && !selectedSchool?.id) {
+    return <Navigate to="/superadmin/dashboard" replace />;
+  }
+  if (user?.role === 'professeur' || user?.role === 'enseignant') {
+    return <Navigate to="/professor/dashboard" replace />;
+  }
   return <SaaSLayout />;
 }
 

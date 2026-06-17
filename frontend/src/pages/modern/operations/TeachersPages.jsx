@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import * as api from "../../../api/api";
+import { useAuth } from "../../../context/useAuth";
 import {
   Badge,
   Button,
@@ -24,9 +25,13 @@ import {
 
 export function OperationalTeachersPage() {
   const [searchParams] = useSearchParams();
+  const { user, selectedSchool } = useAuth();
   const view =
     searchParams.get("fonction") === "direction" ? "direction" : "enseignant";
   const loadPersonnel = useCallback(async () => {
+    if (user?.role === "superadmin" && !selectedSchool?.id) {
+      throw new Error("Sélectionnez un établissement en haut de page.");
+    }
     const [personnel, matieres] = await Promise.all([
       api.fetchPersonnel(),
       api.fetchMatieres().catch(() => []),
@@ -57,7 +62,7 @@ export function OperationalTeachersPage() {
           ? p.fonction === "Enseignant"
           : p.fonction !== "Enseignant",
       );
-  }, [view]);
+  }, [view, user?.role, selectedSchool?.id]);
   const { rows, setRows, loading, error } = useLoad(loadPersonnel, []);
   const [notice, setNotice] = useState("");
 

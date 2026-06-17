@@ -7,6 +7,7 @@ matières changent selon le sous-système.
 from typing import Optional
 
 from common.appreciation_scales import label_for_average
+from common.subsystem import lang_for_classe, resolve_subsystem_code
 
 LABELS = {
     "fr": {
@@ -102,6 +103,10 @@ LABELS = {
 
 def lang_for_subsystem(subsystem_code: Optional[str]) -> str:
     return "en" if subsystem_code == "ANGLOPHONE" else "fr"
+
+
+def lang_for_class(classe: Optional[dict]) -> str:
+    return lang_for_classe(classe)
 
 
 def term_label(trimestre: int, lang: str) -> str:

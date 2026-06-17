@@ -1,20 +1,15 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, GraduationCap, Lock, Phone } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import { Button, Card, Input } from "../components/ui";
 import InstallDesktopButton from "../components/InstallAppPrompt";
-
-function clearDemoSession() {
-  const token = localStorage.getItem("access_token") || "";
-  if (token.startsWith("demo-")) {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("selectedSchool");
-  }
-}
+import { purgeInvalidAuthSession } from "../utils/authToken";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get("expired") === "1";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +17,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    clearDemoSession();
+    purgeInvalidAuthSession();
   }, []);
 
   async function handleSubmit(e) {
@@ -58,6 +53,11 @@ export default function LoginPage() {
         </div>
 
         <Card className="p-6">
+          {sessionExpired && (
+            <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Votre session a expiré ou le serveur a redémarré. Reconnectez-vous.
+            </div>
+          )}
           {error && (
             <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {error}
@@ -117,6 +117,9 @@ export default function LoginPage() {
               {loading ? "Connexion..." : "Se connecter"}
             </Button>
           </form>
+          <p className="mt-4 text-center text-xs text-slate-400">
+            Admin établissement : 690000101 · Super-admin : 690000000
+          </p>
         </Card>
         <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <InstallDesktopButton />

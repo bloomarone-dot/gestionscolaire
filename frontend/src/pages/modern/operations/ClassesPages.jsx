@@ -24,6 +24,7 @@ import {
 export function OperationalClassesPage() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
+  const [sectionFilter, setSectionFilter] = useState("");
   const loadClasses = useCallback(async () => {
     const [classes, eleves] = await Promise.all([
       api.fetchClasses(),
@@ -98,6 +99,16 @@ export function OperationalClassesPage() {
         tone={error ? "amber" : "blue"}
       />
       <Notice message={notice} />
+      <Card className="mb-4 p-4">
+        <label className="block max-w-xs">
+          <span className="mb-1 block text-sm font-semibold text-slate-700">Filtrer par section</span>
+          <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
+            <option value="">Toutes les sections</option>
+            <option value="FRANCOPHONE">Francophone</option>
+            <option value="ANGLOPHONE">Anglophone</option>
+          </Select>
+        </label>
+      </Card>
       <DataTable
         title="Classes"
         columns={[
@@ -149,7 +160,7 @@ export function OperationalClassesPage() {
             ),
           },
         ]}
-        rows={rows}
+        rows={rows.filter((row) => !sectionFilter || row.subsystem_code === sectionFilter)}
         rowClassName={(row) =>
           String(row.id) === highlightId
             ? "bg-blue-50 ring-1 ring-inset ring-blue-200"

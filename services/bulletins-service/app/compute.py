@@ -72,6 +72,11 @@ def compute_class_bulletins(
     """
     official = [s for s in subjects if s.get("source", "OFFICIELLE") != "SPECIALE"]
     special = [s for s in subjects if s.get("source") == "SPECIALE"]
+    # Classes spéciales (ex. Royal Priesthood) : toutes les matières sont « spéciales »
+    # mais doivent alimenter le bulletin principal et la moyenne générale.
+    if not official and special:
+        official = special
+        special = []
 
     scales = parse_scales(appreciation_scales)
 

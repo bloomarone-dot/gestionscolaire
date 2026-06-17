@@ -5,6 +5,8 @@ from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from common.subsystem import infer_subsystem_from_text
+
 from app.models import (
     SOURCE_OFFICIELLE,
     SOURCE_SPECIALE,
@@ -159,6 +161,10 @@ def create_class(
     if payload.is_special:
         classe.niveau_libre = payload.niveau_libre
         classe.specialite_libre = payload.specialite_libre
+        classe.subsystem_code = (
+            payload.subsystem_code
+            or infer_subsystem_from_text(payload.specialite_libre)
+        )
     else:
         classe.subsystem_code = payload.subsystem_code
         classe.type_code = payload.type_code

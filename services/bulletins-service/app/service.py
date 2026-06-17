@@ -10,7 +10,7 @@ from app.compute import compute_class_bulletins
 from app.labels import (
     LABELS,
     decision,
-    lang_for_subsystem,
+    lang_for_class,
     period_label,
     report_title,
     seq_columns,
@@ -18,9 +18,13 @@ from app.labels import (
 
 try:
     from common.bulletin_theme import parse_theme
+    from common.subsystem import resolve_subsystem_code
 except ImportError:
-    def parse_theme(raw):  # type: ignore
+    def parse_theme(raw, lang=None):  # type: ignore
         return raw or {}
+
+    def resolve_subsystem_code(classe):  # type: ignore
+        return classe.get("subsystem_code") if classe else None
 
 
 def _default_school_year() -> str:
@@ -46,10 +50,10 @@ def _header(classe: dict, school: dict, lang: str, trimestre: int, scope: str) -
         "delegation_departementale_fr": school.get("bulletin_delegation_departementale_fr")
         or "DELEGATION DEPARTEMENTALE DE LA MEFOU ET AFAMBA",
         "next_term": school.get("bulletin_next_term_note"),
-        "bulletin_theme": parse_theme(school.get("bulletin_theme")),
+        "bulletin_theme": parse_theme(school.get("bulletin_theme"), lang=lang),
         "school_year": school.get("school_year") or _default_school_year(),
         "classe": classe.get("nom_personnalise"),
-        "subsystem_code": classe.get("subsystem_code"),
+        "subsystem_code": classe.get("subsystem_code") or resolve_subsystem_code(classe),
         "type_code": classe.get("type_code"),
         "level_code": classe.get("level_code"),
         "series_code": classe.get("series_code"),
@@ -69,7 +73,7 @@ def build_class_bulletins(
     classe = clients.get_classe(ctx, classe_id)
     school = clients.get_school(ctx)
     teacher_names = clients.get_teacher_names(ctx)
-    lang = lang_for_subsystem(classe.get("subsystem_code"))
+    lang = lang_for_class(classe)
 
     subjects = [
         {

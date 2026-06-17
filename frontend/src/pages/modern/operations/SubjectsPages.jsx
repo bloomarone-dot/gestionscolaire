@@ -4,6 +4,8 @@ import * as api from "../../../api/api";
 import { Button, Card, Input, PageHeader, Select } from "../../../components/ui";
 import { Notice, classDisplayName, classRow, SectionBanner, teacherRow, useLoad } from "./shared";
 
+const COEF_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
+
 export function OperationalSubjectsPage() {
   const { rows: classRows } = useLoad(
     useCallback(async () => (await api.fetchClasses()).map(classRow), []),
@@ -226,21 +228,21 @@ export function OperationalSubjectsPage() {
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      <Input
+                      <Select
                         className="mx-auto w-24 text-center"
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={m.coefficient ?? ""}
-                        onChange={(e) => changeCoefficient(m, e.target.value)}
-                        onBlur={() => saveCoefficient(m)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            e.currentTarget.blur();
-                          }
+                        value={String(m.coefficient ?? 1)}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          changeCoefficient(m, value);
+                          saveCoefficient({ ...m, coefficient: value });
                         }}
-                      />
+                      >
+                        {COEF_OPTIONS.map((coef) => (
+                          <option key={coef} value={coef}>
+                            {coef}
+                          </option>
+                        ))}
+                      </Select>
                     </td>
                     <td className="px-4 py-2 text-center">
                       <Select
@@ -306,16 +308,18 @@ export function OperationalSubjectsPage() {
               value={special.nom}
               onChange={(e) => setSpecial({ ...special, nom: e.target.value })}
             />
-            <Input
-              type="number"
-              min="0"
-              step="0.5"
-              placeholder="Coefficient"
-              value={special.coefficient}
+            <Select
+              value={String(special.coefficient)}
               onChange={(e) =>
-                setSpecial({ ...special, coefficient: e.target.value })
+                setSpecial({ ...special, coefficient: Number(e.target.value) })
               }
-            />
+            >
+              {COEF_OPTIONS.map((coef) => (
+                <option key={coef} value={coef}>
+                  {coef}
+                </option>
+              ))}
+            </Select>
             <Input
               type="number"
               min="0"

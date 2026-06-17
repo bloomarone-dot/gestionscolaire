@@ -1,4 +1,4 @@
-const CACHE = 'edusaas-shell-v4';
+const CACHE = 'edusaas-shell-v6';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -21,12 +21,15 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.pathname.startsWith('/auth/')
-    || url.pathname.startsWith('/admin/')
-    || url.pathname.startsWith('/professor/')
-    || url.pathname.startsWith('/notes/')
-    || url.pathname.startsWith('/bulletins/')
-    || url.pathname.startsWith('/schools')
-    || url.pathname.startsWith('/superadmin/')) {
+    || url.pathname.startsWith('/tenants/')
+    || url.pathname.startsWith('/pedagogie/')
+    || url.pathname.startsWith('/personnel')
+    || url.pathname.startsWith('/eleves/')
+    || url.pathname.startsWith('/evaluations/')
+    || url.pathname.startsWith('/referentiel/')
+    || url.pathname.startsWith('/notifications/')
+    || url.pathname.startsWith('/health')
+    || url.pathname.startsWith('/bulletins/')) {
     return;
   }
 

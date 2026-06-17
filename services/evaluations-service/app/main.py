@@ -40,7 +40,7 @@ def get_db() -> Session:
 
 
 # Saisie réservée au personnel (enseignant, direction/censeur, admin) — pas les parents.
-STAFF_ROLES = {"admin", "direction", "enseignant"}
+STAFF_ROLES = {"admin", "direction", "enseignant", "superadmin"}
 
 
 def require_staff(ctx: TenantContext = Depends(require_tenant)) -> TenantContext:

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
 import * as api from '../../api/api';
+import { useAuth } from '../../context/useAuth';
 import { Button, Card, Input, PageHeader } from '../../components/ui';
 import BulletinThemeEditor from '../../components/BulletinThemeEditor';
 import { DEFAULT_BULLETIN_THEME, normalizeBulletinTheme } from '../../utils/bulletinTheme';
@@ -112,10 +113,14 @@ function AppreciationScaleEditor({ title, bands, onChange }) {
 }
 
 export function SettingsPage() {
+  const { user, selectedSchool } = useAuth();
   const [school, setSchool] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [appreciationScales, setAppreciationScales] = useState(DEFAULT_APPRECIATION_SCALES);
   const [bulletinTheme, setBulletinTheme] = useState({ ...DEFAULT_BULLETIN_THEME });
+  const [themeFrancophone, setThemeFrancophone] = useState({ ...DEFAULT_BULLETIN_THEME });
+  const [themeAnglophone, setThemeAnglophone] = useState({ ...DEFAULT_BULLETIN_THEME });
+  const [themeSection, setThemeSection] = useState('francophone');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -127,7 +132,12 @@ export function SettingsPage() {
     let active = true;
     (async () => {
       try {
-        const s = await api.fetchMySchool();
+        let s;
+        if (user?.role === 'superadmin' && selectedSchool?.id) {
+          s = await api.getSchool(selectedSchool.id);
+        } else {
+          s = await api.fetchMySchool();
+        }
         if (!active) return;
         setSchool(s);
         setForm({ ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, s[k] ?? ''])) });
@@ -136,7 +146,10 @@ export function SettingsPage() {
             ? s.bulletin_appreciation_scales
             : DEFAULT_APPRECIATION_SCALES,
         );
-        setBulletinTheme(normalizeBulletinTheme(s.bulletin_theme));
+        const baseTheme = normalizeBulletinTheme(s.bulletin_theme);
+        setBulletinTheme(baseTheme);
+        setThemeFrancophone(normalizeBulletinTheme(s.bulletin_theme?.francophone || baseTheme));
+        setThemeAnglophone(normalizeBulletinTheme(s.bulletin_theme?.anglophone || baseTheme));
         setProfile({
           subsystems: s.subsystems || [],
           teaching_types: s.teaching_types || [],
@@ -149,7 +162,7 @@ export function SettingsPage() {
       }
     })();
     return () => { active = false; };
-  }, []);
+  }, [user?.role, selectedSchool?.id]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -193,11 +206,17 @@ export function SettingsPage() {
       const updated = await api.updateSchool(school.id, {
         ...form,
         bulletin_appreciation_scales: appreciationScales,
-        bulletin_theme: bulletinTheme,
+        bulletin_theme: {
+          preset: themeFrancophone.preset || themeAnglophone.preset || bulletinTheme.preset,
+          francophone: themeFrancophone,
+          anglophone: themeAnglophone,
+        },
       });
       setSchool(updated);
       setAppreciationScales(updated.bulletin_appreciation_scales || appreciationScales);
       setBulletinTheme(normalizeBulletinTheme(updated.bulletin_theme));
+      setThemeFrancophone(normalizeBulletinTheme(updated.bulletin_theme?.francophone || updated.bulletin_theme));
+      setThemeAnglophone(normalizeBulletinTheme(updated.bulletin_theme?.anglophone || updated.bulletin_theme));
       setNotice('Parametres enregistres. Le bulletin utilisera ces informations.');
     } catch (err) {
       setError(err.message || 'Enregistrement impossible.');
@@ -206,12 +225,25 @@ export function SettingsPage() {
     }
   }
 
-  if (loading) return <><PageHeader title="Parametres" /><p className="text-sm text-slate-500">Chargement...</p></>;
-  if (!school) return <><PageHeader title="Parametres" /><div className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error || 'Etablissement introuvable.'}</div></>;
+  if (loading) return <><PageHeader title="Paramètres établissement" /><p className="text-sm text-slate-500">Chargement...</p></>;
+  if (!school) return (
+    <>
+      <PageHeader title="Paramètres établissement" />
+      <div className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+        {error || (user?.role === 'superadmin'
+          ? 'Sélectionnez un établissement en haut de page pour configurer le bulletin.'
+          : 'Établissement introuvable.')}
+      </div>
+    </>
+  );
 
   return (
     <>
-      <PageHeader title="Parametres" description="Profil de l'etablissement et en-tete officiel du bulletin." breadcrumb="Etablissement / Parametres" />
+      <PageHeader
+        title="Paramètres établissement"
+        description="Profil, logo, couleurs du bulletin par section, barème des appréciations — chaque établissement a son modèle."
+        breadcrumb="Établissement / Paramètres"
+      />
 
       {notice && <div className="mb-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
       {error && <div className="mb-5 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
@@ -252,12 +284,34 @@ export function SettingsPage() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="mb-1 text-lg font-bold text-slate-900">Apparence du bulletin</h2>
+          <h2 className="mb-1 text-lg font-bold text-slate-900">Apparence du bulletin par section</h2>
           <p className="mb-4 text-sm text-slate-500">
-            Chaque établissement peut avoir son propre modèle. Cliquez une zone pour changer sa couleur.
-            Les couleurs s&apos;appliquent à l&apos;aperçu écran et au PDF.
+            Couleurs distinctes pour la section francophone et anglophone. Le bulletin d&apos;une classe
+            Form utilise le modèle anglophone ; une classe 6ème, 2nde, etc. utilise le modèle francophone.
           </p>
-          <BulletinThemeEditor theme={bulletinTheme} onChange={setBulletinTheme} />
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[
+              ['francophone', 'Francophone (BULLETIN, PREMIER GROUPE…)'],
+              ['anglophone', 'Anglophone (REPORT CARD, FIRST GROUP…)'],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setThemeSection(key)}
+                className={`rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition ${
+                  themeSection === key
+                    ? 'bg-blue-50 text-blue-700 ring-blue-200'
+                    : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <BulletinThemeEditor
+            theme={themeSection === 'anglophone' ? themeAnglophone : themeFrancophone}
+            onChange={themeSection === 'anglophone' ? setThemeAnglophone : setThemeFrancophone}
+          />
         </Card>
 
         <Card className="p-5">

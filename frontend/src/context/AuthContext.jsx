@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { login as apiLogin, loginProfessor as apiLoginProfessor } from '../api/api';
 import { AuthContext } from './useAuth';
+import { isValidAccessToken, purgeInvalidAuthSession, readStoredAccessToken } from '../utils/authToken';
 
 function readStoredUser() {
   try {
@@ -15,14 +16,12 @@ function readStoredUser() {
 }
 
 function getAccessToken() {
-  const stored = localStorage.getItem('access_token');
-  if (stored) return stored;
-  const user = readStoredUser();
-  return user?.token || null;
+  const token = readStoredAccessToken();
+  return isValidAccessToken(token) ? token : null;
 }
 
 function syncAccessToken(user) {
-  if (!user?.token) return;
+  if (!user?.token || !isValidAccessToken(user.token)) return;
   const current = localStorage.getItem('access_token');
   if (!current || current !== user.token) {
     localStorage.setItem('access_token', user.token);
@@ -31,9 +30,8 @@ function syncAccessToken(user) {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const parsed = readStoredUser();
-    syncAccessToken(parsed);
-    return parsed;
+    purgeInvalidAuthSession();
+    return readStoredUser();
   });
 
   const [selectedSchool, setSelectedSchool] = useState(() => {

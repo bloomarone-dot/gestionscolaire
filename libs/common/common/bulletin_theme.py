@@ -93,17 +93,27 @@ def normalize_theme(data: Optional[dict[str, Any]]) -> dict[str, str]:
     return base
 
 
-def parse_theme(raw: Any) -> dict[str, str]:
+def parse_theme(raw: Any, lang: Optional[str] = None) -> dict[str, str]:
+    data: Optional[dict[str, Any]] = None
     if raw is None or raw == "":
         return deepcopy(DEFAULT_BULLETIN_THEME)
     if isinstance(raw, dict):
-        return normalize_theme(raw)
-    if isinstance(raw, str):
+        data = raw
+    elif isinstance(raw, str):
         try:
-            return normalize_theme(json.loads(raw))
+            data = json.loads(raw)
         except (json.JSONDecodeError, TypeError):
             return deepcopy(DEFAULT_BULLETIN_THEME)
-    return deepcopy(DEFAULT_BULLETIN_THEME)
+    else:
+        return deepcopy(DEFAULT_BULLETIN_THEME)
+
+    merged = dict(data)
+    if lang in ("fr", "en"):
+        section_key = "francophone" if lang == "fr" else "anglophone"
+        section_theme = data.get(section_key)
+        if isinstance(section_theme, dict):
+            merged.update(section_theme)
+    return normalize_theme(merged)
 
 
 def dump_theme(theme: dict[str, Any]) -> str:

@@ -23,7 +23,8 @@ export function normalizeBulletinView(data) {
 
   const header = data.header || {};
   const b = data.bulletin || data;
-  const lang = data.lang || (header.subsystem_code === 'ANGLOPHONE' ? 'en' : 'fr');
+  const lang = data.lang
+    || (header.subsystem_code === 'ANGLOPHONE' ? 'en' : 'fr');
   const scope = header.scope || 'trimestre';
   const isAnnual = scope === 'annual';
   const trimestre = header.trimestre || 1;
@@ -31,7 +32,11 @@ export function normalizeBulletinView(data) {
   const seqLabels = header.seq_labels || [];
 
   const groups = {};
-  for (const s of b.subjects || []) {
+  const allSubjects = [
+    ...(b.subjects || []),
+    ...(b.special_subjects || []).map((s) => ({ ...s, groupe: s.groupe || 1 })),
+  ];
+  for (const s of allSubjects) {
     const g = s.groupe || 1;
     if (!groups[g]) groups[g] = [];
     const row = {
