@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff, GraduationCap, Lock, Phone } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import { Button, Card, Input } from "../components/ui";
+import InstallDesktopButton from "../components/InstallAppPrompt";
 
 function clearDemoSession() {
   const token = localStorage.getItem("access_token") || "";
@@ -115,6 +116,7 @@ export default function LoginPage() {
             <Button className="w-full" disabled={loading}>
               {loading ? "Connexion..." : "Se connecter"}
             </Button>
+            <InstallDesktopButton />
           </form>
         </Card>
       </div>

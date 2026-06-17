@@ -1,5 +1,5 @@
-const CACHE = 'edusaas-shell-v3';
-const SHELL = ['/', '/index.html'];
+const CACHE = 'edusaas-shell-v4';
+const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
