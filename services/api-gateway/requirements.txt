@@ -1,0 +1,3 @@
+# gs-common (installé depuis libs/common dans le Dockerfile) fournit fastapi,
+# python-jose, httpx, pydantic-settings, etc.
+uvicorn[standard]>=0.30

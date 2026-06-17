@@ -1,0 +1,2324 @@
+{
+  "source": "/home/brice-mboule/Tableaux_Plateforme_Scolaire.xlsx",
+  "sheets": [
+    "Arborescence Pédagogique",
+    "Référentiel des Matières",
+    "Profils Utilisateurs",
+    "Menu Latéral",
+    "Tableaux Affichage",
+    "Notifications"
+  ],
+  "domains": [
+    {
+      "code": "LANG",
+      "name": "Langues et Communication"
+    },
+    {
+      "code": "SHS",
+      "name": "Sciences Humaines et Sociales"
+    },
+    {
+      "code": "SCT",
+      "name": "Sciences et Technologie"
+    },
+    {
+      "code": "ASC",
+      "name": "Arts, Sport et Culture"
+    },
+    {
+      "code": "PRO",
+      "name": "Enseignements Professionnels / Techniques"
+    },
+    {
+      "code": "ECG",
+      "name": "Économie et Gestion"
+    }
+  ],
+  "subjects": [
+    {
+      "code": "FR_FRANCAIS",
+      "name": "Français",
+      "domain": "LANG"
+    },
+    {
+      "code": "FR_ANGLAIS",
+      "name": "Anglais",
+      "domain": "LANG"
+    },
+    {
+      "code": "FR_MATHS",
+      "name": "Mathématiques",
+      "domain": "SCT"
+    },
+    {
+      "code": "FR_SVT",
+      "name": "Sciences de la Vie et de la Terre (SVT)",
+      "domain": "SCT"
+    },
+    {
+      "code": "FR_PCT",
+      "name": "Physique-Chimie-Technologie (PCT)",
+      "domain": "SCT"
+    },
+    {
+      "code": "FR_HIST",
+      "name": "Histoire",
+      "domain": "SHS"
+    },
+    {
+      "code": "FR_GEO",
+      "name": "Géographie",
+      "domain": "SHS"
+    },
+    {
+      "code": "FR_ECM",
+      "name": "Éducation à la Citoyenneté (ECM)",
+      "domain": "SHS"
+    },
+    {
+      "code": "FR_LV2",
+      "name": "Espagnol / Allemand (2ème langue)",
+      "domain": "LANG"
+    },
+    {
+      "code": "FR_EPS",
+      "name": "Éducation Physique et Sportive (EPS)",
+      "domain": "ASC"
+    },
+    {
+      "code": "FR_ARTS",
+      "name": "Arts Plastiques",
+      "domain": "ASC"
+    },
+    {
+      "code": "FR_INFO",
+      "name": "Informatique",
+      "domain": "SCT"
+    },
+    {
+      "code": "FR_PHILO",
+      "name": "Philosophie",
+      "domain": "SHS"
+    },
+    {
+      "code": "FR_COMPTA",
+      "name": "Comptabilité Générale",
+      "domain": "ECG"
+    },
+    {
+      "code": "FR_ECO",
+      "name": "Économie Générale",
+      "domain": "ECG"
+    },
+    {
+      "code": "FR_DROIT",
+      "name": "Droit",
+      "domain": "ECG"
+    },
+    {
+      "code": "FR_OGE",
+      "name": "Organisation et Gestion des Entreprises",
+      "domain": "ECG"
+    },
+    {
+      "code": "FR_MATHFIN",
+      "name": "Mathématiques Financières",
+      "domain": "SCT"
+    },
+    {
+      "code": "FR_INFOGE",
+      "name": "Informatique de Gestion",
+      "domain": "SCT"
+    },
+    {
+      "code": "FR_TECHSPE",
+      "name": "Technologie de Spécialité (selon F1/F2/F3)",
+      "domain": "PRO"
+    },
+    {
+      "code": "FR_DESSIN",
+      "name": "Dessin Technique / DAO",
+      "domain": "PRO"
+    },
+    {
+      "code": "FR_PHYSAPP",
+      "name": "Physique Appliquée",
+      "domain": "SCT"
+    },
+    {
+      "code": "FR_TPATELIER",
+      "name": "Travaux Pratiques d'Atelier",
+      "domain": "PRO"
+    },
+    {
+      "code": "EN_ENGLISH",
+      "name": "English Language",
+      "domain": "LANG"
+    },
+    {
+      "code": "EN_FRENCH",
+      "name": "French",
+      "domain": "LANG"
+    },
+    {
+      "code": "EN_MATHS",
+      "name": "Mathematics",
+      "domain": "SCT"
+    },
+    {
+      "code": "EN_BIO",
+      "name": "Biology",
+      "domain": "SCT"
+    },
+    {
+      "code": "EN_CHEM",
+      "name": "Chemistry",
+      "domain": "SCT"
+    },
+    {
+      "code": "EN_PHYS",
+      "name": "Physics",
+      "domain": "SCT"
+    },
+    {
+      "code": "EN_HIST",
+      "name": "History",
+      "domain": "SHS"
+    },
+    {
+      "code": "EN_GEO",
+      "name": "Geography",
+      "domain": "SHS"
+    },
+    {
+      "code": "EN_CITIZEN",
+      "name": "Citizenship Education",
+      "domain": "SHS"
+    },
+    {
+      "code": "EN_LIT",
+      "name": "Literature in English",
+      "domain": "LANG"
+    },
+    {
+      "code": "EN_CS",
+      "name": "Computer Science",
+      "domain": "SCT"
+    },
+    {
+      "code": "EN_PE",
+      "name": "Physical Education (PE)",
+      "domain": "ASC"
+    }
+  ],
+  "eligibility": [
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ECM",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_ECM",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_ECM",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_ECM",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_ARTS",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_ARTS",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_ARTS",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_ARTS",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "6E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "5E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "4E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "3E",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_LV2",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PCT",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_SVT",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_PHILO",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_HIST",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_GEO",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "2ND",
+      "series_code": "A1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "1ERE",
+      "series_code": "A1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "TLE",
+      "series_code": "A1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "2ND",
+      "series_code": "A2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "1ERE",
+      "series_code": "A2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "TLE",
+      "series_code": "A2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "2ND",
+      "series_code": "A4",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "1ERE",
+      "series_code": "A4",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "TLE",
+      "series_code": "A4",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "2ND",
+      "series_code": "C",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "1ERE",
+      "series_code": "C",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "TLE",
+      "series_code": "C",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "2ND",
+      "series_code": "D",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "1ERE",
+      "series_code": "D",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_INFO",
+      "level_code": "TLE",
+      "series_code": "D",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_COMPTA",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_COMPTA",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_COMPTA",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_COMPTA",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_COMPTA",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_COMPTA",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_ECO",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ECO",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ECO",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ECO",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ECO",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ECO",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_DROIT",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_DROIT",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_DROIT",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_DROIT",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_DROIT",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_DROIT",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_OGE",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_OGE",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_OGE",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_OGE",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_OGE",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_OGE",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHFIN",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHFIN",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHFIN",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHFIN",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHFIN",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_MATHFIN",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_INFOGE",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_INFOGE",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_INFOGE",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_INFOGE",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_INFOGE",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_INFOGE",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "2ND-T",
+      "series_code": "CG",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "2ND-T",
+      "series_code": "ACC",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE-T",
+      "series_code": "G1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE-T",
+      "series_code": "G2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE-T",
+      "series_code": "G1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE-T",
+      "series_code": "G2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_TECHSPE",
+      "level_code": "1ERE-T",
+      "series_code": "F1",
+      "default_coefficient": 6.0
+    },
+    {
+      "subject_code": "FR_TECHSPE",
+      "level_code": "1ERE-T",
+      "series_code": "F2",
+      "default_coefficient": 6.0
+    },
+    {
+      "subject_code": "FR_TECHSPE",
+      "level_code": "1ERE-T",
+      "series_code": "F3",
+      "default_coefficient": 6.0
+    },
+    {
+      "subject_code": "FR_TECHSPE",
+      "level_code": "TLE-T",
+      "series_code": "F1",
+      "default_coefficient": 6.0
+    },
+    {
+      "subject_code": "FR_TECHSPE",
+      "level_code": "TLE-T",
+      "series_code": "F2",
+      "default_coefficient": 6.0
+    },
+    {
+      "subject_code": "FR_TECHSPE",
+      "level_code": "TLE-T",
+      "series_code": "F3",
+      "default_coefficient": 6.0
+    },
+    {
+      "subject_code": "FR_DESSIN",
+      "level_code": "1ERE-T",
+      "series_code": "F1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_DESSIN",
+      "level_code": "1ERE-T",
+      "series_code": "F2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_DESSIN",
+      "level_code": "1ERE-T",
+      "series_code": "F3",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_DESSIN",
+      "level_code": "TLE-T",
+      "series_code": "F1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_DESSIN",
+      "level_code": "TLE-T",
+      "series_code": "F2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_DESSIN",
+      "level_code": "TLE-T",
+      "series_code": "F3",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "1ERE-T",
+      "series_code": "F1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "1ERE-T",
+      "series_code": "F2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "1ERE-T",
+      "series_code": "F3",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "TLE-T",
+      "series_code": "F1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "TLE-T",
+      "series_code": "F2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_MATHS",
+      "level_code": "TLE-T",
+      "series_code": "F3",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHYSAPP",
+      "level_code": "1ERE-T",
+      "series_code": "F1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHYSAPP",
+      "level_code": "1ERE-T",
+      "series_code": "F2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHYSAPP",
+      "level_code": "1ERE-T",
+      "series_code": "F3",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHYSAPP",
+      "level_code": "TLE-T",
+      "series_code": "F1",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHYSAPP",
+      "level_code": "TLE-T",
+      "series_code": "F2",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_PHYSAPP",
+      "level_code": "TLE-T",
+      "series_code": "F3",
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "FR_TPATELIER",
+      "level_code": "1ERE-T",
+      "series_code": "F1",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_TPATELIER",
+      "level_code": "1ERE-T",
+      "series_code": "F2",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_TPATELIER",
+      "level_code": "1ERE-T",
+      "series_code": "F3",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_TPATELIER",
+      "level_code": "TLE-T",
+      "series_code": "F1",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_TPATELIER",
+      "level_code": "TLE-T",
+      "series_code": "F2",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_TPATELIER",
+      "level_code": "TLE-T",
+      "series_code": "F3",
+      "default_coefficient": 5.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE-T",
+      "series_code": "F1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE-T",
+      "series_code": "F2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "1ERE-T",
+      "series_code": "F3",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE-T",
+      "series_code": "F1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE-T",
+      "series_code": "F2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_FRANCAIS",
+      "level_code": "TLE-T",
+      "series_code": "F3",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE-T",
+      "series_code": "F1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE-T",
+      "series_code": "F2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "1ERE-T",
+      "series_code": "F3",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE-T",
+      "series_code": "F1",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE-T",
+      "series_code": "F2",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_ANGLAIS",
+      "level_code": "TLE-T",
+      "series_code": "F3",
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE-T",
+      "series_code": "F1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE-T",
+      "series_code": "F2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "1ERE-T",
+      "series_code": "F3",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE-T",
+      "series_code": "F1",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE-T",
+      "series_code": "F2",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "FR_EPS",
+      "level_code": "TLE-T",
+      "series_code": "F3",
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_ENGLISH",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_ENGLISH",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_ENGLISH",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_ENGLISH",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_ENGLISH",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_FRENCH",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_FRENCH",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_FRENCH",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_FRENCH",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_FRENCH",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_MATHS",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_MATHS",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_MATHS",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_MATHS",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_MATHS",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 4.0
+    },
+    {
+      "subject_code": "EN_BIO",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_BIO",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_BIO",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_BIO",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_BIO",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_CHEM",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_CHEM",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_CHEM",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_CHEM",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_CHEM",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_PHYS",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_PHYS",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_PHYS",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_PHYS",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_PHYS",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_HIST",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_HIST",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_HIST",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_HIST",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_HIST",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_GEO",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_GEO",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_GEO",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_GEO",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_GEO",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 2.0
+    },
+    {
+      "subject_code": "EN_CITIZEN",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_CITIZEN",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_CITIZEN",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_CITIZEN",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_CITIZEN",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_LIT",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "EN_LIT",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "EN_LIT",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "EN_LIT",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "EN_LIT",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 3.0
+    },
+    {
+      "subject_code": "EN_CS",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_CS",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_CS",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_CS",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_CS",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_PE",
+      "level_code": "F1",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_PE",
+      "level_code": "F2",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_PE",
+      "level_code": "F3",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_PE",
+      "level_code": "F4",
+      "series_code": null,
+      "default_coefficient": 1.0
+    },
+    {
+      "subject_code": "EN_PE",
+      "level_code": "F5",
+      "series_code": null,
+      "default_coefficient": 1.0
+    }
+  ],
+  "applied": false,
+  "results": []
+}

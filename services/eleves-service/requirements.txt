@@ -1,0 +1,4 @@
+# gs-common fournit fastapi, sqlalchemy, psycopg2, python-jose, passlib, etc.
+uvicorn[standard]>=0.30
+openpyxl>=3.1
+python-multipart>=0.0.9

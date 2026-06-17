@@ -1,0 +1,314 @@
+.prof-bulletins {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.prof-bulletins-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.bulletin-view-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bulletin-view-toggle button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.bulletin-view-toggle button.active {
+  background: var(--primary-50);
+  color: var(--primary-700);
+}
+
+.bulletin-export-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.bulletin-export-inline {
+  margin-left: 0;
+  align-items: flex-end;
+}
+
+.prof-eleves-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: -0.5rem 0 1rem;
+}
+
+.prof-bulletins-readonly .bulletin-detail-actions,
+.prof-bulletins-readonly .bulletin-export-group {
+  display: none !important;
+}
+
+.prof-readonly-hint {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: var(--primary-50);
+  border: 1px solid var(--primary-100);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  color: var(--primary-700);
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.prof-bulletins-steps {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bulletin-step {
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--bg-700);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.bulletin-step.active {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+  color: var(--primary-700);
+}
+
+.bulletin-step.done {
+  background: var(--primary-100);
+  border-color: var(--primary-200);
+  color: var(--primary-600);
+}
+
+.prof-bulletins-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.5rem;
+  min-height: 400px;
+}
+
+.prof-bulletins-sidebar {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+
+.prof-bulletins-sidebar h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.bulletin-classe-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.bulletin-classe-btn {
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bulletin-classe-btn small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bulletin-classe-btn:hover,
+.bulletin-classe-btn.active {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+  color: var(--primary-700);
+}
+
+.prof-bulletins-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.eleves-picker h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.eleves-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.eleve-chip {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-700);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.eleve-chip:hover,
+.eleve-chip.active {
+  background: var(--primary-50);
+  border-color: var(--primary-300);
+  color: var(--primary-700);
+}
+
+.bulletin-card-animated {
+  animation: heroFadeIn 0.4s ease-out;
+}
+
+.bulletin-body {
+  padding: 1rem 1.5rem 1.5rem;
+}
+
+.note-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.note-badge.excellent { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+.note-badge.bien { background: rgba(245, 158, 11, 0.15); color: var(--accent-400); }
+.note-badge.passable { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+.note-badge.insuffisant { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+.bulletin-import-panel {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bulletin-import-panel h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.bulletin-import-hint {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+.bulletin-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.bulletin-file-label {
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulletin-import-errors {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: #b91c1c;
+}
+
+.bulletin-import-errors ul {
+  margin: 0.5rem 0 0 1.25rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .prof-bulletins-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prof-bulletins-toolbar select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .bulletin-view-toggle {
+    width: 100%;
+  }
+
+  .bulletin-view-toggle button {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .prof-bulletins-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .prof-bulletins-sidebar {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .bulletin-classe-btn {
+    min-height: 44px;
+  }
+
+  .eleve-chip {
+    min-height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .bulletin-classe-summary {
+    flex-wrap: wrap;
+  }
+}
