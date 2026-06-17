@@ -70,11 +70,11 @@ export default function InstallDesktopButton() {
   if (installed) return null;
 
   return (
-    <div className="mt-4">
+    <div>
       <Button
         type="button"
         variant="secondary"
-        className="w-full"
+        className="w-full border-2 border-blue-200 bg-blue-50 font-semibold text-blue-800 hover:bg-blue-100"
         onClick={install}
       >
         <Download size={18} />

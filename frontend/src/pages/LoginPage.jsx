@@ -116,9 +116,11 @@ export default function LoginPage() {
             <Button className="w-full" disabled={loading}>
               {loading ? "Connexion..." : "Se connecter"}
             </Button>
-            <InstallDesktopButton />
           </form>
         </Card>
+        <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <InstallDesktopButton />
+        </div>
       </div>
     </main>
   );
