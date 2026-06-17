@@ -1,0 +1,20 @@
+[
+  {
+    "nom": "EXEMPLE",
+    "prenom": "Marie",
+    "sexe": "F",
+    "phone": "690000201",
+    "phone2": "690000202",
+    "email": "",
+    "specialite": "Français",
+    "password": "Prof2026!"
+  },
+  {
+    "nom": "EXEMPLE",
+    "prenom": "Paul",
+    "sexe": "M",
+    "phone": "690000203",
+    "specialite": "Mathématiques",
+    "password": "Prof2026!"
+  }
+]

@@ -41,6 +41,10 @@ npm-debug.log*
 Thumbs.db
 desktop.ini
 
+# Données d'import locales (PDF bulletins — ne pas versionner)
+Doc_RoyalPriestHood/
+!Doc_RoyalPriestHood/professeurs.example.json
+
 # Logs
 *.log
 logs/

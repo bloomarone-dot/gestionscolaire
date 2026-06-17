@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Importe la structure Royal Priesthood : école, classes, matières, élèves.
+"""Importe la structure Royal Priesthood : école, classes, matières, élèves, professeurs.
 
-Sans notes ni professeurs. Données extraites des bulletins PDF Doc_RoyalPriestHood.
+Professeurs : fichier optionnel Doc_RoyalPriestHood/professeurs.json (voir professeurs.example.json).
+Sans notes. Données élèves/matières extraites des bulletins PDF Doc_RoyalPriestHood.
 
 Usage:
+  python3 scripts/verify_royal_priesthood.py
   python3 scripts/import_royal_priesthood.py
   python3 scripts/import_royal_priesthood.py --apply
 """
@@ -24,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 API_URL = os.environ.get("EDUGESTION_API_URL", "http://localhost:8082")
-DOC_DIR = Path(os.environ.get("ROYAL_DATA_DIR", "/home/tontsa-reine/Downloads/Doc_RoyalPriestHood"))
+DOC_DIR = Path(os.environ.get("ROYAL_DATA_DIR", ROOT / "Doc_RoyalPriestHood"))
 SCHOOL_NAME = "Royal Priesthood Academy"
 SCHOOL_CODE = "RPA"
 
@@ -435,6 +437,37 @@ def apply_import(token: str, report: dict) -> dict:
             known_name.add(key)
             imported += 1
     result["steps"].append(f"{imported} élèves importés")
+
+    # 7. Professeurs (optionnel — Doc_RoyalPriestHood/professeurs.json)
+    prof_file = DOC_DIR / "professeurs.json"
+    if prof_file.is_file():
+        profs = json.loads(prof_file.read_text(encoding="utf-8"))
+        existing = api("GET", "/personnel/enseignants", token, school_id=sid)[1]
+        known_phones = {p.get("phone") for p in existing}
+        created_profs = 0
+        for prof in profs:
+            phone = str(prof.get("phone") or "").strip()
+            if not phone or phone in known_phones:
+                continue
+            if not prof.get("nom") or not prof.get("sexe"):
+                continue
+            payload = {
+                "nom": prof["nom"].strip(),
+                "prenom": (prof.get("prenom") or "").strip() or None,
+                "sexe": str(prof["sexe"]).upper(),
+                "phone": phone,
+                "phone2": (prof.get("phone2") or "").strip() or None,
+                "email": (prof.get("email") or "").strip() or None,
+                "specialite": (prof.get("specialite") or "").strip() or None,
+                "password": prof.get("password"),
+            }
+            api("POST", "/personnel/enseignants", token, payload, school_id=sid)
+            known_phones.add(phone)
+            created_profs += 1
+        result["steps"].append(f"{created_profs} professeur(s) importé(s)")
+    else:
+        result["steps"].append("Professeurs ignorés (professeurs.json absent)")
+
     result["school_id"] = sid
     return result
 

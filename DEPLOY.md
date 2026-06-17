@@ -42,3 +42,44 @@ git pull
 docker compose up --build -d
 ./scripts/seed-superadmin.sh   # idempotent, ne recrée pas si déjà présent
 ```
+
+## Migration depuis l'ancienne stack (monolithe SQLite)
+
+Le dépôt n'utilise **plus** le service Docker `backend` (FastAPI monolithe sur le port 8000).
+
+| Avant (monolithe) | Maintenant (microservices) |
+|-------------------|----------------------------|
+| `backend` + `frontend` | Postgres + RabbitMQ + Redis + 9 services + `api-gateway` + `frontend` |
+| Frontend `:5173` | Frontend `:5180` (`WEB_PORT`) |
+| API directe `:8000` | Gateway `:8082` (`GATEWAY_PORT`) |
+| Login username | Login **téléphone + mot de passe** |
+
+### Erreur : `service "backend" has neither an image nor a build context specified`
+
+Cause la plus fréquente : un ancien **`docker-compose.override.yml`** sur le serveur (créé pour éviter le conflit de port 8000) référence encore `backend`, alors que ce service n'existe plus.
+
+```bash
+cd /opt/gestionscolaire   # ou votre chemin de déploiement
+ls -la docker-compose.override.yml
+
+# Sauvegarder et retirer l'override obsolète
+mv docker-compose.override.yml docker-compose.override.yml.bak
+
+git pull
+docker compose up --build -d
+./scripts/seed-superadmin.sh
+```
+
+Vérifications :
+
+```bash
+docker compose ps
+curl -s http://127.0.0.1:8082/health
+curl -I http://127.0.0.1:5180/
+```
+
+Accès navigateur : `http://VOTRE_IP:5180` (plus `:5173` sauf si vous forcez `WEB_PORT=5173` dans `.env`).
+
+### Données SQLite anciennes
+
+Les bases SQLite (`master.db`, `tenants/`) ne sont **pas** migrées automatiquement vers PostgreSQL. Utilisez les scripts d'import (`scripts/import_school_excel.py`, `scripts/import_royal_priesthood.py`) ou restaurez via les procédures documentées dans `deploy-data/README.md`.
