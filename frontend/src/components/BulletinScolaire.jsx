@@ -215,7 +215,7 @@ export default function BulletinScolaire({ bulletin }) {
   const data = useMemo(() => mapBulletinScolaire(bulletin), [bulletin]);
   if (!data) return null;
 
-  const { school, student, subjects, summary, groupLabels, seqLabel1, seqLabel2 } = data;
+  const { school, student, subjects, summary, groupLabels, seqLabel1, seqLabel2, labels } = data;
   const allColspan = 9;
 
   return (
@@ -344,37 +344,36 @@ export default function BulletinScolaire({ bulletin }) {
           )}
 
           <tr>
-            <td colSpan={3} style={styles.totalRow}>TOTAL</td>
-            <td style={styles.totalRow} />
+            <td colSpan={4} style={{ ...styles.totalRow, textAlign: 'right', paddingRight: '6px' }}>
+              {labels.total}
+            </td>
             <td style={styles.totalRow}>{summary.totalCoef}</td>
             <td style={styles.totalRow}>{summary.totalMarks ?? ''}</td>
-            <td colSpan={2} style={styles.totalRow}>CLASS AVERAGE</td>
-            <td style={styles.totalRow}>
-              {summary.classAverage}
-              <span style={{ float: 'right', fontWeight: 'normal', fontSize: '8px' }}>SANCTIONS</span>
-            </td>
+            <td style={styles.totalRow}>{labels.classAverage}</td>
+            <td style={styles.totalRow}>{summary.classAverage}</td>
+            <td style={{ ...styles.totalRow, fontSize: '9px' }}>{labels.sanctions}</td>
           </tr>
 
           <tr>
-            <td colSpan={1} style={styles.summaryLabelCell}>TERM AVERAGE</td>
-            <td colSpan={2} style={styles.summaryValueCell}>{summary.termAverage ?? ''}</td>
-            <td colSpan={2} style={styles.summaryValueCell}>{summary.appreciation}</td>
-            <td colSpan={2} style={styles.summaryLabelCell}>Absences (hours)</td>
+            <td style={styles.summaryLabelCell}>{labels.termAverage}</td>
+            <td colSpan={3} style={styles.summaryValueCell}>{summary.termAverage ?? ''}</td>
+            <td style={styles.summaryValueCell}>{summary.appreciation}</td>
+            <td colSpan={2} style={styles.summaryLabelCell}>{labels.absences}</td>
             <td style={styles.summaryValueCell}>{summary.absences ?? '0'}</td>
             <td style={styles.summaryValueCell}>{summary.absences ?? '0'}</td>
           </tr>
 
           <tr>
-            <td colSpan={1} style={styles.summaryLabelCell}>POSITION</td>
-            <td colSpan={1} style={styles.summaryValueCell}>{summary.position ?? ''}</td>
-            <td colSpan={1} style={styles.summaryLabelCell}>OUT OF</td>
-            <td colSpan={1} style={styles.summaryValueCell}>{summary.outOf}</td>
-            <td colSpan={1} style={styles.summaryLabelCell}>REMARK</td>
+            <td style={styles.summaryLabelCell}>{labels.position}</td>
+            <td style={styles.summaryValueCell}>{summary.position ?? ''}</td>
+            <td style={styles.summaryLabelCell}>{labels.outOf}</td>
+            <td style={styles.summaryValueCell}>{summary.outOf}</td>
+            <td style={styles.summaryLabelCell}>{labels.remark}</td>
             <td colSpan={4} style={styles.summaryValueCell}>{summary.remark}</td>
           </tr>
 
           <tr>
-            <td colSpan={1} style={styles.summaryLabelCell}>OBSERVATION</td>
+            <td style={styles.summaryLabelCell}>{labels.observation}</td>
             <td colSpan={allColspan - 1} style={{ ...styles.summaryValueCell, minHeight: '20px', textAlign: 'left' }}>
               {summary.observation}
             </td>

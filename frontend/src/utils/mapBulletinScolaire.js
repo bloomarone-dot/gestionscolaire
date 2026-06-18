@@ -83,6 +83,18 @@ export function mapBulletinScolaire(bulletin) {
     },
     seqLabel1,
     seqLabel2,
+    lang,
+    labels: {
+      total: L.total || 'TOTAL',
+      classAverage: L.class_average || (lang === 'en' ? 'CLASS AVERAGE' : 'Moyenne de la classe'),
+      sanctions: L.sanctions || 'SANCTIONS',
+      termAverage: L.term_average || (lang === 'en' ? 'TERM AVERAGE' : 'Moyenne'),
+      absences: L.absences || (lang === 'en' ? 'Absences (hours)' : 'Absences'),
+      position: L.position || (lang === 'en' ? 'POSITION' : 'Rang'),
+      outOf: L.out_of || (lang === 'en' ? 'OUT OF' : 'Effectif'),
+      remark: L.remark || (lang === 'en' ? 'REMARK' : 'Décision'),
+      observation: L.observation || 'OBSERVATION',
+    },
     summary: {
       totalCoef: empty(bulletin.total_coef),
       totalMarks: empty(bulletin.total_points),
