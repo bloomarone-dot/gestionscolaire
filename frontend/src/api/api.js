@@ -169,6 +169,12 @@ async function handleResponse(res, { authFailure = false } = {}) {
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Erreur serveur' }));
+    if (res.status >= 500) {
+      throw new Error(
+        formatApiError(err.detail)
+          || 'Serveur indisponible. Vérifiez la connexion ou réessayez dans quelques minutes.',
+      );
+    }
     throw new Error(formatApiError(err.detail));
   }
   return res.json();

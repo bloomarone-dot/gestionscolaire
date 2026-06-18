@@ -42,20 +42,54 @@ function mapSubjectRow(s, lang, nSeq, isAnnual) {
   return row;
 }
 
+function inferGroupe(nom, explicit, lang) {
+  const g = Number(explicit);
+  if (g >= 1 && g <= 3) return g;
+  const n = String(nom || '').toLowerCase();
+  if (/sport|manual\s*labou?r|eps|éducation\s*physique|physical\s*education/i.test(n)) return 3;
+  if (lang === 'en' && /english|french|practical|german|spanish/i.test(n)) return 2;
+  if (lang === 'fr' && /anglais|français|allemand|espagnol|lvii|pratique/i.test(n)) return 2;
+  return 1;
+}
+
 function buildGroups(subjects, lang, nSeq, isAnnual, labels) {
   const groups = {};
   for (const s of subjects || []) {
-    const g = s.groupe || 1;
+    const g = inferGroupe(s.nom, s.groupe, lang);
     if (!groups[g]) groups[g] = [];
-    groups[g].push(mapSubjectRow(s, lang, nSeq, isAnnual));
+    groups[g].push(mapSubjectRow({ ...s, groupe: g }, lang, nSeq, isAnnual));
   }
-  return Object.keys(groups)
-    .sort((a, b) => Number(a) - Number(b))
+  const maxG = lang === 'en' ? 3 : Math.max(1, ...Object.keys(groups).map(Number));
+  return Array.from({ length: maxG }, (_, i) => i + 1)
+    .filter((g) => groups[g]?.length)
     .map((g) => ({
-      groupe: Number(g),
-      label: labels[`group_${g}`] || `Groupe ${g}`,
+      groupe: g,
+      label: labels[`group_${g}`] || (lang === 'en'
+        ? ['FIRST GROUP', 'SECOND GROUP', 'THIRD GROUP'][g - 1]
+        : ['PREMIER GROUPE', 'DEUXIÈME GROUPE', 'TROISIÈME GROUPE'][g - 1]),
       matieres: groups[g],
     }));
+}
+
+function recalcTotalsFromGroups(groupes) {
+  let totalCoef = 0;
+  let totalPoints = 0;
+  for (const g of groupes || []) {
+    for (const row of g.matieres || []) {
+      const avg = row.moyenne;
+      const coef = row.coef;
+      const points = row.points;
+      if (avg == null || avg === '' || avg === '—') continue;
+      const c = Number(coef);
+      const p = Number(points);
+      if (!Number.isNaN(c)) totalCoef += c;
+      if (!Number.isNaN(p)) totalPoints += p;
+    }
+  }
+  return {
+    totalCoef: totalCoef ? Math.round(totalCoef * 100) / 100 : null,
+    totalPoints: totalPoints ? Math.round(totalPoints * 100) / 100 : null,
+  };
 }
 
 export function normalizeBulletinView(data) {
@@ -73,6 +107,7 @@ export function normalizeBulletinView(data) {
   const nSeq = isAnnual ? (seqLabels.length || 3) : 2;
 
   const groupes_matieres = buildGroups(b.subjects, lang, nSeq, isAnnual, L);
+  const recalc = recalcTotalsFromGroups(groupes_matieres);
   const matieres_complementaires = (b.special_subjects || []).map((s) =>
     mapSubjectRow(s, lang, nSeq, isAnnual),
   );
@@ -115,8 +150,8 @@ export function normalizeBulletinView(data) {
     moyenne_classe: data.moyenne_classe,
     appreciation_generale: b.appreciation_generale ?? data.appreciation_generale,
     mention: b.appreciation_generale ?? data.mention,
-    total_coef: b.total_coefficient ?? data.total_coef,
-    total_points: b.total_points ?? data.total_points,
+    total_coef: recalc.totalCoef ?? b.total_coefficient ?? data.total_coef,
+    total_points: recalc.totalPoints ?? b.total_points ?? data.total_points,
     rang: b.rang_general ?? data.rang,
     rang_general: b.rang_general ?? data.rang_general,
     rang_label: ordinal(b.rang_general ?? data.rang_general, lang),

@@ -5,15 +5,55 @@ Règles :
 - moyenne pondérée par coefficient (matières OFFICIELLES activées uniquement) ;
 - rang par matière et rang général dans la classe ;
 - moyenne de la classe ;
-- les matières SPÉCIALES sont calculées mais listées à part et n'entrent PAS
-  dans la moyenne générale ni les statistiques d'examen (§11.3).
+- les matières SPÉCIALES sans groupe sont listées à part (complémentaires) ;
+- les matières SPÉCIALES avec groupe 1/2/3 entrent dans le tableau principal.
 """
+from __future__ import annotations
+
+import re
 from statistics import mean
 from typing import Optional
 
 from common.appreciation_scales import label_for_average, parse_scales
 
 from app.labels import seq_types_for
+
+_GROUP3_RE = re.compile(
+    r"sport|manual\s*labou?r|eps|éducation\s*physique|physical\s*education",
+    re.I,
+)
+_GROUP2_RE = re.compile(
+    r"english|french|français|langue|practical|allemand|espagnol|german|spanish",
+    re.I,
+)
+
+
+def _effective_groupe(subject: dict) -> int:
+    """Groupe bulletin 1/2/3 — infère depuis le nom si absent en base."""
+    g = subject.get("groupe")
+    if g in (1, 2, 3):
+        return int(g)
+    nom = subject.get("nom") or ""
+    if _GROUP3_RE.search(nom):
+        return 3
+    if _GROUP2_RE.search(nom):
+        return 2
+    return 1
+
+
+def _partition_subjects(subjects: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Sépare matières du tableau principal et complémentaires sans groupe."""
+    official: list[dict] = []
+    special: list[dict] = []
+    for s in subjects:
+        if s.get("source") == "SPECIALE" and not s.get("groupe"):
+            special.append(s)
+        else:
+            official.append({**s, "groupe": _effective_groupe(s)})
+    if not official and special:
+        official = [{**s, "groupe": _effective_groupe(s)} for s in special]
+        special = []
+    return official, special
 
 
 def _round(x: Optional[float]) -> Optional[float]:
@@ -70,13 +110,8 @@ def compute_class_bulletins(
     subjects : [{matiere_id, nom, coefficient, source, enseignant_id, groupe}] (activées)
     notes    : [{eleve_id, matiere_id, valeur, type_evaluation}]
     """
-    official = [s for s in subjects if s.get("source", "OFFICIELLE") != "SPECIALE"]
-    special = [s for s in subjects if s.get("source") == "SPECIALE"]
-    # Classes spéciales (ex. Royal Priesthood) : toutes les matières sont « spéciales »
-    # mais doivent alimenter le bulletin principal et la moyenne générale.
-    if not official and special:
-        official = special
-        special = []
+    official, special = _partition_subjects(subjects)
+    official.sort(key=lambda s: (s.get("groupe") or 1, (s.get("nom") or "").lower()))
 
     scales = parse_scales(appreciation_scales)
 

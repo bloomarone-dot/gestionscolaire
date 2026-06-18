@@ -7,8 +7,11 @@ Note multi-tenant : la table `accounts` n'est PAS soumise à la RLS — le login
 doit retrouver un compte par téléphone *avant* de connaître le tenant. Les autres
 services, eux, appliquent la RLS sur leurs tables école.
 """
+import logging
+
 from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from common.db import Base, get_engine, init_engine
@@ -24,6 +27,8 @@ from app.schemas import (
     LoginRequest,
     TokenResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="auth-service — SaaS Scolaire", version="0.1.0")
 
@@ -79,6 +84,20 @@ def login(payload: LoginRequest) -> TokenResponse:
             first_name=account.first_name,
             last_name=account.last_name,
         )
+    except HTTPException:
+        raise
+    except SQLAlchemyError as exc:
+        logger.exception("auth login database error")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Base de données indisponible. Réessayez dans quelques instants.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("auth login unexpected error")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service d'authentification indisponible. Contactez l'administrateur.",
+        ) from exc
     finally:
         session.close()
 

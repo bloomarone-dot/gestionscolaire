@@ -18,6 +18,7 @@ from reportlab.lib.units import cm
 from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.labels import ordinal, seq_labels
+from app.compute import _effective_groupe
 from app.logo_util import resolve_logo_path
 
 try:
@@ -278,7 +279,7 @@ def _grades_table(b, L, seq_lbls, lang, th) -> Table:
 
     groups: dict[int, list] = {}
     for s in b.get("subjects", []):
-        groups.setdefault(s.get("groupe") or 1, []).append(s)
+        groups.setdefault(_effective_groupe(s), []).append(s)
 
     for g in sorted(groups):
         label = L.get(f"group_{g}", f"GROUP {g}")

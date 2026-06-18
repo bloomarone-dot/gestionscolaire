@@ -123,6 +123,27 @@ def test_custom_appreciation_scale():
     assert b[1]["subjects"][0]["appreciation"] == "PARFAIT"
 
 
+def test_third_group_inferred_from_name():
+    """Sports / Manual Labour → troisième groupe si groupe absent en base."""
+    subjects = [
+        {"matiere_id": 100, "nom": "MATHEMATICS", "coefficient": 5, "source": "SPECIALE", "groupe": 1},
+        {"matiere_id": 101, "nom": "SPORTS", "coefficient": 1, "source": "SPECIALE"},
+        {"matiere_id": 102, "nom": "MANUAL LABOUR", "coefficient": 1, "source": "SPECIALE"},
+    ]
+    notes = [
+        {"eleve_id": 1, "matiere_id": 100, "valeur": 12, "type_evaluation": "sequence_1"},
+        {"eleve_id": 1, "matiere_id": 101, "valeur": 16, "type_evaluation": "sequence_1"},
+        {"eleve_id": 1, "matiere_id": 102, "valeur": 14, "type_evaluation": "sequence_1"},
+    ]
+    b = _by_id(compute_class_bulletins([STUDENTS[0]], subjects, notes, "en"))[1]
+    by_group = {}
+    for s in b["subjects"]:
+        by_group.setdefault(s["groupe"], []).append(s["nom"])
+    assert "SPORTS" in by_group[3]
+    assert "MANUAL LABOUR" in by_group[3]
+    assert b["total_coefficient"] == 7  # 5 + 1 + 1
+
+
 def test_lang_and_labels():
     assert lang_for_subsystem("ANGLOPHONE") == "en"
     assert lang_for_subsystem("FRANCOPHONE") == "fr"
