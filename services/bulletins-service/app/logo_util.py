@@ -7,8 +7,10 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 from urllib.request import urlopen
+
+from reportlab.lib.utils import ImageReader
 
 _ASSETS = Path(__file__).resolve().parent / "assets"
 _DEFAULT = _ASSETS / "rph_default_logo.png"
@@ -41,3 +43,13 @@ def resolve_logo_path(logo_url: Optional[str]) -> Optional[str]:
     if _DEFAULT.is_file():
         return str(_DEFAULT)
     return None
+
+
+def logo_fit_size(path: str, max_w: float, max_h: float) -> Tuple[float, float]:
+    """Retourne (width, height) en points en conservant le ratio."""
+    reader = ImageReader(path)
+    iw, ih = reader.getSize()
+    if iw <= 0 or ih <= 0:
+        return max_w, max_h
+    scale = min(max_w / iw, max_h / ih)
+    return iw * scale, ih * scale

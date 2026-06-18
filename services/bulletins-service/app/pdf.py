@@ -19,7 +19,7 @@ from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, S
 
 from app.labels import ordinal, seq_labels
 from app.compute import _effective_groupe
-from app.logo_util import resolve_logo_path
+from app.logo_util import logo_fit_size, resolve_logo_path
 
 try:
     from common.bulletin_theme import parse_theme
@@ -164,20 +164,23 @@ def _national_header(header, th) -> Table:
     fr_lines = FR_HEAD + [reg_fr, dep_fr, f"<b>{school_fr}</b>", f"<i>{motto}</i>", f"BP: {pobox}"]
 
     logo_path = resolve_logo_path(header.get("logo_url"))
-    logo_w = 3.4 * cm
+    logo_slot_w = 3.4 * cm
+    logo_slot_h = 4.0 * cm
     if logo_path:
-        logo = RLImage(logo_path, width=logo_w, height=4.0 * cm)
+        logo_w, logo_h = logo_fit_size(logo_path, logo_slot_w, logo_slot_h)
+        logo = RLImage(logo_path, width=logo_w, height=logo_h)
         logo.hAlign = "CENTER"
         center = logo
     else:
+        logo_w = logo_slot_w
         center = _p(f"<b>{school_en}</b><br/><i>{motto}</i>", size=7, align=TA_CENTER)
 
-    side_w = (PAGE_W - logo_w) / 2
+    side_w = (PAGE_W - logo_slot_w) / 2
     t = Table(
         [[_p("<br/>".join(en_lines), size=5.5, align=TA_CENTER),
           center,
           _p("<br/>".join(fr_lines), size=5.5, align=TA_CENTER)]],
-        colWidths=[side_w, logo_w, side_w],
+        colWidths=[side_w, logo_slot_w, side_w],
         hAlign="CENTER",
     )
     t.setStyle(_grid(
@@ -349,61 +352,67 @@ def _footer(b, data, header, L, lang, n_seq: int, th) -> Table:
 
     col_w = _col_widths(n_seq)
     n_cols = len(col_w)
-    pad = lambda *cells: list(cells) + [""] * max(0, n_cols - len(cells))
+    coef_idx = 1 + n_seq + 1
+    remark_span = max(1, n_cols - 5)
+    rows: list[list] = []
+    spans: list = []
+
+    def add_row(items: list[tuple]) -> None:
+        row_idx = len(rows)
+        rows.append(_row_from_spans(items, n_cols))
+        _apply_spans(spans, row_idx, [span for _, span in items])
+
+    add_row([
+        (_p(L["total"], bold=True, align=TA_CENTER), coef_idx),
+        (_p(_fmt(b.get("total_coefficient")), bold=True, align=TA_CENTER), 1),
+        (_p(_fmt(b.get("total_points")), bold=True, align=TA_CENTER), 1),
+        (_p(L["class_average"], bold=True, align=TA_CENTER), 1),
+        (_p(_fmt(moy_cls), bold=True, align=TA_CENTER), 1),
+        (_p(L["sanctions"], bold=True, align=TA_CENTER), 1),
+    ])
+
+    term_lbl = L["term_average"] if lang == "en" else (
+        L["annual_average"] if header.get("scope") == "annual" else L["term_average"]
+    )
+    add_row([
+        (_p(term_lbl, bold=True), 1),
+        (_p(_fmt(moy), bold=True, align=TA_CENTER), coef_idx - 1),
+        (_p(appr, bold=True, align=TA_CENTER), 1),
+        (_p(L["absences"], bold=True, align=TA_CENTER), 2),
+        (_p("0", align=TA_CENTER), 1),
+        (_p("0", align=TA_CENTER), 1),
+    ])
 
     if lang == "en":
-        rows = [
-            pad(
-                _p(L["total"], bold=True, align=TA_CENTER),
-                _p(_fmt(b.get("total_coefficient")), bold=True, align=TA_CENTER),
-                _p(_fmt(b.get("total_points")), bold=True, align=TA_CENTER),
-                _p(L["class_average"], bold=True, align=TA_CENTER),
-                _p(_fmt(moy_cls), bold=True, align=TA_CENTER),
-                _p(L["sanctions"], bold=True, align=TA_CENTER), _p("0", align=TA_CENTER), _p("0", align=TA_CENTER),
-            ),
-            pad(
-                _p(L["term_average"], bold=True), _p(_fmt(moy), bold=True, align=TA_CENTER),
-                _p(appr, bold=True, align=TA_CENTER), _p(L["absences"], bold=True, align=TA_CENTER),
-                _p("0", align=TA_CENTER), _p("0", align=TA_CENTER),
-            ),
-            pad(
-                _p(L["position"], bold=True), _p(ordinal(b.get("rang_general"), lang), bold=True, align=TA_CENTER),
-                _p(L["out_of"], bold=True, align=TA_CENTER), _p(str(effectif), bold=True, align=TA_CENTER),
-                _p(L["remark"], bold=True, align=TA_CENTER), _p(decision, bold=True, align=TA_CENTER),
-            ),
-            pad(_p(L["observation"], bold=True)),
-        ]
+        add_row([
+            (_p(L["position"], bold=True), 1),
+            (_p(ordinal(b.get("rang_general"), lang), bold=True, align=TA_CENTER), 1),
+            (_p(L["out_of"], bold=True, align=TA_CENTER), 1),
+            (_p(str(effectif), bold=True, align=TA_CENTER), 1),
+            (_p(L["remark"], bold=True, align=TA_CENTER), 1),
+            (_p(decision, bold=True, align=TA_CENTER), remark_span),
+        ])
     else:
-        term_lbl = L["annual_average"] if header.get("scope") == "annual" else L["term_average"]
-        rows = [
-            pad(
-                _p(L["total"], bold=True, align=TA_CENTER),
-                _p(_fmt(b.get("total_coefficient")), bold=True, align=TA_CENTER),
-                _p(_fmt(b.get("total_points")), bold=True, align=TA_CENTER),
-                _p(L["class_average"], bold=True, align=TA_CENTER),
-                _p(_fmt(moy_cls), bold=True, align=TA_CENTER),
-                _p(L["sanctions"], bold=True, align=TA_CENTER), _p("0", align=TA_CENTER), _p("0", align=TA_CENTER),
-            ),
-            pad(
-                _p(term_lbl, bold=True), _p(_fmt(moy), bold=True, align=TA_CENTER),
-                _p(appr, bold=True, align=TA_CENTER), _p(L["absences"], bold=True, align=TA_CENTER),
-                _p("0", align=TA_CENTER),
-            ),
-            pad(
-                _p(L["position"], bold=True), _p(ordinal(b.get("rang_general"), lang), bold=True, align=TA_CENTER),
-                _p(L["class_enrollment"], bold=True, align=TA_CENTER), _p(str(effectif), bold=True, align=TA_CENTER),
-                _p(L["remark"], bold=True, align=TA_CENTER), _p(decision, bold=True, align=TA_CENTER),
-            ),
-            pad(_p(L["observation"], bold=True)),
-        ]
-    spans = [
-        ("SPAN", (0, len(rows) - 1), (-1, len(rows) - 1)),
-        ("BOTTOMPADDING", (0, len(rows) - 1), (-1, len(rows) - 1), 14),
-    ]
+        add_row([
+            (_p(L["position"], bold=True), 1),
+            (_p(ordinal(b.get("rang_general"), lang), bold=True, align=TA_CENTER), 1),
+            (_p(L["class_enrollment"], bold=True, align=TA_CENTER), 1),
+            (_p(str(effectif), bold=True, align=TA_CENTER), 1),
+            (_p(L["remark"], bold=True, align=TA_CENTER), 1),
+            (_p(decision, bold=True, align=TA_CENTER), remark_span),
+        ])
+
+    add_row([
+        (_p(L["observation"], bold=True), 1),
+        (_p("", ), n_cols - 1),
+    ])
+    obs_row = len(rows) - 1
+    spans.append(("BOTTOMPADDING", (0, obs_row), (-1, obs_row), 14))
 
     t = Table(rows, colWidths=[w * cm for w in col_w])
     t.setStyle(_grid(
         ("BACKGROUND", (0, 0), (-1, -1), th["summary"]),
+        ("BACKGROUND", (0, 1), (0, -2), th["grades_header"]),
         *spans,
     ))
     return t

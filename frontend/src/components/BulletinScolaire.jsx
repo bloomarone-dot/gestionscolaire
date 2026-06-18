@@ -1,20 +1,17 @@
 import React, { useMemo } from 'react';
 import { mapBulletinScolaire } from '../utils/mapBulletinScolaire';
+import { bulletinColPcts, bulletinSummaryCols } from '../utils/bulletinLayout';
 
-// ─── Couleurs du bulletin original ──────────────────────────────────────────
 const C = {
   headerBg: '#4a6fa5',
   groupBg: '#4a6fa5',
   subjectBg: '#c8d8e8',
-  labelBg: '#4a6fa5',
   borderDark: '#2c3e6b',
   white: '#ffffff',
   black: '#000000',
-  lightGray: '#f0f4f8',
-  footerBg: '#e8f0f8',
+  summaryPeach: '#fce5cd',
 };
 
-// ─── Styles inline ───────────────────────────────────────────────────────────
 const styles = {
   page: {
     fontFamily: "'Arial', 'Helvetica', sans-serif",
@@ -22,7 +19,8 @@ const styles = {
     color: C.black,
     backgroundColor: C.white,
     padding: '12px',
-    maxWidth: '900px',
+    width: '100%',
+    maxWidth: '210mm',
     margin: '0 auto',
     boxSizing: 'border-box',
   },
@@ -41,27 +39,29 @@ const styles = {
   },
   bold: { fontWeight: 'bold' },
   logoBox: {
-    width: '70px',
-    height: '70px',
+    width: '96px',
+    height: '112px',
     border: `2px solid ${C.borderDark}`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    fontSize: '8px',
-    color: '#666',
-    borderRadius: '4px',
     overflow: 'hidden',
+    background: C.white,
   },
   logoImg: {
     maxWidth: '100%',
     maxHeight: '100%',
+    width: 'auto',
+    height: 'auto',
     objectFit: 'contain',
+    display: 'block',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     border: `1.5px solid ${C.borderDark}`,
+    tableLayout: 'fixed',
   },
   titleCell: {
     backgroundColor: C.headerBg,
@@ -107,7 +107,7 @@ const styles = {
     fontWeight: 'bold',
   },
   colHeader: {
-    backgroundColor: C.labelBg,
+    backgroundColor: C.headerBg,
     color: C.white,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -148,12 +148,21 @@ const styles = {
     fontSize: '9px',
     fontWeight: 'bold',
   },
-  totalRow: {
-    backgroundColor: C.headerBg,
-    color: C.white,
+  totalLabelCell: {
+    backgroundColor: C.summaryPeach,
+    color: C.black,
+    fontWeight: 'bold',
+    textAlign: 'right',
+    padding: '4px 6px',
+    border: `1px solid ${C.borderDark}`,
+    fontSize: '10px',
+  },
+  totalValueCell: {
+    backgroundColor: C.summaryPeach,
+    color: C.black,
     fontWeight: 'bold',
     textAlign: 'center',
-    padding: '3px',
+    padding: '4px 2px',
     border: `1px solid ${C.borderDark}`,
     fontSize: '10px',
   },
@@ -166,7 +175,8 @@ const styles = {
     fontSize: '10px',
   },
   summaryValueCell: {
-    backgroundColor: C.white,
+    backgroundColor: C.summaryPeach,
+    color: C.black,
     fontWeight: 'bold',
     textAlign: 'center',
     padding: '4px 6px',
@@ -195,6 +205,17 @@ const styles = {
   },
 };
 
+function ColGroup({ nSeq }) {
+  const pcts = bulletinColPcts(nSeq);
+  return (
+    <colgroup>
+      {pcts.map((pct, i) => (
+        <col key={i} style={{ width: `${pct}%` }} />
+      ))}
+    </colgroup>
+  );
+}
+
 function SubjectRow({ s }) {
   return (
     <tr>
@@ -211,12 +232,56 @@ function SubjectRow({ s }) {
   );
 }
 
+function SummaryRows({ summary, labels, cols }) {
+  const { coefCol, teacherCol } = cols;
+
+  return (
+    <>
+      <tr>
+        <td colSpan={coefCol} style={styles.totalLabelCell}>{labels.total}</td>
+        <td style={styles.totalValueCell}>{summary.totalCoef ?? ''}</td>
+        <td style={styles.totalValueCell}>{summary.totalMarks ?? ''}</td>
+        <td style={styles.totalValueCell}>{labels.classAverage}</td>
+        <td style={styles.totalValueCell}>{summary.classAverage ?? ''}</td>
+        <td style={styles.totalValueCell}>{labels.sanctions}</td>
+      </tr>
+
+      <tr>
+        <td style={styles.summaryLabelCell}>{labels.termAverage}</td>
+        <td colSpan={3} style={styles.summaryValueCell}>{summary.termAverage ?? ''}</td>
+        <td style={styles.summaryValueCell}>{summary.appreciation ?? ''}</td>
+        <td colSpan={2} style={styles.summaryLabelCell}>{labels.absences}</td>
+        <td style={styles.summaryValueCell}>{summary.absences ?? '0'}</td>
+        <td style={styles.summaryValueCell}>0</td>
+      </tr>
+
+      <tr>
+        <td style={styles.summaryLabelCell}>{labels.position}</td>
+        <td style={styles.summaryValueCell}>{summary.position ?? ''}</td>
+        <td style={styles.summaryLabelCell}>{labels.outOf}</td>
+        <td style={styles.summaryValueCell}>{summary.outOf ?? ''}</td>
+        <td style={styles.summaryLabelCell}>{labels.remark}</td>
+        <td colSpan={teacherCol - 4} style={styles.summaryValueCell}>{summary.remark ?? ''}</td>
+      </tr>
+
+      <tr>
+        <td style={styles.summaryLabelCell}>{labels.observation}</td>
+        <td colSpan={teacherCol} style={{ ...styles.summaryValueCell, textAlign: 'left', minHeight: '24px' }}>
+          {summary.observation}
+        </td>
+      </tr>
+    </>
+  );
+}
+
 export default function BulletinScolaire({ bulletin }) {
   const data = useMemo(() => mapBulletinScolaire(bulletin), [bulletin]);
   if (!data) return null;
 
   const { school, student, subjects, summary, groupLabels, seqLabel1, seqLabel2, labels } = data;
-  const allColspan = 9;
+  const nSeq = 2;
+  const cols = bulletinSummaryCols(nSeq);
+  const allColspan = cols.nCols;
 
   return (
     <div style={styles.page} className="bulletin-scolaire-sheet">
@@ -258,6 +323,7 @@ export default function BulletinScolaire({ bulletin }) {
       </div>
 
       <table style={styles.table}>
+        <ColGroup nSeq={nSeq} />
         <tbody>
           <tr>
             <td colSpan={allColspan} style={styles.titleCell}>
@@ -268,7 +334,7 @@ export default function BulletinScolaire({ bulletin }) {
           <tr>
             <td style={{ ...styles.nameRow, width: '8%' }}>NAME:</td>
             <td colSpan={5} style={styles.nameValue}>{student.name}</td>
-            <td style={{ ...styles.nameRow, width: '14%', textAlign: 'center' }}>CLASS:</td>
+            <td style={{ ...styles.nameRow, textAlign: 'center' }}>CLASS:</td>
             <td style={styles.nameValue}>{student.class}</td>
             <td style={{ ...styles.nameRow, textAlign: 'center' }}>{student.gender}</td>
           </tr>
@@ -282,40 +348,21 @@ export default function BulletinScolaire({ bulletin }) {
 
           <tr>
             <td style={styles.infoLabelCell}>UNIQUE ID</td>
-            <td colSpan={2} style={styles.infoValueCell}>{student.uniqueId}</td>
-            <td colSpan={6} style={{ padding: 0 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  <tr>
-                    <td style={{ ...styles.colHeader, width: '11%' }}>{seqLabel1}</td>
-                    <td style={{ ...styles.colHeader, width: '11%' }}>{seqLabel2}</td>
-                    <td style={{ ...styles.colHeader, width: '11%' }}>Average</td>
-                    <td style={{ ...styles.colHeader, width: '8%' }}>Coef</td>
-                    <td style={{ ...styles.colHeader, width: '13%' }}>Total marks</td>
-                    <td style={{ ...styles.colHeader, width: '8%' }}>Rank</td>
-                    <td style={{ ...styles.colHeader, width: '9%' }}>Appre.</td>
-                    <td style={{ ...styles.colHeader }}>Teacher&apos;s sign.(MR/MRS/MISS)</td>
-                  </tr>
-                </tbody>
-              </table>
-            </td>
+            <td colSpan={8} style={styles.infoValueCell}>{student.uniqueId}</td>
           </tr>
-        </tbody>
-      </table>
 
-      <table style={{ ...styles.table, marginTop: '-1px' }}>
-        <colgroup>
-          <col style={{ width: '22%' }} />
-          <col style={{ width: '7%' }} />
-          <col style={{ width: '7%' }} />
-          <col style={{ width: '7%' }} />
-          <col style={{ width: '5%' }} />
-          <col style={{ width: '9%' }} />
-          <col style={{ width: '6%' }} />
-          <col style={{ width: '7%' }} />
-          <col style={{ width: '30%' }} />
-        </colgroup>
-        <tbody>
+          <tr>
+            <td style={styles.colHeader} />
+            <td style={styles.colHeader}>{seqLabel1}</td>
+            <td style={styles.colHeader}>{seqLabel2}</td>
+            <td style={styles.colHeader}>Average</td>
+            <td style={styles.colHeader}>Coef</td>
+            <td style={styles.colHeader}>Total marks</td>
+            <td style={styles.colHeader}>Rank</td>
+            <td style={styles.colHeader}>Appre.</td>
+            <td style={styles.colHeader}>Teacher&apos;s sign.(MR/MRS/MISS)</td>
+          </tr>
+
           {subjects.firstGroup.length > 0 && (
             <>
               <tr>
@@ -343,47 +390,13 @@ export default function BulletinScolaire({ bulletin }) {
             </>
           )}
 
-          <tr>
-            <td colSpan={4} style={{ ...styles.totalRow, textAlign: 'right', paddingRight: '6px' }}>
-              {labels.total}
-            </td>
-            <td style={styles.totalRow}>{summary.totalCoef}</td>
-            <td style={styles.totalRow}>{summary.totalMarks ?? ''}</td>
-            <td style={styles.totalRow}>{labels.classAverage}</td>
-            <td style={styles.totalRow}>{summary.classAverage}</td>
-            <td style={{ ...styles.totalRow, fontSize: '9px' }}>{labels.sanctions}</td>
-          </tr>
-
-          <tr>
-            <td style={styles.summaryLabelCell}>{labels.termAverage}</td>
-            <td colSpan={3} style={styles.summaryValueCell}>{summary.termAverage ?? ''}</td>
-            <td style={styles.summaryValueCell}>{summary.appreciation}</td>
-            <td colSpan={2} style={styles.summaryLabelCell}>{labels.absences}</td>
-            <td style={styles.summaryValueCell}>{summary.absences ?? '0'}</td>
-            <td style={styles.summaryValueCell}>{summary.absences ?? '0'}</td>
-          </tr>
-
-          <tr>
-            <td style={styles.summaryLabelCell}>{labels.position}</td>
-            <td style={styles.summaryValueCell}>{summary.position ?? ''}</td>
-            <td style={styles.summaryLabelCell}>{labels.outOf}</td>
-            <td style={styles.summaryValueCell}>{summary.outOf}</td>
-            <td style={styles.summaryLabelCell}>{labels.remark}</td>
-            <td colSpan={4} style={styles.summaryValueCell}>{summary.remark}</td>
-          </tr>
-
-          <tr>
-            <td style={styles.summaryLabelCell}>{labels.observation}</td>
-            <td colSpan={allColspan - 1} style={{ ...styles.summaryValueCell, minHeight: '20px', textAlign: 'left' }}>
-              {summary.observation}
-            </td>
-          </tr>
+          <SummaryRows summary={summary} labels={labels} cols={cols} />
         </tbody>
       </table>
 
       <div style={styles.footerRow}>
-        {['PARENTS/GUARDIANS', 'S.D.M', 'PRINCIPAL', 'DATE'].map((label, i) => (
-          <div key={i} style={styles.footerCell}>
+        {['PARENTS/GUARDIANS', 'S.D.M', 'PRINCIPAL', 'DATE'].map((label) => (
+          <div key={label} style={styles.footerCell}>
             <span style={{ fontWeight: 'bold', fontSize: '9.5px' }}>{label}</span>
           </div>
         ))}

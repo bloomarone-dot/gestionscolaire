@@ -4,6 +4,11 @@
   background: #fff !important;
   border: 1px solid #ccc !important;
   border-radius: 4px !important;
+  overflow: visible !important;
+}
+
+.bulletin-detail-official.bulletin-detail-card {
+  overflow: visible !important;
 }
 
 .bulletin-detail-official .bulletin-detail-header,
@@ -614,6 +619,12 @@
   justify-content: center;
 }
 
+.bulletin-preview-body .bulletin-detail-card {
+  overflow: visible !important;
+  max-width: none;
+  width: 100%;
+}
+
 .bulletin-preview-body .bulletin-detail-official {
   border: none !important;
   box-shadow: none;
@@ -622,8 +633,13 @@
 
 .bulletin-preview-body .bulletin-scolaire-sheet {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  width: 100%;
+  max-width: 210mm;
+  min-height: auto;
 }
 
 .bulletin-detail-official .bulletin-scolaire-sheet {
   margin: 0 auto;
+  width: 100%;
+  max-width: 210mm;
 }

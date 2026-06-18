@@ -29,3 +29,22 @@ export function complementaryColPcts(nSeq) {
 export function bulletinColCount(nSeq) {
   return 1 + nSeq + 6;
 }
+
+/** Indices colonnes (sujet=0, séquences, moyenne, coef, notes, rang, appr, prof). */
+export function bulletinSummaryCols(nSeq) {
+  const avgCol = 1 + nSeq;
+  const coefCol = avgCol + 1;
+  const marksCol = coefCol + 1;
+  const rankCol = marksCol + 1;
+  const apprCol = rankCol + 1;
+  const teacherCol = apprCol + 1;
+  return {
+    nCols: bulletinColCount(nSeq),
+    avgCol,
+    coefCol,
+    marksCol,
+    rankCol,
+    apprCol,
+    teacherCol,
+  };
+}
