@@ -26,6 +26,11 @@ _GROUP2_RE = re.compile(
     r"english|french|français|langue|practical|allemand|espagnol|german|spanish",
     re.I,
 )
+# Matières facultatives hors tableau principal (non comptées dans TOTAL).
+_COMPLEMENTARY_RE = re.compile(
+    r"mandarin|chinese|chinois|japanese|japonais|cor(?:e|é)an|arabe|arabic|latin|grec",
+    re.I,
+)
 
 
 def _effective_groupe(subject: dict) -> int:
@@ -41,12 +46,22 @@ def _effective_groupe(subject: dict) -> int:
     return 1
 
 
+def _is_complementary_special(subject: dict) -> bool:
+    """Matière spéciale hors 3 groupes — bloc complémentaire (exclue des totaux)."""
+    if subject.get("source") != "SPECIALE" or subject.get("groupe"):
+        return False
+    nom = subject.get("nom") or ""
+    if _GROUP3_RE.search(nom) or _GROUP2_RE.search(nom):
+        return False
+    return bool(_COMPLEMENTARY_RE.search(nom))
+
+
 def _partition_subjects(subjects: list[dict]) -> tuple[list[dict], list[dict]]:
     """Sépare matières du tableau principal et complémentaires sans groupe."""
     official: list[dict] = []
     special: list[dict] = []
     for s in subjects:
-        if s.get("source") == "SPECIALE" and not s.get("groupe"):
+        if _is_complementary_special(s):
             special.append(s)
         else:
             official.append({**s, "groupe": _effective_groupe(s)})
@@ -54,6 +69,27 @@ def _partition_subjects(subjects: list[dict]) -> tuple[list[dict], list[dict]]:
         official = [{**s, "groupe": _effective_groupe(s)} for s in special]
         special = []
     return official, special
+
+
+def _bulletin_row_points(avg: Optional[float], coefficient: float) -> Optional[float]:
+    return None if avg is None else _round(avg * coefficient)
+
+
+def _sum_bulletin_totals(rows: list[dict]) -> tuple[float, float]:
+    """Somme coef + points à partir des lignes affichées (points arrondis par matière)."""
+    total_coeff = 0.0
+    total_points = 0.0
+    for row in rows:
+        avg = row.get("moyenne")
+        if avg is None:
+            continue
+        coef = float(row.get("coefficient") or 0)
+        points = row.get("points")
+        if points is None:
+            points = _bulletin_row_points(avg, coef)
+        total_coeff += coef
+        total_points += float(points or 0)
+    return total_coeff, total_points
 
 
 def _round(x: Optional[float]) -> Optional[float]:
@@ -149,16 +185,11 @@ def compute_class_bulletins(
 
     for st in students:
         eid = st["eleve_id"]
-        total_points = 0.0
-        total_coeff = 0.0
         off_rows = []
         for s in official:
             seqs, avg = subject_period_values(eid, s["matiere_id"])
             per_subject_avgs[s["matiere_id"]][eid] = avg
-            points = None if avg is None else _round(avg * s["coefficient"])
-            if avg is not None:
-                total_points += avg * s["coefficient"]
-                total_coeff += s["coefficient"]
+            points = _bulletin_row_points(avg, s["coefficient"])
             off_rows.append({
                 "matiere_id": s["matiere_id"], "nom": s["nom"],
                 "seqs": seqs,
@@ -167,6 +198,7 @@ def compute_class_bulletins(
                 "enseignant_nom": s.get("enseignant_nom"), "groupe": s.get("groupe"),
                 "appreciation": appr(avg),
             })
+        total_coeff, total_points = _sum_bulletin_totals(off_rows)
         moyenne_generale = _round(total_points / total_coeff) if total_coeff else None
         gen_avgs[eid] = moyenne_generale
 
@@ -177,7 +209,7 @@ def compute_class_bulletins(
                 "matiere_id": s["matiere_id"], "nom": s["nom"],
                 "seqs": seqs,
                 "coefficient": s["coefficient"], "moyenne": avg,
-                "points": None if avg is None else _round(avg * s["coefficient"]),
+                "points": _bulletin_row_points(avg, s["coefficient"]),
                 "appreciation": appr(avg),
             })
 

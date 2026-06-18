@@ -144,6 +144,37 @@ def test_third_group_inferred_from_name():
     assert b["total_coefficient"] == 7  # 5 + 1 + 1
 
 
+def test_custom_special_included_in_totals():
+    """Matière spéciale ajoutée (hors complémentaire) → coef et points dans TOTAL."""
+    subjects = [
+        {"matiere_id": 100, "nom": "Maths", "coefficient": 5, "source": "OFFICIELLE"},
+        {"matiere_id": 101, "nom": "Robotics", "coefficient": 2, "source": "SPECIALE"},
+    ]
+    notes = [
+        {"eleve_id": 1, "matiere_id": 100, "valeur": 14, "type_evaluation": "sequence_1"},
+        {"eleve_id": 1, "matiere_id": 101, "valeur": 12, "type_evaluation": "sequence_1"},
+    ]
+    b = _by_id(compute_class_bulletins([STUDENTS[0]], subjects, notes, "fr"))[1]
+    assert b["total_coefficient"] == 7
+    assert b["total_points"] == 94  # 14*5 + 12*2
+    assert len(b["subjects"]) == 2
+
+
+def test_totals_equal_sum_of_rounded_row_points():
+    subjects = [
+        {"matiere_id": 100, "nom": "Maths", "coefficient": 3, "source": "OFFICIELLE"},
+        {"matiere_id": 101, "nom": "Français", "coefficient": 2, "source": "OFFICIELLE"},
+    ]
+    notes = [
+        {"eleve_id": 1, "matiere_id": 100, "valeur": 13.333, "type_evaluation": "sequence_1"},
+        {"eleve_id": 1, "matiere_id": 101, "valeur": 14.666, "type_evaluation": "sequence_1"},
+    ]
+    b = _by_id(compute_class_bulletins([STUDENTS[0]], subjects, notes, "fr"))[1]
+    row_sum = sum(s["points"] for s in b["subjects"] if s["points"] is not None)
+    assert b["total_points"] == row_sum
+    assert b["total_coefficient"] == sum(s["coefficient"] for s in b["subjects"] if s["moyenne"] is not None)
+
+
 def test_lang_and_labels():
     assert lang_for_subsystem("ANGLOPHONE") == "en"
     assert lang_for_subsystem("FRANCOPHONE") == "fr"

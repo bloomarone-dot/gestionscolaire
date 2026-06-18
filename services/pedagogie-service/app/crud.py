@@ -1,4 +1,5 @@
 """Logique métier pedagogie-service (pure et testable — sans I/O réseau)."""
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -28,6 +29,24 @@ class NotFound(Exception):
 
 class Conflict(Exception):
     pass
+
+
+_GROUP3_RE = re.compile(
+    r"sport|manual\s*labou?r|eps|éducation\s*physique|physical\s*education",
+    re.I,
+)
+_GROUP2_RE = re.compile(
+    r"english|french|français|langue|practical|allemand|espagnol|german|spanish",
+    re.I,
+)
+
+
+def _infer_bulletin_groupe(nom: str) -> int:
+    if _GROUP3_RE.search(nom or ""):
+        return 3
+    if _GROUP2_RE.search(nom or ""):
+        return 2
+    return 1
 
 
 def _next_school_year_label(current: str | None) -> str:
@@ -340,6 +359,7 @@ def add_special_matiere(
         special_subject_id=special.id, nom=special.nom,
         coefficient=special.coefficient, volume_horaire=special.volume_horaire,
         enseignant_id=payload.enseignant_id,
+        groupe=payload.groupe if payload.groupe in (1, 2, 3) else _infer_bulletin_groupe(special.nom),
         activated=True, is_obligatoire=False,
     )
     db.add(m)

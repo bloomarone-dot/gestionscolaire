@@ -76,14 +76,14 @@ function recalcTotalsFromGroups(groupes) {
   let totalPoints = 0;
   for (const g of groupes || []) {
     for (const row of g.matieres || []) {
-      const avg = row.moyenne;
-      const coef = row.coef;
-      const points = row.points;
-      if (avg == null || avg === '' || avg === '—') continue;
-      const c = Number(coef);
-      const p = Number(points);
-      if (!Number.isNaN(c)) totalCoef += c;
-      if (!Number.isNaN(p)) totalPoints += p;
+      const avgRaw = row.moyenne;
+      if (avgRaw == null || avgRaw === '' || avgRaw === '—') continue;
+      const moy = Number(avgRaw);
+      const coef = Number(row.coef);
+      if (!Number.isFinite(moy) || !Number.isFinite(coef)) continue;
+      const points = Math.round(moy * coef * 100) / 100;
+      totalCoef += coef;
+      totalPoints += points;
     }
   }
   return {
@@ -150,8 +150,8 @@ export function normalizeBulletinView(data) {
     moyenne_classe: data.moyenne_classe,
     appreciation_generale: b.appreciation_generale ?? data.appreciation_generale,
     mention: b.appreciation_generale ?? data.mention,
-    total_coef: recalc.totalCoef ?? b.total_coefficient ?? data.total_coef,
-    total_points: recalc.totalPoints ?? b.total_points ?? data.total_points,
+    total_coef: b.total_coefficient ?? recalc.totalCoef ?? data.total_coef,
+    total_points: b.total_points ?? recalc.totalPoints ?? data.total_points,
     rang: b.rang_general ?? data.rang,
     rang_general: b.rang_general ?? data.rang_general,
     rang_label: ordinal(b.rang_general ?? data.rang_general, lang),

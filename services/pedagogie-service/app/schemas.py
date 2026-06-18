@@ -95,6 +95,7 @@ class SpecialMatiereCreate(BaseModel):
     coefficient: float = 1
     volume_horaire: Optional[int] = None
     enseignant_id: Optional[int] = None
+    groupe: Optional[int] = None  # groupe bulletin (1, 2 ou 3)
 
 
 class AnneeScolaireCreate(BaseModel):
