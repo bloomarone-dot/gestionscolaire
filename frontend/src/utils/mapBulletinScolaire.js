@@ -1,122 +1,100 @@
-/** Transforme le bulletin API (normalizeBulletinView) → vue BulletinScolaire. */
+/** Transforme le bulletin API (normalizeBulletinView) → format BulletinScolaire (modèle utilisateur). */
 
 function empty(v) {
-  if (v == null || v === '' || v === '—') return '';
+  if (v == null || v === '' || v === '—') return null;
   return v;
 }
 
-function mapSubjectRow(row, nSeq, isAnnual) {
-  const subject = {
+function mapSubjectRow(row) {
+  return {
     name: row.matiere || '',
+    seq3: empty(row.seq1),
+    seq4: empty(row.seq2),
     avg: empty(row.moyenne),
     coef: empty(row.coef),
     total: empty(row.points),
     rank: empty(row.rang_matiere),
     appre: empty(row.appreciation),
     teacher: empty(row.professeur),
-    seqs: [],
   };
-  if (isAnnual) {
-    for (let i = 0; i < nSeq; i += 1) {
-      subject.seqs.push(empty(row[`seq${i + 1}`]));
-    }
-  } else {
-    subject.seqs = [empty(row.seq1), empty(row.seq2)];
-  }
-  return subject;
+}
+
+function subjectsForGroup(groups, groupe) {
+  const g = (groups || []).find((x) => Number(x.groupe) === groupe);
+  return (g?.matieres || []).map(mapSubjectRow);
 }
 
 export function mapBulletinScolaire(bulletin) {
   if (!bulletin) return null;
 
+  const schoolHdr = bulletin.school_header || {};
   const L = bulletin.labels || {};
   const lang = bulletin.lang === 'en' ? 'en' : 'fr';
-  const isAnnual = bulletin.bulletin_scope === 'annual';
-  const school = bulletin.school_header || {};
-  const nameEn = (school.school_name || 'ROYAL PRIESTHOOD INTERNATIONAL').toUpperCase();
-  const nameFr = (school.school_name_fr || school.school_name || nameEn).toUpperCase();
-  const motto = school.motto || 'A Chosen Generation : Believe-Achieve-Succeed';
-  const pobox = school.po_box || '';
+  const groups = bulletin.groupes_matieres || [];
 
-  const seqLabels = isAnnual
-    ? (bulletin.sequence_labels || ['Moy. T1', 'Moy. T2', 'Moy. T3'])
-    : [bulletin.seq1_label, bulletin.seq2_label].filter(Boolean);
-  const nSeq = seqLabels.length || (isAnnual ? 3 : 2);
+  const seqLabels = [bulletin.seq1_label, bulletin.seq2_label].filter(Boolean);
+  const seqLabel1 = seqLabels[0] || (lang === 'en' ? '3rd SEQ.' : '3e SÉQ.');
+  const seqLabel2 = seqLabels[1] || (lang === 'en' ? '4th SEQ.' : '4e SÉQ.');
 
-  const groups = (bulletin.groupes_matieres || []).map((g) => ({
-    label: g.label || L[`group_${g.groupe}`] || `Groupe ${g.groupe}`,
-    subjects: (g.matieres || []).map((m) => mapSubjectRow(m, nSeq, isAnnual)),
-  }));
-
-  const termAvgLabel = isAnnual
-    ? (L.annual_average || (lang === 'en' ? 'ANNUAL AVERAGE' : 'MOYENNE ANNUELLE'))
-    : (L.term_average || (lang === 'en' ? 'TERM AVERAGE' : 'MOYENNE DU TRIMESTRE'));
+  const nameEn = (schoolHdr.school_name || 'ROYAL PRIESTHOOD INTERNATIONAL INSTITUTE').toUpperCase();
+  const nameFr = (schoolHdr.school_name_fr || schoolHdr.school_name || nameEn).toUpperCase();
+  const motto = schoolHdr.motto || 'a chosen generation';
+  const pobox = schoolHdr.po_box || '';
+  const phone = schoolHdr.phone || '672314497/676 035 708';
 
   const studentName = `${bulletin.eleve_nom || ''} ${bulletin.eleve_prenom || ''}`.trim().toUpperCase()
     || (bulletin.eleve || '').toUpperCase();
 
   return {
-    lang,
-    colCount: 1 + nSeq + 6,
-    nSeq,
-    seqLabels,
-    reportTitle: bulletin.report_title || (lang === 'en' ? "STUDENT'S PROGRESS REPORT CARD" : 'BULLETIN'),
-    L,
     school: {
       nameEn,
-      nameFr,
       taglineEn: motto,
+      poboxEn: pobox ? `PO BOX ;- ${pobox}` : `PO BOX ;- ${phone}`,
+      nameFr,
       taglineFr: motto,
-      poboxEn: pobox ? `PO BOX: ${pobox}` : 'PO BOX:',
-      bpFr: pobox ? `BP: ${pobox}` : 'BP:',
+      bpFr: pobox ? `BP ; ${pobox} ;- ${phone}` : `BP ; 20142 Yaounde ;- ${phone}`,
       ministryEn: 'MINISTRY OF SECONDARY EDUCATION',
-      regionEn: school.delegation_regional || 'REGIONAL DELEGATION FOR CENTER',
-      divisionEn: school.delegation_departementale || 'DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA',
+      regionEn: schoolHdr.delegation_regional || 'REGIONAL DELEGATION FOR CENTER',
+      divisionEn: schoolHdr.delegation_departementale || 'DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA',
       ministryFr: L.ministry || "MINISTERE DE L'ENSEIGNEMENT SECONDAIRE",
-      regionFr: school.delegation_regional_fr || 'DELEGATION REGIONALE DU CENTRE',
-      divisionFr: school.delegation_departementale_fr || 'DELEGATION DEPARTEMENTALE DE LA MEFOU ET AFAMBA',
-      logoUrl: school.logo_url || null,
-      profPrincipal: school.prof_principal || '',
-      nextTermNote: school.next_term || '',
+      regionFr: schoolHdr.delegation_regional_fr || 'DELEGATION REGIONAL DU CENTRE',
+      divisionFr: schoolHdr.delegation_departementale_fr || 'DELEGATION DEPARTEMENTALE DE LA MEOFU ET AFAMBA',
+      logoUrl: schoolHdr.logo_url || null,
     },
     student: {
       name: studentName,
-      class: bulletin.classe || '',
-      gender: empty(bulletin.eleve_sexe),
-      uniqueId: empty(bulletin.matricule),
-      term: bulletin.term_label || '',
+      class: (bulletin.classe || '').toUpperCase(),
+      gender: empty(bulletin.eleve_sexe) || '',
+      uniqueId: empty(bulletin.matricule) || '',
+      term: (bulletin.term_label || '').toUpperCase(),
       year: bulletin.annee_scolaire || '',
-      enrollment: empty(bulletin.effectif),
+      enrollment: empty(bulletin.effectif) || '',
       repeater: empty(bulletin.redoublant) || (lang === 'en' ? 'NO' : 'NON'),
-      series: empty(bulletin.classe_serie),
     },
-    groups,
+    subjects: {
+      firstGroup: subjectsForGroup(groups, 1),
+      secondGroup: subjectsForGroup(groups, 2),
+      thirdGroup: subjectsForGroup(groups, 3),
+    },
+    groupLabels: {
+      first: groups.find((g) => g.groupe === 1)?.label || (lang === 'en' ? 'FIRST GROUP' : 'PREMIER GROUPE'),
+      second: groups.find((g) => g.groupe === 2)?.label || (lang === 'en' ? 'SECOND GROUP' : 'DEUXIÈME GROUPE'),
+      third: groups.find((g) => g.groupe === 3)?.label || (lang === 'en' ? 'THIRD GROUP' : 'TROISIÈME GROUPE'),
+    },
+    seqLabel1,
+    seqLabel2,
     summary: {
       totalCoef: empty(bulletin.total_coef),
       totalMarks: empty(bulletin.total_points),
       classAverage: empty(bulletin.moyenne_classe),
       termAverage: empty(bulletin.moyenne_generale),
       appreciation: empty(bulletin.appreciation_generale || bulletin.mention),
-      absences: bulletin.absences ?? '',
+      absences: bulletin.absences ?? null,
       position: empty(bulletin.rang_label || bulletin.rang),
       outOf: empty(bulletin.effectif),
       remark: empty(bulletin.decision),
-      observation: empty(bulletin.observation),
-      sanctions: empty(bulletin.sanctions) || '0',
-      termAvgLabel,
+      observation: empty(bulletin.observation) || '',
+      nextTerm: schoolHdr.next_term || '',
     },
-    columns: {
-      subjects: L.subjects || (lang === 'en' ? 'SUBJECTS' : 'MATIÈRES'),
-      average: L.average || (lang === 'en' ? 'Average' : 'Moyenne'),
-      coef: L.coefficient || 'Coef',
-      totalMarks: L.total_marks || (lang === 'en' ? 'Total marks' : 'Notes'),
-      rank: L.rank || (lang === 'en' ? 'Rank' : 'Rang'),
-      appreciation: L.appreciation || 'Appr.',
-      teacher: L.teacher_sign || (lang === 'en' ? "Teacher's sign.(MR/MRS/MISS)" : 'Professeur M./Mme'),
-    },
-    signatures: lang === 'en'
-      ? [L.parents || 'PARENTS/GUARDIANS', L.sdm || 'S.D.M', L.principal || 'PRINCIPAL', L.date || 'DATE']
-      : [L.parents || 'PARENTS/TUTEURS', L.principal_col || 'PROF PRINCIPAL', L.principal || 'PRINCIPAL', L.date || 'DATE'],
-    nextTermPrefix: L.next_term || (lang === 'en' ? 'Next term re-opens' : 'Prochaine rentrée'),
   };
 }
