@@ -158,7 +158,7 @@ def _national_header(header, th) -> Table:
     dep_en = header.get("delegation_departementale") or "DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA"
     reg_fr = header.get("delegation_regional_fr") or "DELEGATION REGIONAL DU CENTRE"
     dep_fr = header.get("delegation_departementale_fr") or "DELEGATION DEPARTEMENTALE DE LA MEFOU ET AFAMBA"
-    motto = header.get("motto") or "a chosen generation"
+    motto = header.get("motto") or "A Chosen Generation : Believe-Achieve-Succeed"
     pobox = header.get("po_box") or ""
 
     en_lines = EN_HEAD + [reg_en, dep_en, f"<b>{school_en}</b>", f"<i>{motto}</i>", f"PO BOX: {pobox}"]

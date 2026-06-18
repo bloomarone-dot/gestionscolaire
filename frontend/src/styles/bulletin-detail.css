@@ -20,12 +20,81 @@
 .bulletin-official-sheet {
   background: #fff;
   color: #000;
-  padding: 0 0 0.75rem;
+  padding: 0;
+  width: 100%;
   max-width: 210mm;
   min-height: 297mm;
   margin: 0 auto;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   font-family: Helvetica, Arial, sans-serif;
+  font-size: 8.5pt;
+}
+
+.bulletin-national-grid,
+.bulletin-title-grid,
+.bulletin-main-grid,
+.bulletin-complementary-grid,
+.bulletin-signatures-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.bulletin-national-grid {
+  border: 1.5px solid var(--b-border, #000);
+  border-bottom: none;
+}
+
+.bulletin-national-grid .bulletin-national-row td {
+  background: var(--b-national, #d9ead3) !important;
+  vertical-align: middle;
+  padding: 0.35rem 0.4rem;
+  font-size: 5.5pt;
+  line-height: 1.35;
+  border: 1px solid var(--b-border, #000);
+}
+
+.bulletin-national-grid .national-side {
+  width: 41%;
+  text-align: center;
+}
+
+.bulletin-national-grid .national-logo {
+  width: 18%;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.bulletin-title-grid {
+  border: 1.5px solid var(--b-border, #000);
+  border-top: none;
+  border-bottom: none;
+}
+
+.bulletin-title-grid .bulletin-title-row td {
+  background: var(--b-title, #6fa8dc) !important;
+  color: var(--b-text, #000) !important;
+  font-weight: 800;
+  font-size: 9pt;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 0.35rem;
+  border: none;
+}
+
+.bulletin-main-grid {
+  border: 1.5px solid var(--b-border, #000);
+  border-top: none;
+}
+
+.bulletin-complementary-grid {
+  border: 1.5px solid var(--b-border, #000);
+  border-top: none;
+}
+
+.bulletin-signatures-grid {
+  border: 1.5px solid var(--b-border, #000);
+  border-top: none;
 }
 
 .bulletin-official-sheet .bulletin-cameroon-wrap {
@@ -35,19 +104,22 @@
 
 .bulletin-official-sheet .bulletin-cameroon-grid {
   width: 100%;
-  min-width: 720px;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 0.68rem;
-  border: 1.5px solid var(--b-border, #000);
+  font-size: 6.5pt;
   background: var(--b-grade, #fff);
   color: var(--b-text, #000);
 }
 
+.bulletin-official-sheet .bulletin-main-grid,
+.bulletin-official-sheet .bulletin-complementary-grid {
+  font-size: 6.5pt;
+}
+
 .bulletin-official-sheet .bulletin-cameroon-grid th,
 .bulletin-official-sheet .bulletin-cameroon-grid td {
-  border: 1px solid var(--b-border, #000);
-  padding: 0.3rem 0.35rem;
+  border: 0.5px solid var(--b-border, #000);
+  padding: 0.15rem 0.2rem;
   text-align: center;
   vertical-align: middle;
   word-wrap: break-word;
@@ -55,84 +127,54 @@
   background-color: var(--b-grade, #fff);
 }
 
-.bulletin-official-sheet .bulletin-national-row td {
-  background: var(--b-national, #d9ead3) !important;
-  vertical-align: middle;
-  padding: 0.4rem 0.35rem;
-  font-size: 0.58rem;
-  line-height: 1.35;
-}
-
-.bulletin-official-sheet .national-side {
-  text-align: center;
-}
-
 .bulletin-official-sheet .national-side .school-name {
   font-weight: 800;
-  font-size: 0.65rem;
-  margin-top: 0.1rem;
+  font-size: 7pt;
+  margin-top: 0.05rem;
 }
 
 .bulletin-official-sheet .national-side .motto {
   font-style: italic;
-}
-
-.bulletin-official-sheet .national-logo {
-  text-align: center;
-  vertical-align: middle;
-  width: 18%;
+  font-size: 5.5pt;
 }
 
 .bulletin-official-sheet .national-logo img {
-  max-height: 95px;
-  max-width: 80px;
+  max-height: 4cm;
+  max-width: 3.4cm;
   object-fit: contain;
   display: block;
   margin: 0 auto;
 }
 
 .bulletin-official-sheet .bulletin-logo-placeholder {
-  width: 64px;
-  height: 82px;
+  width: 3.4cm;
+  height: 4cm;
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1.4rem;
-  border: 2px solid #000;
+  font-size: 1.2rem;
+  border: 1px solid #000;
   background: #fff;
-}
-
-.bulletin-official-sheet .bulletin-title-row td {
-  background: var(--b-title, #6fa8dc) !important;
-  color: var(--b-text, #000) !important;
-  font-weight: 800;
-  font-size: 0.82rem;
-  text-align: center;
-  text-transform: uppercase;
-  padding: 0.45rem;
-}
-
-.bulletin-official-sheet .bulletin-info-row-a td:nth-child(odd) {
-  background: var(--b-id-label, #cfe2f3) !important;
-}
-
-.bulletin-official-sheet .bulletin-info-row-a td:nth-child(even) {
-  background: var(--b-grade, #fff) !important;
-}
-
-.bulletin-official-sheet .bulletin-info-row-b td,
-.bulletin-official-sheet .bulletin-info-row-c td {
-  background: var(--b-id-row, #eeeeee) !important;
-}
-
-.bulletin-official-sheet .bulletin-info-row-c td {
-  background: var(--b-grade, #fff) !important;
 }
 
 .bulletin-official-sheet .bulletin-info-row td {
   text-align: left;
+  font-size: 8pt;
+}
+
+.bulletin-official-sheet .bulletin-info-row .id-label {
+  background: var(--b-id-label, #cfe2f3) !important;
+}
+
+.bulletin-official-sheet .bulletin-info-row .id-row {
+  background: var(--b-id-row, #eeeeee) !important;
+}
+
+.bulletin-official-sheet .bulletin-info-row .term-cell {
+  text-align: center;
 }
 
 .bulletin-official-sheet .bulletin-info-row .cell-label {
@@ -143,8 +185,9 @@
   background: var(--b-grades-h, #6fa8dc) !important;
   color: var(--b-text, #000) !important;
   font-weight: 800;
-  font-size: 0.62rem;
+  font-size: 6pt;
   text-transform: uppercase;
+  padding: 0.2rem 0.15rem;
 }
 
 .bulletin-official-sheet .bulletin-grades-header th:first-child {
@@ -156,7 +199,7 @@
   background: var(--b-group, #9fc5e8) !important;
   color: var(--b-text, #000) !important;
   font-weight: 800;
-  font-size: 0.72rem;
+  font-size: 7pt;
   text-transform: uppercase;
   text-align: center;
 }
@@ -174,50 +217,58 @@
 .bulletin-official-sheet .bulletin-summary-row td {
   background: var(--b-summary, #fce5cd) !important;
   font-weight: 600;
+  font-size: 6pt;
 }
 
 .bulletin-official-sheet .bulletin-summary-row .cell-label {
   font-weight: 800;
-  font-size: 0.6rem;
+  font-size: 5.5pt;
   text-transform: uppercase;
 }
 
 .bulletin-official-sheet .bulletin-observation-row td {
-  min-height: 2rem;
+  min-height: 1.5cm;
   text-align: left;
+  vertical-align: top;
+  padding-bottom: 0.6rem;
 }
 
 .bulletin-official-sheet .bulletin-sig-row td,
 .bulletin-official-sheet .bulletin-sig-space td {
   background: var(--b-sig, #d9ead3) !important;
   font-weight: 800;
-  font-size: 0.65rem;
+  font-size: 6.5pt;
   text-transform: uppercase;
+  border: 0.5px solid var(--b-border, #000);
 }
 
 .bulletin-official-sheet .bulletin-sig-space td {
-  height: 2.2rem;
+  height: 1.5cm;
+  vertical-align: top;
 }
 
 .bulletin-official-sheet .prof-principal-name {
-  font-size: 0.58rem;
+  font-size: 6pt;
   font-weight: 600;
-  margin-top: 0.25rem;
+  margin-top: 0.15rem;
+  text-transform: uppercase;
 }
 
 .bulletin-official-sheet .bulletin-next-term {
-  margin: 0.35rem 0 0;
-  font-size: 0.68rem;
+  margin: 0.25rem 0 0;
+  font-size: 6pt;
   font-weight: 700;
   color: #000;
+  padding: 0 0.2rem;
 }
 
 .bulletin-official-sheet .prof-cell {
-  font-size: 0.58rem;
+  font-size: 5.5pt;
+  text-transform: uppercase;
 }
 
 .bulletin-official-sheet .bulletin-empty {
-  padding: 1.5rem !important;
+  padding: 1rem !important;
   color: #666 !important;
 }
 
@@ -246,19 +297,13 @@
   overflow-x: auto;
 }
 
-.bulletin-complementary-grid {
-  margin-top: 0;
-  border-top: none;
+.bulletin-signatures-grid .bulletin-sig-row td {
+  width: 25%;
+  text-align: center;
 }
 
-.bulletin-official-sheet .bulletin-complementary-grid {
-  width: 100%;
-  min-width: 720px;
-  table-layout: fixed;
-  border-collapse: collapse;
-  font-size: 0.68rem;
-  border: 1.5px solid var(--b-border, #000);
-  border-top: none;
+.bulletin-complementary-grid {
+  margin-top: 0;
 }
 
 .bulletin-cameroon-grid {
@@ -507,10 +552,10 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  width: min(100%, 920px);
+  width: min(100%, calc(210mm + 2rem));
   max-height: 100vh;
   margin: 0;
-  background: #f3f4f6;
+  background: #e5e7eb;
 }
 
 .bulletin-preview-toolbar {
@@ -563,8 +608,10 @@
 
 .bulletin-preview-body {
   overflow: auto;
-  padding: 1rem;
+  padding: 0.75rem;
   flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .bulletin-preview-body .bulletin-detail-official {

@@ -1,6 +1,12 @@
 import { Fragment } from 'react';
 import { TRIMESTRES } from '../utils/notes';
 import { themeToCssVars } from '../utils/bulletinTheme';
+import {
+  bulletinColCount,
+  bulletinColPcts,
+  complementaryColPcts,
+  spanParts,
+} from '../utils/bulletinLayout';
 import '../styles/bulletin-detail.css';
 
 function getMentionClass(moyenne) {
@@ -10,20 +16,8 @@ function getMentionClass(moyenne) {
   return 'insuffisant';
 }
 
-/** Proportions identiques au PDF (pdf.py _col_widths). */
-function bulletinColPcts(nSeq) {
-  const wSubj = 4.0;
-  const wSeq = 1.25;
-  const tail = [1.45, 0.95, 1.45, 1.05, 1.55];
-  const tailSum = tail.reduce((a, b) => a + b, 0);
-  let wProf = Math.max(2.8, 19.0 - wSubj - wSeq * nSeq - tailSum);
-  const total = wSubj + wSeq * nSeq + tailSum + wProf;
-  const widths = [wSubj, ...Array(nSeq).fill(wSeq), ...tail, wProf];
-  return widths.map((w) => (w / total) * 100);
-}
-
-function BulletinColGroup({ nSeq }) {
-  const pcts = bulletinColPcts(nSeq);
+function BulletinColGroup({ nSeq, variant = 'main' }) {
+  const pcts = variant === 'complementary' ? complementaryColPcts(nSeq) : bulletinColPcts(nSeq);
   return (
     <colgroup>
       {pcts.map((pct, i) => (
@@ -31,12 +25,6 @@ function BulletinColGroup({ nSeq }) {
       ))}
     </colgroup>
   );
-}
-
-function distributeSpans(nCols, parts) {
-  const base = Math.floor(nCols / parts);
-  const rem = nCols % parts;
-  return Array.from({ length: parts }, (_, i) => base + (i < rem ? 1 : 0));
 }
 
 const EN_HEAD = [
@@ -50,7 +38,7 @@ const FR_HEAD = [
   'MINISTERE DE L\'ENSEIGNEMENT SECONDAIRE',
 ];
 
-function NationalHeaderRow({ school, nCols }) {
+function NationalHeaderBlock({ school }) {
   if (!school) return null;
   const schoolEn = (school.school_name || '').toUpperCase();
   const schoolFr = (school.school_name_fr || schoolEn).toUpperCase();
@@ -61,47 +49,300 @@ function NationalHeaderRow({ school, nCols }) {
   const regFr = school.delegation_regional_fr || 'DELEGATION REGIONALE DU CENTRE';
   const depFr = school.delegation_departementale_fr || 'DELEGATION DEPARTEMENTALE DE LA MEFOU ET AFAMBA';
 
-  const sideSpan = Math.floor((nCols - 2) / 2);
-  const frSpan = nCols - sideSpan - 2;
-  const enLines = [...EN_HEAD, regEn, depEn, schoolEn, motto, pobox ? `PO BOX: ${pobox}` : ''].filter(Boolean);
-  const frLines = [...FR_HEAD, regFr, depFr, schoolFr, motto, pobox ? `BP: ${pobox}` : ''].filter(Boolean);
+  const enLines = [...EN_HEAD, regEn, depEn, schoolEn, motto, pobox ? `PO BOX: ${pobox}` : 'PO BOX:'].filter(Boolean);
+  const frLines = [...FR_HEAD, regFr, depFr, schoolFr, motto, pobox ? `BP: ${pobox}` : 'BP:'].filter(Boolean);
+
   const schoolIdx = 5;
   const mottoIdx = 6;
 
   return (
-    <tr className="bulletin-national-row">
-      <td colSpan={sideSpan} className="national-side national-en">
-        {enLines.map((line, i) => (
-          <div key={i} className={i === schoolIdx ? 'school-name' : i === mottoIdx ? 'motto' : ''}>{line}</div>
-        ))}
-      </td>
-      <td colSpan={2} className="national-logo">
-        {school.logo_url ? (
-          <img src={school.logo_url} alt="Logo établissement" />
-        ) : (
-          <div className="bulletin-logo-placeholder">{schoolEn.slice(0, 1) || 'R'}</div>
-        )}
-      </td>
-      <td colSpan={frSpan} className="national-side national-fr">
-        {frLines.map((line, i) => (
-          <div key={i} className={i === schoolIdx ? 'school-name' : i === mottoIdx ? 'motto' : ''}>{line}</div>
-        ))}
-      </td>
-    </tr>
+    <table className="bulletin-national-grid">
+      <tbody>
+        <tr className="bulletin-national-row">
+          <td className="national-side national-en">
+            {enLines.map((line, i) => (
+              <div
+                key={`en-${i}`}
+                className={i === schoolIdx ? 'school-name' : i === mottoIdx ? 'motto' : ''}
+              >
+                {line}
+              </div>
+            ))}
+          </td>
+          <td className="national-logo">
+            {school.logo_url ? (
+              <img src={school.logo_url} alt="Logo établissement" />
+            ) : (
+              <div className="bulletin-logo-placeholder">{schoolEn.slice(0, 1) || 'R'}</div>
+            )}
+          </td>
+          <td className="national-side national-fr">
+            {frLines.map((line, i) => (
+              <div
+                key={`fr-${i}`}
+                className={i === schoolIdx ? 'school-name' : i === mottoIdx ? 'motto' : ''}
+              >
+                {line}
+              </div>
+            ))}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+function TitleBar({ title }) {
+  return (
+    <table className="bulletin-title-grid">
+      <tbody>
+        <tr className="bulletin-title-row">
+          <td>{title}</td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
 function SeqCells({ row, nSeq, isAnnual }) {
   if (isAnnual) {
     return Array.from({ length: nSeq }, (_, i) => (
-      <td key={i}>{row[`seq${i + 1}`] ?? '—'}</td>
+      <td key={i}>{row[`seq${i + 1}`] ?? ''}</td>
     ));
   }
   return (
     <>
-      <td>{row.seq1 ?? '—'}</td>
-      <td>{row.seq2 ?? '—'}</td>
+      <td>{row.seq1 ?? ''}</td>
+      <td>{row.seq2 ?? ''}</td>
     </>
+  );
+}
+
+function IdentityRows({ bulletin, isEn, L, nCols }) {
+  const infoSpans = spanParts(nCols, 4);
+  const row2 = [
+    infoSpans[0],
+    infoSpans[1] + infoSpans[2],
+    Math.max(1, Math.floor(infoSpans[3] / 2)),
+    infoSpans[3] - Math.max(1, Math.floor(infoSpans[3] / 2)),
+  ];
+  const eleveName = (
+    <strong>
+      {(bulletin.eleve_nom || '').toUpperCase()} {(bulletin.eleve_prenom || '').toUpperCase()}
+    </strong>
+  );
+
+  if (isEn) {
+    return (
+      <>
+        <tr className="bulletin-info-row bulletin-info-row-a">
+          <td colSpan={infoSpans[0]} className="id-label">
+            <span className="cell-label">{L.name || 'Name'}:</span> {eleveName}
+          </td>
+          <td colSpan={infoSpans[1]}>
+            <span className="cell-label">{L.class || 'Class'}:</span> {bulletin.classe || ''}
+          </td>
+          <td colSpan={infoSpans[2]} className="id-label">
+            <span className="cell-label">Sex:</span> {bulletin.eleve_sexe || ''}
+          </td>
+          <td colSpan={infoSpans[3]}>
+            <span className="cell-label">{L.class_enrollment || 'Class Enrollment'}:</span> {bulletin.effectif ?? ''}
+          </td>
+        </tr>
+        <tr className="bulletin-info-row bulletin-info-row-b">
+          <td colSpan={row2[0]} className="id-row">
+            <span className="cell-label">{L.repeater || 'Repeater'}:</span> {bulletin.redoublant || 'NO'}
+          </td>
+          <td colSpan={row2[1]} className="id-row">
+            <span className="cell-label">{L.unique_id || 'Unique ID'}:</span> {bulletin.matricule || ''}
+          </td>
+          <td colSpan={row2[2]} className="id-row">
+            <span className="cell-label">{L.year || 'Year'}:</span> <strong>{bulletin.annee_scolaire || ''}</strong>
+          </td>
+          <td colSpan={row2[3]} className="id-row term-cell">
+            <strong>{bulletin.term_label}</strong>
+          </td>
+        </tr>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <tr className="bulletin-info-row bulletin-info-row-a">
+        <td colSpan={infoSpans[0]} className="id-label">
+          <span className="cell-label">{L.name || 'NOM'}:</span> {eleveName}
+        </td>
+        <td colSpan={infoSpans[1]}>
+          <span className="cell-label">{L.class || 'CLASSE'}:</span> {bulletin.classe || ''}
+        </td>
+        <td colSpan={infoSpans[2]} className="id-label">
+          <span className="cell-label">SEXE:</span> {bulletin.eleve_sexe || ''}
+        </td>
+        <td colSpan={infoSpans[3]} />
+      </tr>
+      <tr className="bulletin-info-row bulletin-info-row-b">
+        <td colSpan={row2[0]} className="id-row">
+          <span className="cell-label">{L.class_enrollment || 'EFFECTIF'}:</span> {bulletin.effectif ?? ''}
+        </td>
+        <td colSpan={row2[1]} className="id-row">
+          <span className="cell-label">{L.repeater || 'Redoublant'}:</span> {bulletin.redoublant || 'NON'}
+        </td>
+        <td colSpan={row2[2] + row2[3]} className="id-row">
+          <span className="cell-label">{L.series || 'Série'}:</span> {bulletin.classe_serie || ''}
+        </td>
+      </tr>
+      <tr className="bulletin-info-row bulletin-info-row-c">
+        <td colSpan={row2[0]}>
+          <span className="cell-label">{L.unique_id || 'MATRICULE'}:</span> {bulletin.matricule || ''}
+        </td>
+        <td colSpan={row2[1]} className="term-cell">
+          <strong>{bulletin.term_label}</strong>
+        </td>
+        <td colSpan={row2[2] + row2[3]}>
+          <span className="cell-label">{L.year || 'ANNÉE'}:</span> <strong>{bulletin.annee_scolaire || ''}</strong>
+        </td>
+      </tr>
+    </>
+  );
+}
+
+function SummaryRow({ cells, nCols, className = 'bulletin-summary-row' }) {
+  const padded = [...cells];
+  while (padded.length < nCols) padded.push(null);
+  return (
+    <tr className={className}>
+      {padded.map((cell, i) => (
+        <td key={i}>{cell}</td>
+      ))}
+    </tr>
+  );
+}
+
+function FooterRows({ bulletin, isEn, isAnnual, L, nCols }) {
+  const termAvgLabel = isAnnual
+    ? (L.annual_average || (isEn ? 'ANNUAL AVERAGE' : 'MOYENNE ANNUELLE'))
+    : (L.term_average || (isEn ? 'TERM AVERAGE' : 'MOYENNE DU TRIMESTRE'));
+
+  if (isEn) {
+    return (
+      <>
+        <SummaryRow
+          nCols={nCols}
+          cells={[
+            <span key="t" className="cell-label">{L.total || 'TOTAL'}</span>,
+            bulletin.total_coef ?? '',
+            bulletin.total_points ?? '',
+            <span key="ca" className="cell-label">{L.class_average || 'CLASS AVERAGE'}</span>,
+            bulletin.moyenne_classe ?? '',
+            <span key="s" className="cell-label">{L.sanctions || 'SANCTIONS'}</span>,
+            '0',
+            '0',
+          ]}
+        />
+        <SummaryRow
+          nCols={nCols}
+          cells={[
+            <span key="ta" className="cell-label">{termAvgLabel}</span>,
+            bulletin.moyenne_generale ?? '',
+            bulletin.appreciation_generale || bulletin.mention || '',
+            <span key="ab" className="cell-label">{L.absences || 'Absences (hours)'}</span>,
+            bulletin.absences ?? 0,
+            '0',
+          ]}
+        />
+        <SummaryRow
+          nCols={nCols}
+          cells={[
+            <span key="p" className="cell-label">{L.position || 'POSITION'}</span>,
+            bulletin.rang_label || bulletin.rang || '',
+            <span key="o" className="cell-label">{L.out_of || 'OUT OF'}</span>,
+            bulletin.effectif ?? '',
+            <span key="rm" className="cell-label">{L.remark || 'REMARK'}</span>,
+            bulletin.decision || '',
+          ]}
+        />
+        <tr className="bulletin-summary-row bulletin-observation-row">
+          <td colSpan={nCols}>
+            <span className="cell-label">{L.observation || 'OBSERVATION'}</span>
+            {bulletin.observation ? <><br />{bulletin.observation}</> : null}
+          </td>
+        </tr>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <SummaryRow
+        nCols={nCols}
+        cells={[
+          <span key="t" className="cell-label">{L.total || 'TOTAL'}</span>,
+          bulletin.total_coef ?? '',
+          bulletin.total_points ?? '',
+          <span key="ca" className="cell-label">{L.class_average || 'MOYENNE DE CLASSE'}</span>,
+          bulletin.moyenne_classe ?? '',
+          <span key="s" className="cell-label">{L.sanctions || 'SANCTIONS'}</span>,
+          bulletin.sanctions || '0',
+          '0',
+        ]}
+      />
+      <SummaryRow
+        nCols={nCols}
+        cells={[
+          <span key="ta" className="cell-label">{termAvgLabel}</span>,
+          bulletin.moyenne_generale ?? '',
+          bulletin.appreciation_generale || bulletin.mention || '',
+          <span key="ab" className="cell-label">{L.absences || 'Absences (heures)'}</span>,
+          bulletin.absences ?? 0,
+        ]}
+      />
+      <SummaryRow
+        nCols={nCols}
+        cells={[
+          <span key="p" className="cell-label">{L.position || 'RANG'}</span>,
+          bulletin.rang_label || bulletin.rang || '',
+          <span key="ef" className="cell-label">{L.class_enrollment || 'EFFECTIF'}</span>,
+          bulletin.effectif ?? '',
+          <span key="rm" className="cell-label">{L.remark || 'DÉCISION'}</span>,
+          bulletin.decision || '',
+        ]}
+      />
+      <tr className="bulletin-summary-row bulletin-observation-row">
+        <td colSpan={nCols}>
+          <span className="cell-label">{L.observation || 'OBSERVATION'}</span>
+          {bulletin.observation ? <><br />{bulletin.observation}</> : null}
+        </td>
+      </tr>
+    </>
+  );
+}
+
+function SignaturesBlock({ school, isEn, L }) {
+  const heads = isEn
+    ? [L.parents || 'PARENTS/GUARDIANS', L.sdm || 'S.D.M', L.principal || 'PRINCIPAL', L.date || 'DATE']
+    : [L.parents || 'PARENTS/TUTEURS', L.principal_col || 'PROF PRINCIPAL', L.principal || 'PRINCIPAL', L.date || 'DATE'];
+
+  return (
+    <table className="bulletin-signatures-grid">
+      <tbody>
+        <tr className="bulletin-sig-row">
+          {heads.map((h) => (
+            <td key={h}>{h}</td>
+          ))}
+        </tr>
+        <tr className="bulletin-sig-space">
+          <td />
+          <td>
+            {school?.prof_principal && (
+              <div className="prof-principal-name">{school.prof_principal.toUpperCase()}</div>
+            )}
+          </td>
+          <td />
+          <td />
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -109,15 +350,14 @@ function ComplementarySubjectsTable({ bulletin, nSeq, isAnnual, isEn, L }) {
   const rows = bulletin.matieres_complementaires;
   if (!rows?.length) return null;
 
-  const nCols = 1 + nSeq + 6;
-  const title = bulletin.complementary_label || L.complementary || 'Matières complémentaires';
+  const title = bulletin.complementary_label || L.complementary || 'Matières complémentaires de l\'établissement';
 
   return (
     <table className="bulletin-cameroon-grid bulletin-complementary-grid">
-      <BulletinColGroup nSeq={nSeq} />
+      <BulletinColGroup nSeq={nSeq} variant="complementary" />
       <tbody>
         <tr className="bulletin-group-row">
-          <td colSpan={nCols}>{title}</td>
+          <td colSpan={nSeq + 6}>{title}</td>
         </tr>
         <tr className="bulletin-grades-header">
           <th>{L.subjects || (isEn ? 'SUBJECTS' : 'MATIÈRES')}</th>
@@ -132,17 +372,16 @@ function ComplementarySubjectsTable({ bulletin, nSeq, isAnnual, isEn, L }) {
           <th>{L.average || (isEn ? 'Average' : 'Moyenne')}</th>
           <th>{L.coefficient || 'Coef'}</th>
           <th>{L.total_marks || (isEn ? 'Total marks' : 'Notes')}</th>
-          <th>{L.appreciation || 'Appre.'}</th>
+          <th>{L.appreciation || 'Appr.'}</th>
         </tr>
         {rows.map((row) => (
           <tr key={row.matiere_id || row.matiere} className="bulletin-grade-row">
             <td className="matiere-cell">{row.matiere}</td>
             <SeqCells row={row} nSeq={nSeq} isAnnual={isAnnual} />
-            <td>{row.moyenne ?? '—'}</td>
-            <td>{row.coef ?? '—'}</td>
-            <td>{row.points ?? '—'}</td>
-            <td>{row.appreciation ?? '—'}</td>
-            <td colSpan={2} />
+            <td>{row.moyenne ?? ''}</td>
+            <td>{row.coef ?? ''}</td>
+            <td>{row.points ?? ''}</td>
+            <td>{row.appreciation ?? ''}</td>
           </tr>
         ))}
       </tbody>
@@ -156,196 +395,85 @@ function CameroonBulletinView({ bulletin }) {
   const L = bulletin.labels || {};
   const seqLabels = bulletin.sequence_labels || [bulletin.seq1_label, bulletin.seq2_label].filter(Boolean);
   const nSeq = isAnnual ? (seqLabels.length || 3) : 2;
-  const nCols = 1 + nSeq + 6;
-  const infoSpans = distributeSpans(nCols, 4);
-  const sigSpans = distributeSpans(nCols, 4);
-  const infoRow2 = [
-    infoSpans[0],
-    infoSpans[1] + infoSpans[2],
-    Math.max(1, Math.floor(infoSpans[3] / 2)),
-    infoSpans[3] - Math.max(1, Math.floor(infoSpans[3] / 2)),
-  ];
-  const eleveName = (
-    <strong>{bulletin.eleve_nom} {bulletin.eleve_prenom}</strong>
-  );
+  const nCols = bulletinColCount(nSeq);
   const title = bulletin.report_title || (isEn ? "STUDENT'S PROGRESS REPORT CARD" : 'BULLETIN');
   const school = bulletin.school_header;
   const themeStyle = themeToCssVars(bulletin.bulletin_theme || school?.bulletin_theme);
-  const termAvgLabel = isAnnual
-    ? (L.annual_average || (isEn ? 'ANNUAL AVERAGE' : 'MOYENNE ANNUELLE'))
-    : (L.term_average || (isEn ? 'TERM AVERAGE' : 'MOYENNE DU TRIMESTRE'));
 
   return (
     <div className="bulletin-official-sheet" style={themeStyle}>
-      <div className="bulletin-detail-table-wrap bulletin-cameroon-wrap">
-        <table className="bulletin-cameroon-grid">
-          <BulletinColGroup nSeq={nSeq} />
-          <tbody>
-            <NationalHeaderRow school={school} nCols={nCols} />
+      <NationalHeaderBlock school={school} />
+      <TitleBar title={title} />
 
-            <tr className="bulletin-title-row">
-              <td colSpan={nCols}>{title}</td>
+      <table className="bulletin-cameroon-grid bulletin-main-grid">
+        <BulletinColGroup nSeq={nSeq} />
+        <tbody>
+          <IdentityRows bulletin={bulletin} isEn={isEn} L={L} nCols={nCols} />
+
+          <tr className="bulletin-grades-header">
+            <th>{L.subjects || (isEn ? 'SUBJECTS' : 'MATIÈRES')}</th>
+            {isAnnual
+              ? seqLabels.map((label, idx) => <th key={label || idx}>{label}</th>)
+              : (
+                <>
+                  <th>{bulletin.seq1_label}</th>
+                  <th>{bulletin.seq2_label}</th>
+                </>
+              )}
+            <th>{L.average || (isEn ? 'Average' : 'Moyenne')}</th>
+            <th>{L.coefficient || 'Coef'}</th>
+            <th>{L.total_marks || (isEn ? 'Total marks' : 'Notes')}</th>
+            <th>{L.rank || (isEn ? 'Rank' : 'Rang')}</th>
+            <th>{L.appreciation || 'Appr.'}</th>
+            <th>{L.teacher_sign || (isEn ? "Teacher's sign." : 'Professeur M./Mme')}</th>
+          </tr>
+
+          {!bulletin.groupes_matieres?.length ? (
+            <tr className="bulletin-grade-row">
+              <td colSpan={nCols} className="bulletin-empty">Aucune note pour ce trimestre</td>
             </tr>
-
-            {isEn ? (
-              <>
-                <tr className="bulletin-info-row bulletin-info-row-a">
-                  <td colSpan={infoSpans[0]}><span className="cell-label">{L.name || 'Name'}:</span> {eleveName}</td>
-                  <td colSpan={infoSpans[1]}><span className="cell-label">{L.class || 'Class'}:</span> {bulletin.classe || '—'}</td>
-                  <td colSpan={infoSpans[2]}><span className="cell-label">Sex:</span> {bulletin.eleve_sexe || '—'}</td>
-                  <td colSpan={infoSpans[3]}><span className="cell-label">{L.class_enrollment || 'Class Enrollment'}:</span> {bulletin.effectif || '—'}</td>
+          ) : (
+            bulletin.groupes_matieres.map((group) => (
+              <Fragment key={`g-${group.groupe}`}>
+                <tr className="bulletin-group-row">
+                  <td colSpan={nCols}>{group.label}</td>
                 </tr>
-                <tr className="bulletin-info-row bulletin-info-row-b">
-                  <td colSpan={infoRow2[0]}><span className="cell-label">{L.repeater || 'Repeater'}:</span> {bulletin.redoublant || 'NO'}</td>
-                  <td colSpan={infoRow2[1]}><span className="cell-label">{L.unique_id || 'Unique ID'}:</span> {bulletin.matricule || '—'}</td>
-                  <td colSpan={infoRow2[2]}><span className="cell-label">{L.year || 'Year'}:</span> <strong>{bulletin.annee_scolaire || '—'}</strong></td>
-                  <td colSpan={infoRow2[3]}><strong>{bulletin.term_label}</strong></td>
-                </tr>
-              </>
-            ) : (
-              <>
-                <tr className="bulletin-info-row bulletin-info-row-a">
-                  <td colSpan={infoSpans[0]}><span className="cell-label">{L.name || 'NOM'}:</span> {eleveName}</td>
-                  <td colSpan={infoSpans[1]}><span className="cell-label">{L.class || 'CLASSE'}:</span> {bulletin.classe || '—'}</td>
-                  <td colSpan={infoSpans[2]}><span className="cell-label">SEXE:</span> {bulletin.eleve_sexe || '—'}</td>
-                  <td colSpan={infoSpans[3]} />
-                </tr>
-                <tr className="bulletin-info-row bulletin-info-row-b">
-                  <td colSpan={infoRow2[0]}><span className="cell-label">{L.class_enrollment || 'EFFECTIF'}:</span> {bulletin.effectif || '—'}</td>
-                  <td colSpan={infoRow2[1]}><span className="cell-label">{L.repeater || 'Redoublant'}:</span> {bulletin.redoublant || 'NON'}</td>
-                  <td colSpan={infoRow2[2] + infoRow2[3]}><span className="cell-label">{L.series || 'Série'}:</span> {bulletin.classe_serie || '—'}</td>
-                </tr>
-                <tr className="bulletin-info-row bulletin-info-row-c">
-                  <td colSpan={infoRow2[0]}><span className="cell-label">{L.unique_id || 'MATRICULE'}:</span> {bulletin.matricule || '—'}</td>
-                  <td colSpan={infoRow2[1]}><strong>{bulletin.term_label}</strong></td>
-                  <td colSpan={infoRow2[2] + infoRow2[3]}><span className="cell-label">{L.year || 'ANNÉE'}:</span> <strong>{bulletin.annee_scolaire || '—'}</strong></td>
-                </tr>
-              </>
-            )}
-
-            <tr className="bulletin-grades-header">
-              <th>{L.subjects || (isEn ? 'SUBJECTS' : 'MATIÈRES')}</th>
-              {isAnnual
-                ? seqLabels.map((label, idx) => <th key={label || idx}>{label}</th>)
-                : (
-                  <>
-                    <th>{bulletin.seq1_label}</th>
-                    <th>{bulletin.seq2_label}</th>
-                  </>
-                )}
-              <th>{L.average || (isEn ? 'Average' : 'Moyenne')}</th>
-              <th>{L.coefficient || 'Coef'}</th>
-              <th>{L.total_marks || (isEn ? 'Total marks' : 'Notes')}</th>
-              <th>{L.rank || (isEn ? 'Rank' : 'Rang')}</th>
-              <th>{L.appreciation || 'Appre.'}</th>
-              <th>{L.teacher_sign || (isEn ? "Teacher's sign." : 'Professeur M./Mme')}</th>
-            </tr>
-
-            {!bulletin.groupes_matieres?.length ? (
-              <tr className="bulletin-grade-row"><td colSpan={nCols} className="bulletin-empty">Aucune note pour ce trimestre</td></tr>
-            ) : (
-              bulletin.groupes_matieres.map((group) => (
-                <Fragment key={`g-${group.groupe}`}>
-                  <tr className="bulletin-group-row">
-                    <td colSpan={nCols}>{group.label}</td>
+                {group.matieres.map((row) => (
+                  <tr key={row.matiere_id || row.matiere} className="bulletin-grade-row">
+                    <td className="matiere-cell">{row.matiere}</td>
+                    <SeqCells row={row} nSeq={nSeq} isAnnual={isAnnual} />
+                    <td>{row.moyenne ?? ''}</td>
+                    <td>{row.coef ?? ''}</td>
+                    <td>{row.points ?? ''}</td>
+                    <td>{row.rang_matiere ?? ''}</td>
+                    <td>{row.appreciation ?? ''}</td>
+                    <td className="prof-cell">{row.professeur}</td>
                   </tr>
-                  {group.matieres.map((row) => (
-                    <tr key={row.matiere_id || row.matiere} className="bulletin-grade-row">
-                      <td className="matiere-cell">{row.matiere}</td>
-                      <SeqCells row={row} nSeq={nSeq} isAnnual={isAnnual} />
-                      <td>{row.moyenne ?? '—'}</td>
-                      <td>{row.coef ?? '—'}</td>
-                      <td>{row.points ?? '—'}</td>
-                      <td>{row.rang_matiere ?? '—'}</td>
-                      <td>{row.appreciation ?? '—'}</td>
-                      <td className="prof-cell">{row.professeur}</td>
-                    </tr>
-                  ))}
-                </Fragment>
-              ))
-            )}
+                ))}
+              </Fragment>
+            ))
+          )}
 
-            {isEn ? (
-              <>
-                <tr className="bulletin-summary-row">
-                  <td><span className="cell-label">{L.total || 'TOTAL'}</span></td>
-                  <td colSpan={Math.max(1, Math.floor(nSeq / 2))}><span className="cell-label">{L.total || 'TOTAL'}</span><br />{bulletin.total_coef}</td>
-                  <td colSpan={Math.max(1, Math.ceil(nSeq / 2))}><span className="cell-label">{L.total_marks || 'Total marks'}</span><br />{bulletin.total_points}</td>
-                  <td colSpan={2}><span className="cell-label">{L.class_average || 'Class Average'}</span><br />{bulletin.moyenne_classe}</td>
-                  <td colSpan={2}><span className="cell-label">{L.sanctions || 'Sanctions'}</span><br />{bulletin.sanctions || '0'}</td>
-                </tr>
-                <tr className="bulletin-summary-row">
-                  <td colSpan={2}><span className="cell-label">{termAvgLabel}</span></td>
-                  <td colSpan={2}>{bulletin.moyenne_generale}</td>
-                  <td colSpan={2}>{bulletin.appreciation_generale || bulletin.mention || ''}</td>
-                  <td colSpan={Math.max(1, nCols - 6)}><span className="cell-label">{L.absences || 'Absences (hours)'}</span><br />{bulletin.absences ?? 0}</td>
-                </tr>
-                <tr className="bulletin-summary-row">
-                  <td colSpan={2}><span className="cell-label">{L.position || 'Position'}</span><br />{bulletin.rang_label || bulletin.rang || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">{L.out_of || 'OUT OF'}</span><br />{bulletin.effectif || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">{L.remark || 'Remark'}</span><br />{bulletin.decision}</td>
-                  <td colSpan={Math.max(1, nCols - 6)} />
-                </tr>
-                <tr className="bulletin-summary-row bulletin-observation-row">
-                  <td colSpan={nCols}><span className="cell-label">{L.observation || 'Observation'}</span><br />{bulletin.observation || ''}</td>
-                </tr>
-                <tr className="bulletin-sig-row">
-                  <td colSpan={sigSpans[0]}>{L.parents || 'PARENTS/GUARDIANS'}</td>
-                  <td colSpan={sigSpans[1]}>{L.sdm || 'S.D.M'}</td>
-                  <td colSpan={sigSpans[2]}>{L.principal || 'PRINCIPAL'}</td>
-                  <td colSpan={sigSpans[3]}>{L.date || 'DATE'}</td>
-                </tr>
-                <tr className="bulletin-sig-space"><td colSpan={nCols}>&nbsp;</td></tr>
-              </>
-            ) : (
-              <>
-                <tr className="bulletin-summary-row">
-                  <td><span className="cell-label">{L.total || 'TOTAL'}</span></td>
-                  <td colSpan={Math.max(1, Math.floor(nSeq / 2))}>{bulletin.total_coef}</td>
-                  <td colSpan={Math.max(1, Math.ceil(nSeq / 2))}>{bulletin.total_points}</td>
-                  <td colSpan={2}><span className="cell-label">{L.class_average || 'MOYENNE DE CLASSE'}</span><br />{bulletin.moyenne_classe}</td>
-                  <td colSpan={2}><span className="cell-label">{L.sanctions || 'SANCTIONS'}</span><br />{bulletin.sanctions || '0'}</td>
-                </tr>
-                <tr className="bulletin-summary-row">
-                  <td colSpan={2}><span className="cell-label">{termAvgLabel}</span></td>
-                  <td colSpan={2}>{bulletin.moyenne_generale}</td>
-                  <td colSpan={2}>{bulletin.appreciation_generale || bulletin.mention || ''}</td>
-                  <td colSpan={Math.max(1, nCols - 6)}><span className="cell-label">{L.absences || 'Absences (heures)'}</span><br />{bulletin.absences ?? 0}</td>
-                </tr>
-                <tr className="bulletin-summary-row">
-                  <td colSpan={2}><span className="cell-label">{L.position || 'RANG'}</span><br />{bulletin.rang_label || bulletin.rang || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">{L.class_enrollment || 'EFFECTIF'}</span><br />{bulletin.effectif || '—'}</td>
-                  <td colSpan={2}><span className="cell-label">{L.remark || 'DÉCISION'}</span><br />{bulletin.decision}</td>
-                  <td colSpan={Math.max(1, nCols - 6)} />
-                </tr>
-                <tr className="bulletin-summary-row bulletin-observation-row">
-                  <td colSpan={nCols}><span className="cell-label">{L.observation || 'OBSERVATION'}</span><br />{bulletin.observation || ''}</td>
-                </tr>
-                <tr className="bulletin-sig-row">
-                  <td colSpan={sigSpans[0]}>{L.parents || 'PARENTS/TUTEURS'}</td>
-                  <td colSpan={sigSpans[1]}>
-                    {L.principal_col || 'PROF PRINCIPAL'}
-                    {school?.prof_principal && (
-                      <div className="prof-principal-name">{school.prof_principal.toUpperCase()}</div>
-                    )}
-                  </td>
-                  <td colSpan={sigSpans[2]}>{L.principal || 'PRINCIPAL'}</td>
-                  <td colSpan={sigSpans[3]}>{L.date || 'DATE'}</td>
-                </tr>
-                <tr className="bulletin-sig-space"><td colSpan={nCols}>&nbsp;</td></tr>
-              </>
-            )}
-          </tbody>
-        </table>
+          <FooterRows
+            bulletin={bulletin}
+            isEn={isEn}
+            isAnnual={isAnnual}
+            L={L}
+            nCols={nCols}
+          />
+        </tbody>
+      </table>
 
-        <ComplementarySubjectsTable
-          bulletin={bulletin}
-          nSeq={nSeq}
-          isAnnual={isAnnual}
-          isEn={isEn}
-          L={L}
-        />
-      </div>
+      <ComplementarySubjectsTable
+        bulletin={bulletin}
+        nSeq={nSeq}
+        isAnnual={isAnnual}
+        isEn={isEn}
+        L={L}
+      />
+
+      <SignaturesBlock school={school} isEn={isEn} L={L} />
+
       {school?.next_term && (
         <p className="bulletin-next-term">
           {L.next_term || (isEn ? 'Next term re-opens' : 'Prochaine rentrée')}: {school.next_term}
