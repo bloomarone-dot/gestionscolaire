@@ -140,8 +140,6 @@ def render_bulletin_pdf(data: dict) -> bytes:
         _identity(header, b, L, lang, len(seq_lbls), th),
         _grades_table(b, L, seq_lbls, lang, th),
     ]
-    if b.get("special_subjects"):
-        story.append(_special_table(b, L, seq_lbls, th))
     story += [
         _footer(b, data, header, L, lang, len(seq_lbls), th),
         _signatures(header, L, lang, th),

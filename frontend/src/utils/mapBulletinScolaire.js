@@ -26,13 +26,6 @@ function mapSubjectRow(row, nSeq, isAnnual) {
   return subject;
 }
 
-function mapComplementaryRow(row, nSeq, isAnnual) {
-  const subject = mapSubjectRow(row, nSeq, isAnnual);
-  subject.rank = '';
-  subject.teacher = '';
-  return subject;
-}
-
 export function mapBulletinScolaire(bulletin) {
   if (!bulletin) return null;
 
@@ -54,10 +47,6 @@ export function mapBulletinScolaire(bulletin) {
     label: g.label || L[`group_${g.groupe}`] || `Groupe ${g.groupe}`,
     subjects: (g.matieres || []).map((m) => mapSubjectRow(m, nSeq, isAnnual)),
   }));
-
-  const complementary = (bulletin.matieres_complementaires || []).map((m) =>
-    mapComplementaryRow(m, nSeq, isAnnual),
-  );
 
   const termAvgLabel = isAnnual
     ? (L.annual_average || (lang === 'en' ? 'ANNUAL AVERAGE' : 'MOYENNE ANNUELLE'))
@@ -102,8 +91,6 @@ export function mapBulletinScolaire(bulletin) {
       series: empty(bulletin.classe_serie),
     },
     groups,
-    complementary,
-    complementaryTitle: bulletin.complementary_label || L.complementary || '',
     summary: {
       totalCoef: empty(bulletin.total_coef),
       totalMarks: empty(bulletin.total_points),

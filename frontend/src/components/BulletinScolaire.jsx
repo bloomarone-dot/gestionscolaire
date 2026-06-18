@@ -30,21 +30,6 @@ function SubjectRow({ subject }) {
   );
 }
 
-function ComplementaryRow({ subject }) {
-  return (
-    <tr>
-      <td style={styles.subjectCell}>{subject.name}</td>
-      {subject.seqs.map((seq, i) => (
-        <td key={i} style={styles.dataCell}>{seq}</td>
-      ))}
-      <td style={styles.dataCell}>{subject.avg}</td>
-      <td style={styles.dataCell}>{subject.coef}</td>
-      <td style={styles.dataCell}>{subject.total}</td>
-      <td style={styles.dataCell}>{subject.appre}</td>
-    </tr>
-  );
-}
-
 function IdentityAnglo({ data, L }) {
   const { student, colCount, seqLabels, columns } = data;
   const innerColCount = colCount - 3;
@@ -234,7 +219,7 @@ export default function BulletinScolaire({ bulletin }) {
   const data = useMemo(() => mapBulletinScolaire(bulletin), [bulletin]);
   if (!data) return null;
 
-  const { school, colCount, lang, groups, complementary, complementaryTitle, signatures, nextTermPrefix } = data;
+  const { school, colCount, lang, groups, signatures, nextTermPrefix } = data;
   const isEn = lang === 'en';
 
   return (
@@ -314,29 +299,6 @@ export default function BulletinScolaire({ bulletin }) {
           <SummaryRows data={data} />
         </tbody>
       </table>
-
-      {complementary.length > 0 && (
-        <table style={{ ...styles.table, marginTop: '-1px' }}>
-          <tbody>
-            <tr>
-              <td colSpan={data.nSeq + 5} style={styles.groupHeader}>{complementaryTitle}</td>
-            </tr>
-            <tr>
-              <td style={styles.colHeader}>{data.columns.subjects}</td>
-              {data.seqLabels.map((label) => (
-                <td key={label} style={styles.colHeader}>{label}</td>
-              ))}
-              <td style={styles.colHeader}>{data.columns.average}</td>
-              <td style={styles.colHeader}>{data.columns.coef}</td>
-              <td style={styles.colHeader}>{data.columns.totalMarks}</td>
-              <td style={styles.colHeader}>{data.columns.appreciation}</td>
-            </tr>
-            {complementary.map((s, i) => (
-              <ComplementaryRow key={i} subject={s} />
-            ))}
-          </tbody>
-        </table>
-      )}
 
       <div style={styles.footerRow}>
         {signatures.map((label, i) => (
