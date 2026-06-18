@@ -617,8 +617,13 @@
 .bulletin-preview-body .bulletin-detail-official {
   border: none !important;
   box-shadow: none;
+  background: #e5e7eb !important;
 }
 
-.bulletin-preview-body .bulletin-official-sheet {
+.bulletin-preview-body .bulletin-scolaire-sheet {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+}
+
+.bulletin-detail-official .bulletin-scolaire-sheet {
+  margin: 0 auto;
 }

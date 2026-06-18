@@ -25,11 +25,11 @@ try:
 except ImportError:
     def parse_theme(_raw):  # type: ignore
         return {
-            "national_header": "#d9ead3", "title_bar": "#6fa8dc",
-            "identity_label": "#cfe2f3", "identity_row": "#eeeeee",
-            "grades_header": "#6fa8dc", "group_row": "#9fc5e8",
-            "grade_row": "#ffffff", "summary": "#fce5cd",
-            "signatures": "#d9ead3", "border": "#000000", "text": "#000000",
+            "national_header": "#ffffff", "title_bar": "#4a6fa5",
+            "identity_label": "#4a6fa5", "identity_row": "#ffffff",
+            "grades_header": "#4a6fa5", "group_row": "#4a6fa5",
+            "grade_row": "#c8d8e8", "summary": "#4a6fa5",
+            "signatures": "#ffffff", "border": "#2c3e6b", "text": "#ffffff",
         }
 
 BLACK = colors.black

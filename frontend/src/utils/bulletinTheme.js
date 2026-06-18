@@ -29,7 +29,20 @@ export const DEFAULT_BULLETIN_THEME = {
 };
 
 export const BULLETIN_THEME_PRESETS = {
-  royal_priesthood: { ...DEFAULT_BULLETIN_THEME, preset: 'royal_priesthood' },
+  royal_priesthood: {
+    preset: 'royal_priesthood',
+    national_header: '#ffffff',
+    title_bar: '#4a6fa5',
+    identity_label: '#4a6fa5',
+    identity_row: '#ffffff',
+    grades_header: '#4a6fa5',
+    group_row: '#4a6fa5',
+    grade_row: '#c8d8e8',
+    summary: '#4a6fa5',
+    signatures: '#ffffff',
+    border: '#2c3e6b',
+    text: '#ffffff',
+  },
   cameroon_classic: {
     preset: 'cameroon_classic',
     national_header: '#d4edda',
