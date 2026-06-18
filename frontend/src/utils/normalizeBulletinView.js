@@ -155,7 +155,7 @@ export function normalizeBulletinView(data) {
     rang: b.rang_general ?? data.rang,
     rang_general: b.rang_general ?? data.rang_general,
     rang_label: ordinal(b.rang_general ?? data.rang_general, lang),
-    decision: b.decision ?? data.decision,
+    decision: isAnnual ? (b.decision ?? data.decision ?? '') : '',
     groupes_matieres: data.groupes_matieres?.length ? data.groupes_matieres : groupes_matieres,
     matieres_complementaires: data.matieres_complementaires?.length
       ? data.matieres_complementaires

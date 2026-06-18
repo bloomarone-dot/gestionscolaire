@@ -178,8 +178,10 @@ def test_totals_equal_sum_of_rounded_row_points():
 def test_lang_and_labels():
     assert lang_for_subsystem("ANGLOPHONE") == "en"
     assert lang_for_subsystem("FRANCOPHONE") == "fr"
-    assert decision(14.5, "fr") == "ADMIS(E)"
-    assert decision(8, "en") == "FAILED"
+    assert decision(14.5, "fr") == "ADMIS"
+    assert decision(8, "fr") == "ECHEC"
+    assert decision(14.5, "en") == "PASSED"
+    assert decision(8, "en") == "ECHEC"
     assert appreciation(16, "en") == "A"          # codes officiels EN
     assert appreciation(19, "en") == "EXCELLENT"
     assert appreciation(7, "en") == "CNA"

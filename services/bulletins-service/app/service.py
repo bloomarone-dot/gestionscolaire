@@ -106,7 +106,7 @@ def build_class_bulletins(
     result["header"]["effectif"] = result["effectif"]
     result["header"]["prof_principal"] = teacher_names.get(classe.get("prof_principal_id"))
     for b in result["bulletins"]:
-        b["decision"] = decision(b["moyenne_generale"], lang)
+        b["decision"] = decision(b["moyenne_generale"], lang) if scope == "annual" else ""
     return result
 
 

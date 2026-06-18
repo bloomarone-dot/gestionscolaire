@@ -232,7 +232,7 @@ function SubjectRow({ s }) {
   );
 }
 
-function SummaryRows({ summary, labels, cols }) {
+function SummaryRows({ summary, labels, cols, showDecision }) {
   const { coefCol, teacherCol } = cols;
 
   return (
@@ -260,8 +260,14 @@ function SummaryRows({ summary, labels, cols }) {
         <td style={styles.summaryValueCell}>{summary.position ?? ''}</td>
         <td style={styles.summaryLabelCell}>{labels.outOf}</td>
         <td style={styles.summaryValueCell}>{summary.outOf ?? ''}</td>
-        <td style={styles.summaryLabelCell}>{labels.remark}</td>
-        <td colSpan={teacherCol - 4} style={styles.summaryValueCell}>{summary.remark ?? ''}</td>
+        {showDecision ? (
+          <>
+            <td style={styles.summaryLabelCell}>{labels.remark}</td>
+            <td colSpan={teacherCol - 4} style={styles.summaryValueCell}>{summary.remark ?? ''}</td>
+          </>
+        ) : (
+          <td colSpan={teacherCol - 3} style={styles.summaryValueCell} />
+        )}
       </tr>
 
       <tr>
@@ -390,7 +396,7 @@ export default function BulletinScolaire({ bulletin }) {
             </>
           )}
 
-          <SummaryRows summary={summary} labels={labels} cols={cols} />
+          <SummaryRows summary={summary} labels={labels} cols={cols} showDecision={bulletin.bulletin_scope === 'annual'} />
         </tbody>
       </table>
 

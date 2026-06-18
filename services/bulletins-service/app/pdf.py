@@ -384,23 +384,27 @@ def _footer(b, data, header, L, lang, n_seq: int, th) -> Table:
     ])
 
     if lang == "en":
-        add_row([
+        position_row = [
             (_p(L["position"], bold=True), 1),
             (_p(ordinal(b.get("rang_general"), lang), bold=True, align=TA_CENTER), 1),
             (_p(L["out_of"], bold=True, align=TA_CENTER), 1),
             (_p(str(effectif), bold=True, align=TA_CENTER), 1),
-            (_p(L["remark"], bold=True, align=TA_CENTER), 1),
-            (_p(decision, bold=True, align=TA_CENTER), remark_span),
-        ])
+        ]
     else:
-        add_row([
+        position_row = [
             (_p(L["position"], bold=True), 1),
             (_p(ordinal(b.get("rang_general"), lang), bold=True, align=TA_CENTER), 1),
             (_p(L["class_enrollment"], bold=True, align=TA_CENTER), 1),
             (_p(str(effectif), bold=True, align=TA_CENTER), 1),
+        ]
+    if header.get("scope") == "annual":
+        position_row += [
             (_p(L["remark"], bold=True, align=TA_CENTER), 1),
             (_p(decision, bold=True, align=TA_CENTER), remark_span),
-        ])
+        ]
+    else:
+        position_row.append((_p("", ), n_cols - 4))
+    add_row(position_row)
 
     add_row([
         (_p(L["observation"], bold=True), 1),
