@@ -134,6 +134,15 @@ export function BulletinsWorkspace({ professor = false }) {
           { key: "name", label: "Eleve" },
           { key: "matricule", label: "Matricule" },
           { key: "className", label: "Classe" },
+          {
+            key: "section",
+            label: "Section",
+            render: () => (
+              <Badge tone={selectedClassObj?.subsystem_code === "ANGLOPHONE" ? "cyan" : "violet"}>
+                {selectedClassObj?.subsystem || "—"}
+              </Badge>
+            ),
+          },
         ]}
         rows={students}
         onRowClick={(row) => preview(row)}

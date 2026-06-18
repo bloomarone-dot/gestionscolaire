@@ -51,7 +51,7 @@ LABELS = {
         "next_term": "Prochaine rentrée",
         "country": "RÉPUBLIQUE DU CAMEROUN",
         "motto_nat": "Paix - Travail - Patrie",
-        "ministry": "MINISTÈRE DES ENSEIGNEMENTS SECONDAIRES",
+        "ministry": "MINISTÈRE DE L'ENSEIGNEMENT SECONDAIRE",
         "terms": {1: "1er TRIMESTRE", 2: "2e TRIMESTRE", 3: "3e TRIMESTRE"},
         "seqs": {1: ("1ère Séq", "2e Séq"), 2: ("3e Séq", "4e Séq"), 3: ("5e Séq", "6e Séq")},
     },

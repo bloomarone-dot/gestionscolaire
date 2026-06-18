@@ -31,11 +31,11 @@ SCHOOL_NAME = "Royal Priesthood Academy"
 SCHOOL_CODE = "RPA"
 
 ROYAL_BULLETIN_PROFILE = {
-    "name": "Royal Priesthood International Institute",
+    "name": "Royal Priesthood International",
     "city": "Yaoundé",
     "address": "Mefou et Afamba",
     "phone": "672314497",
-    "bulletin_motto": "a chosen generation",
+    "bulletin_motto": "A Chosen Generation : Believe-Achieve-Succeed",
     "bulletin_po_box": "672314497 / 686810189",
     "bulletin_delegation_regional": "REGIONAL DELEGATION FOR CENTER",
     "bulletin_delegation_departementale": "DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA",
@@ -56,11 +56,12 @@ ROYAL_BULLETIN_PROFILE = {
     },
     "bulletin_appreciation_scales": {
         "fr": [
-            {"min": 18, "label": "A+"},
-            {"min": 16, "label": "A"},
-            {"min": 14, "label": "ECA"},
-            {"min": 10, "label": "NA"},
-            {"min": 0, "label": "CNA"},
+            {"min": 18, "label": "EXCELLENT"},
+            {"min": 16, "label": "TB"},
+            {"min": 14, "label": "B"},
+            {"min": 12, "label": "AB"},
+            {"min": 10, "label": "PASSABLE"},
+            {"min": 0, "label": "INSUFFISANT"},
         ],
         "en": [
             {"min": 18, "label": "EXCELLENT"},

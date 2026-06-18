@@ -93,6 +93,8 @@ export function normalizeBulletinView(data) {
     lang,
     bulletin_scope: scope,
     section: lang === 'en' ? 'anglophone' : 'francophone',
+    subsystem_code: header.subsystem_code || data.subsystem_code
+      || (lang === 'en' ? 'ANGLOPHONE' : 'FRANCOPHONE'),
     report_title: reportTitle,
     eleve: `${b.nom || ''} ${b.prenom || ''}`.trim(),
     eleve_nom: b.nom,
@@ -133,7 +135,7 @@ export function normalizeBulletinView(data) {
       school_name: header.school_name || data.school_header?.school_name,
       school_name_fr: header.school_name_fr || header.school_name || data.school_header?.school_name_fr,
       logo_url: header.logo_url || data.school_header?.logo_url,
-      motto: header.motto || data.school_header?.motto || 'a chosen generation',
+      motto: header.motto || data.school_header?.motto || 'A Chosen Generation : Believe-Achieve-Succeed',
       po_box: header.po_box || data.school_header?.po_box,
       delegation_regional: header.delegation_regional || data.school_header?.delegation_regional,
       delegation_departementale: header.delegation_departementale || data.school_header?.delegation_departementale,

@@ -164,9 +164,14 @@ def create_class(
         classe.subsystem_code = (
             payload.subsystem_code
             or infer_subsystem_from_text(payload.specialite_libre)
+            or infer_subsystem_from_text(payload.nom_personnalise)
+            or infer_subsystem_from_text(payload.niveau_libre)
         )
     else:
-        classe.subsystem_code = payload.subsystem_code
+        classe.subsystem_code = (
+            payload.subsystem_code
+            or infer_subsystem_from_text(payload.nom_personnalise)
+        )
         classe.type_code = payload.type_code
         classe.cycle_code = payload.cycle_code
         classe.level_code = payload.level_code

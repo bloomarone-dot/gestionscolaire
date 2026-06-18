@@ -40,7 +40,7 @@ def _header(classe: dict, school: dict, lang: str, trimestre: int, scope: str) -
         "school_name_fr": school.get("name_fr") or name,
         "logo_url": school.get("logo_url"),
         "po_box": school.get("bulletin_po_box"),
-        "motto": school.get("bulletin_motto") or "a chosen generation",
+        "motto": school.get("bulletin_motto") or "A Chosen Generation : Believe-Achieve-Succeed",
         "delegation_regional": school.get("bulletin_delegation_regional")
         or "REGIONAL DELEGATION FOR CENTER",
         "delegation_departementale": school.get("bulletin_delegation_departementale")

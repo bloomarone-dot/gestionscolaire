@@ -54,7 +54,7 @@ function NationalHeaderRow({ school, nCols }) {
   if (!school) return null;
   const schoolEn = (school.school_name || '').toUpperCase();
   const schoolFr = (school.school_name_fr || schoolEn).toUpperCase();
-  const motto = school.motto || 'a chosen generation';
+  const motto = school.motto || 'A Chosen Generation : Believe-Achieve-Succeed';
   const pobox = school.po_box || '';
   const regEn = school.delegation_regional || 'REGIONAL DELEGATION FOR CENTER';
   const depEn = school.delegation_departementale || 'DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA';

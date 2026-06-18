@@ -115,7 +115,7 @@ export function OperationalClassesPage() {
           { key: "name", label: "Classe" },
           {
             key: "subsystem",
-            label: "Sous-système",
+            label: "Section",
             render: (row) => (
               <Badge
                 tone={row.subsystem_code === "ANGLOPHONE" ? "cyan" : "violet"}

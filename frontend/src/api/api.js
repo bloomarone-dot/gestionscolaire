@@ -4,7 +4,7 @@
 // /evaluations, /bulletins.
 
 import { normalizeBulletinView } from '../utils/normalizeBulletinView';
-import { inferSubsystemFromText, resolveSubsystemCode } from '../utils/section';
+import { resolveSubsystemCode } from '../utils/section';
 import { isValidAccessToken, readStoredAccessToken } from '../utils/authToken';
 
 let authRedirectPending = false;
@@ -30,11 +30,9 @@ function normalizeAuthUser(data) {
 }
 
 function normalizeClasse(classe) {
-  const subsystemCode = resolveSubsystemCode(classe)
-    || classe.subsystem_code
-    || inferSubsystemFromText(classe.specialite_libre);
+  const subsystemCode = resolveSubsystemCode(classe) || classe.subsystem_code;
   const section = classe.section
-    || (subsystemCode === 'ANGLOPHONE' ? 'anglophone' : subsystemCode === 'FRANCOPHONE' ? 'francophone' : 'francophone');
+    || (subsystemCode === 'ANGLOPHONE' ? 'anglophone' : subsystemCode === 'FRANCOPHONE' ? 'francophone' : null);
   return {
     ...classe,
     subsystem_code: subsystemCode || classe.subsystem_code,

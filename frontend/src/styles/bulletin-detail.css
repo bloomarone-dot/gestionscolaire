@@ -537,6 +537,13 @@
   color: #0f172a;
 }
 
+.bulletin-preview-toolbar-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+}
+
 .bulletin-preview-close {
   display: inline-flex;
   align-items: center;
