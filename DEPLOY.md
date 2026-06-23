@@ -1,6 +1,6 @@
 # Déploiement production
 
-Stack cible : **Docker Compose** (PostgreSQL + RabbitMQ + Redis + 9 services + frontend nginx).
+Stack cible : **Docker Compose** (PostgreSQL + RabbitMQ + Redis + 11 services + frontend nginx).
 
 ## Checklist avant mise en production
 
@@ -38,7 +38,15 @@ docker compose exec postgres pg_dumpall -U gs > backup.sql
 ## Mise à jour
 
 ```bash
+cd /opt/gestionscolaire
+bash scripts/update-hostinger.sh
+```
+
+Ou manuellement :
+
+```bash
 git pull
+bash scripts/ensure-postgres-databases.sh   # nouvelles bases (tresorerie_db, planning_db…)
 docker compose up --build -d
 ./scripts/seed-superadmin.sh   # idempotent, ne recrée pas si déjà présent
 ```
@@ -49,7 +57,7 @@ Le dépôt n'utilise **plus** le service Docker `backend` (FastAPI monolithe sur
 
 | Avant (monolithe) | Maintenant (microservices) |
 |-------------------|----------------------------|
-| `backend` + `frontend` | Postgres + RabbitMQ + Redis + 9 services + `api-gateway` + `frontend` |
+| `backend` + `frontend` | Postgres + RabbitMQ + Redis + 11 services + `api-gateway` + `frontend` |
 | Frontend `:5173` | Frontend `:5180` (`WEB_PORT`) |
 | API directe `:8000` | Gateway `:8082` (`GATEWAY_PORT`) |
 | Login username | Login **téléphone + mot de passe** |

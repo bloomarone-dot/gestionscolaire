@@ -25,7 +25,8 @@ docker stop gestionscolaire-backend-1 2>/dev/null || true
 docker rm gestionscolaire-backend-1 2>/dev/null || true
 
 echo "→ git pull origin main..."
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
 echo "→ Sauvegarde Postgres (optionnelle)..."
 if docker compose ps postgres 2>/dev/null | grep -q Up; then
@@ -38,17 +39,27 @@ fi
 
 echo "→ Infrastructure..."
 docker compose up -d postgres redis rabbitmq
-sleep 20
+sleep 15
 
-echo "→ Rebuild complet (frontend + services)..."
-docker compose build --no-cache frontend auth-service personnel-service api-gateway evaluations-service pedagogie-service bulletins-service
+bash "$ROOT/scripts/ensure-postgres-databases.sh"
+
+echo "→ Rebuild et démarrage (tous les services)..."
+docker compose build --pull frontend api-gateway \
+  auth-service tenant-service referentiel-service pedagogie-service \
+  personnel-service eleves-service evaluations-service bulletins-service \
+  notifications-service tresorerie-service planning-service
 docker compose up -d
 
-sleep 15
+sleep 20
 echo
 echo "→ Vérifications..."
-curl -sf http://127.0.0.1:8082/health && echo "  API : OK" || echo "  API : ERREUR"
-curl -sfI http://127.0.0.1:5180/ | head -1 || echo "  Frontend : ERREUR"
+curl -sf http://127.0.0.1:8082/health && echo "  API gateway : OK" || echo "  API gateway : ERREUR"
+
+WEB_PORT="${WEB_PORT:-5180}"
+curl -sfI "http://127.0.0.1:${WEB_PORT}/" | head -1 || echo "  Frontend : ERREUR"
+
+docker compose ps --status running | grep -E 'tresorerie|planning' && echo "  Nouveaux services : OK" || echo "  Vérifier tresorerie-service et planning-service"
+
 docker compose ps
 
 echo
