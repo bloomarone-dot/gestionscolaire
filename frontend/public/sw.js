@@ -28,6 +28,8 @@ self.addEventListener('fetch', (event) => {
     || url.pathname.startsWith('/evaluations/')
     || url.pathname.startsWith('/referentiel/')
     || url.pathname.startsWith('/notifications/')
+    || url.pathname.startsWith('/tresorerie/')
+    || url.pathname.startsWith('/planning/')
     || url.pathname.startsWith('/health')
     || url.pathname.startsWith('/bulletins/')) {
     return;

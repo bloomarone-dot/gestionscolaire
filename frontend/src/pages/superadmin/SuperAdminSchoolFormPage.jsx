@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as api from '../../api/api';
 import CitySelect from '../../components/CitySelect';
+import {
+  ESTABLISHMENT_KINDS,
+  defaultProfileForKind,
+  establishmentKindLabel,
+} from '../../utils/establishmentKind';
 
 // Style sobre / minimaliste (Tailwind, palette ardoise, peu de couleur).
 const card = 'rounded-lg border border-solid border-slate-200 bg-white';
@@ -9,15 +14,11 @@ const lbl = 'block text-[11px] font-semibold uppercase tracking-wide text-slate-
 const input = 'w-full rounded-md border border-solid border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-500';
 
 const SUBSYSTEMS = [['FRANCOPHONE', 'Francophone'], ['ANGLOPHONE', 'Anglophone']];
-const TYPES = [['GENERAL', 'Général'], ['TECHNIQUE', 'Technique']];
+const TYPES = [['GENERAL', 'Général'], ['TECHNIQUE', 'Technique'], ['LANGUE', 'Formation en langues']];
 const CHANNELS = [['SMS', 'SMS'], ['WHATSAPP', 'WhatsApp'], ['EMAIL', 'Email'], ['INTERNAL', 'Notif. interne']];
 
-// Profil par défaut à la création (configurable ensuite dans l'édition).
-const DEFAULT_PROFILE = {
-  subsystems: ['FRANCOPHONE', 'ANGLOPHONE'],
-  teaching_types: ['GENERAL', 'TECHNIQUE'],
-  channels: ['INTERNAL'],
-};
+// Profil par défaut à la création (selon le type d'établissement).
+const DEFAULT_PROFILE = defaultProfileForKind('SCHOOL');
 
 function Field({ label, required, children, hint }) {
   return (
@@ -53,6 +54,7 @@ export default function SuperAdminSchoolFormPage() {
 
   const [form, setForm] = useState({
     name: '', city: '', address: '', phone: '',
+    establishment_kind: 'SCHOOL',
     ...DEFAULT_PROFILE,
     admin_first_name: '', admin_last_name: '', admin_phone: '', admin_password: '',
   });
@@ -66,6 +68,7 @@ export default function SuperAdminSchoolFormPage() {
     api.getSchool(id)
       .then((s) => setForm((f) => ({
         ...f, name: s.name || '', city: s.city || '', address: s.address || '', phone: s.phone || '',
+        establishment_kind: s.establishment_kind || 'SCHOOL',
         subsystems: s.subsystems || [], teaching_types: s.teaching_types || [], channels: s.channels || [],
       })))
       .catch((e) => setError(e.message))
@@ -73,6 +76,7 @@ export default function SuperAdminSchoolFormPage() {
   }, [id, isEdit]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setKind = (kind) => setForm((f) => ({ ...f, establishment_kind: kind, ...defaultProfileForKind(kind) }));
   const toggle = (k, v) => setForm((f) => ({ ...f, [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v] }));
 
   async function handleSubmit(e) {
@@ -82,7 +86,10 @@ export default function SuperAdminSchoolFormPage() {
     setLoading(true);
     try {
       if (isEdit) {
-        await api.updateSchool(id, { name: form.name, city: form.city, address: form.address, phone: form.phone });
+        await api.updateSchool(id, {
+          name: form.name, city: form.city, address: form.address, phone: form.phone,
+          establishment_kind: form.establishment_kind,
+        });
         await api.updateSchoolProfile(id, {
           subsystems: form.subsystems, teaching_types: form.teaching_types, channels: form.channels,
         });
@@ -95,7 +102,12 @@ export default function SuperAdminSchoolFormPage() {
         setLoading(false);
         return;
       }
-      const school = await api.createSchool({ name: form.name, city: form.city, ...DEFAULT_PROFILE });
+      const profile = defaultProfileForKind(form.establishment_kind);
+      const school = await api.createSchool({
+        name: form.name, city: form.city,
+        establishment_kind: form.establishment_kind,
+        ...profile,
+      });
       await api.createSchoolAdmin(school.id, {
         phone: form.admin_phone, password: form.admin_password,
         first_name: form.admin_first_name || null, last_name: form.admin_last_name || null,
@@ -163,6 +175,21 @@ export default function SuperAdminSchoolFormPage() {
           <Field label="Ville">
             <CitySelect name="city" value={form.city} onChange={(e) => set('city', e.target.value)} />
           </Field>
+          {!isEdit ? (
+            <Field label="Type d'établissement" required hint="Détermine le profil pédagogique par défaut (MINESEC ou centre de langues).">
+              <select className={input} value={form.establishment_kind} onChange={(e) => setKind(e.target.value)} required>
+                {ESTABLISHMENT_KINDS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </Field>
+          ) : (
+            <Field label="Type d'établissement">
+              <p className="rounded-md border border-solid border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {establishmentKindLabel(form.establishment_kind)}
+              </p>
+            </Field>
+          )}
           {isEdit && (
             <>
               <Field label="Téléphone">

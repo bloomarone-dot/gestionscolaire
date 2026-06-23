@@ -21,6 +21,7 @@ from common.tenant import TenantContext, require_roles
 
 from app.config import settings
 from app.models import Account, Role
+from common.roles import ADMIN_CREATABLE
 from app.schemas import (
     AccountCreate,
     AccountResponse,
@@ -129,6 +130,16 @@ def create_account(
     tenant_id = payload.tenant_id
     if ctx.role == Role.ADMIN:
         tenant_id = ctx.tenant_id
+        if payload.role in (Role.ADMIN, Role.SUPERADMIN):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Vous ne pouvez pas créer ce type de compte.",
+            )
+        if payload.role not in ADMIN_CREATABLE:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Rôle non autorisé : {payload.role}",
+            )
     elif tenant_id is None and ctx.tenant_id is not None:
         tenant_id = ctx.tenant_id
 
@@ -173,6 +184,8 @@ def delete_account(
                 raise HTTPException(status.HTTP_403_FORBIDDEN, "Compte hors de votre établissement.")
             if account.role in (Role.ADMIN, Role.SUPERADMIN):
                 raise HTTPException(status.HTTP_403_FORBIDDEN, "Impossible de supprimer ce type de compte.")
+            if ctx.user_id == account.id:
+                raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne pouvez pas supprimer votre propre compte.")
         session.delete(account)
         session.commit()
     finally:
@@ -181,7 +194,7 @@ def delete_account(
 
 @app.get("/auth/me", response_model=AccountResponse, tags=["auth"])
 def me(ctx: TenantContext = Depends(require_roles(
-    Role.SUPERADMIN, Role.ADMIN, Role.DIRECTION, Role.ENSEIGNANT, Role.PARENT
+    Role.SUPERADMIN, Role.ADMIN, Role.SECRETAIRE, Role.DIRECTION, Role.ENSEIGNANT, Role.PARENT
 ))) -> AccountResponse:
     session = _get_session()
     try:
@@ -189,6 +202,23 @@ def me(ctx: TenantContext = Depends(require_roles(
         if not account:
             raise HTTPException(status_code=404, detail="Compte introuvable")
         return AccountResponse.model_validate(account)
+    finally:
+        session.close()
+
+
+@app.get("/auth/accounts/establishment", response_model=list[AccountResponse], tags=["auth"])
+def list_establishment_accounts(
+    ctx: TenantContext = Depends(require_roles(Role.ADMIN)),
+) -> list[AccountResponse]:
+    """Comptes de l'établissement (secrétaires, etc.) — admin établissement."""
+    session = _get_session()
+    try:
+        q = (
+            select(Account)
+            .where(Account.tenant_id == ctx.tenant_id)
+            .order_by(Account.role, Account.last_name, Account.first_name)
+        )
+        return [AccountResponse.model_validate(a) for a in session.scalars(q).all()]
     finally:
         session.close()
 

@@ -11,3 +11,5 @@ CREATE DATABASE eleves_db;
 CREATE DATABASE evaluations_db;
 CREATE DATABASE bulletins_db;
 CREATE DATABASE notifications_db;
+CREATE DATABASE tresorerie_db;
+CREATE DATABASE planning_db;

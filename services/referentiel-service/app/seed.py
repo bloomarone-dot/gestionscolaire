@@ -114,6 +114,79 @@ def seed_all(session: Session) -> None:
         for subject_code, coef in D.ANGLO_GENERAL.items():
             add_elig(subject_code, level_code, None, coef)
 
+    # Formation en langues (CECRL A1→C2)
+    for level_code in D.LANGUE_LEVELS:
+        for subject_code, coef in D.LANGUE_SUBJECTS.items():
+            add_elig(subject_code, level_code, None, coef)
+
+    session.commit()
+
+
+def seed_language_referential(session: Session) -> None:
+    """Ajoute LANGUE / CECRL sur une base déjà seedée (migration douce)."""
+    if session.query(Level).filter(Level.code == "A1").first() is not None:
+        return
+
+    sub_fr = session.query(Subsystem).filter(Subsystem.code == "FRANCOPHONE").first()
+    if sub_fr is None:
+        return
+
+    typ = session.query(TeachingType).filter(TeachingType.code == "LANGUE").first()
+    if typ is None:
+        typ = TeachingType(code="LANGUE", name_fr="Formation en langues", name_en="Language training")
+        session.add(typ)
+        session.flush()
+
+    cycle = session.query(Cycle).filter(Cycle.code == "CECRL").first()
+    if cycle is None:
+        cycle = Cycle(code="CECRL", name_fr="Cadre européen commun (CECRL)", name_en="CEFR", order=3)
+        session.add(cycle)
+        session.flush()
+
+    levels: dict[str, Level] = {}
+    for code, name, sub, typ_code, cyc, exam, order in D.LEVELS:
+        if typ_code != "LANGUE":
+            continue
+        level = Level(
+            code=code, name=name, subsystem_id=sub_fr.id,
+            teaching_type_id=typ.id, cycle_id=cycle.id,
+            exam=exam, order=order,
+        )
+        levels[code] = level
+    session.add_all(levels.values())
+    session.flush()
+
+    subjects: dict[str, Subject] = {}
+    for code, name in D.SUBJECTS:
+        if not code.startswith("LANG_"):
+            continue
+        existing = session.query(Subject).filter(Subject.code == code).first()
+        subjects[code] = existing or Subject(code=code, name=name)
+        if existing is None:
+            session.add(subjects[code])
+    session.flush()
+
+    for level_code in D.LANGUE_LEVELS:
+        level = levels.get(level_code) or session.query(Level).filter(Level.code == level_code).first()
+        if level is None:
+            continue
+        for subject_code, coef in D.LANGUE_SUBJECTS.items():
+            subj = subjects.get(subject_code) or session.query(Subject).filter(Subject.code == subject_code).first()
+            if subj is None:
+                continue
+            exists = session.query(SubjectEligibility).filter(
+                SubjectEligibility.subject_id == subj.id,
+                SubjectEligibility.level_id == level.id,
+            ).first()
+            if exists is None:
+                session.add(SubjectEligibility(
+                    subject_id=subj.id,
+                    level_id=level.id,
+                    series_id=None,
+                    default_coefficient=coef,
+                    groupe=None,
+                ))
+
     session.commit()
 
 

@@ -40,7 +40,10 @@ export function getEvalTypes(section) {
   ];
 }
 
-export function getTrimestreLabel(trimestre, section) {
+export function getTrimestreLabel(trimestre, section, establishmentKind = 'SCHOOL') {
+  if (establishmentKind === 'LANGUAGE_CENTER') {
+    return `Session ${trimestre}`;
+  }
   const lang = getSectionLang(section);
   if (lang === 'en') {
     const suffix = trimestre === 1 ? 'st' : trimestre === 2 ? 'nd' : 'rd';
@@ -80,13 +83,14 @@ export function getAppreciationForSection(valeur, section) {
     : { code: 'NA', label: 'Non acquis (NA)', className: 'insuffisant' };
 }
 
-export function getNotesUiLabels(section) {
+export function getNotesUiLabels(section, establishmentKind = 'SCHOOL') {
   const lang = getSectionLang(section);
+  const lc = establishmentKind === 'LANGUAGE_CENTER';
   if (lang === 'en') {
     return {
-      trimestre: 'Term',
-      sequencePeriod: 'Sequence / Period',
-      entryTitle: 'Grade entry',
+      trimestre: lc ? 'Session' : 'Term',
+      sequencePeriod: lc ? 'Evaluation / Period' : 'Sequence / Period',
+      entryTitle: lc ? 'Evaluation entry' : 'Grade entry',
       number: 'N°',
       matricule: 'Reg. No.',
       fullName: 'Full name',
@@ -99,17 +103,18 @@ export function getNotesUiLabels(section) {
     };
   }
   return {
-    trimestre: 'Trimestre',
-    sequencePeriod: 'Séquence / Période',
-    entryTitle: 'Saisie des notes',
+    trimestre: lc ? 'Session' : 'Trimestre',
+    sequencePeriod: lc ? 'Évaluation / Période' : 'Séquence / Période',
+    entryTitle: lc ? 'Saisie des évaluations' : 'Saisie des notes',
     number: 'N°',
     matricule: 'Matricule',
     fullName: 'Nom et Prénoms',
     mark: 'Note / 20',
     appreciation: 'Appréciation',
     comment: 'Commentaire',
-    sessionBanner:
-      'Appréciations automatiques selon la note (NA / ECA / A). Vous pouvez ajouter un commentaire par élève.',
+    sessionBanner: lc
+      ? 'Appréciations automatiques selon la note. Vous pouvez ajouter un commentaire par apprenant.'
+      : 'Appréciations automatiques selon la note (NA / ECA / A). Vous pouvez ajouter un commentaire par élève.',
     sectionBadge: 'Section francophone',
   };
 }

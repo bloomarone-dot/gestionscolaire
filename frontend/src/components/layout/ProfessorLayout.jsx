@@ -1,23 +1,28 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BarChart3, Bell, BookOpen, ChevronLeft, FileText, GraduationCap, LogOut, Menu, Search, Settings, Users, X } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
+import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
 import { Avatar, Button } from '../ui';
 
-const nav = [
-  { to: '/professor/dashboard', label: 'Tableau de bord', icon: BarChart3 },
-  { to: '/professor/classes', label: 'Mes classes', icon: BookOpen },
-  { to: '/professor/students', label: 'Mes eleves', icon: Users },
-  { to: '/professor/grades', label: 'Saisie des notes', icon: GraduationCap },
-  { to: '/professor/bulletins', label: 'Bulletins', icon: FileText },
-  { to: '/professor/profile', label: 'Profil', icon: Settings },
-];
+function buildProfessorNav(ui) {
+  return [
+    { to: '/professor/dashboard', label: 'Tableau de bord', icon: BarChart3 },
+    { to: '/professor/classes', label: `Mes ${ui.classes.toLowerCase()}`, icon: BookOpen },
+    { to: '/professor/students', label: `Mes ${ui.students.toLowerCase()}`, icon: Users },
+    { to: '/professor/grades', label: ui.grades, icon: GraduationCap },
+    { to: '/professor/bulletins', label: ui.bulletin, icon: FileText },
+    { to: '/professor/profile', label: 'Profil', icon: Settings },
+  ];
+}
 
 export default function ProfessorLayout() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   const { user, logout } = useAuth();
+  const { labels: ui } = useEstablishmentProfile();
+  const nav = useMemo(() => buildProfessorNav(ui), [ui]);
   const navigate = useNavigate();
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'Professeur';
 
@@ -40,7 +45,7 @@ export default function ProfessorLayout() {
         <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white"><GraduationCap size={22} /></span>
-            {!collapsed && <div><p className="text-sm font-extrabold">EduGestion</p><p className="text-xs text-slate-500">Espace professeur</p></div>}
+            {!collapsed && <div><p className="text-sm font-extrabold">EduGestion</p><p className="text-xs text-slate-500">{ui.appTagline}</p></div>}
           </div>
           <button className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(false)}><X size={18} /></button>
         </div>

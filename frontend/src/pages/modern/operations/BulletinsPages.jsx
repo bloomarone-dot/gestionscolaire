@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Download, Eye, FileText } from "lucide-react";
 import * as api from "../../../api/api";
 import BulletinPreviewModal from "../../../components/BulletinPreviewModal";
+import { useEstablishmentProfile } from "../../../hooks/useEstablishmentProfile";
+import { periodLabel as establishmentPeriodLabel } from "../../../utils/establishmentKind";
 import "../../../styles/bulletin-detail.css";
 import {
   Badge,
@@ -14,6 +16,7 @@ import {
 import { Notice, classDisplayName, classNameById, classRow, SectionBanner, studentRow, useLoad } from "./shared";
 
 export function BulletinsWorkspace({ professor = false }) {
+  const { kind, labels: ui, periodOptions } = useEstablishmentProfile();
   const loadClasses = useCallback(
     async () =>
       (professor
@@ -91,14 +94,14 @@ export function BulletinsWorkspace({ professor = false }) {
     }
   }
 
-  const periodLabel = period === "annual" ? "annuel" : `trimestre ${period}`;
+  const periodLabelText = establishmentPeriodLabel(kind, period);
   const selectedClassObj = classRows.find(
     (c) => String(c.id) === String(selectedClass),
   );
 
   return (
     <>
-      <PageHeader title={professor ? "Bulletins de mes eleves" : "Bulletins"} />
+      <PageHeader title={professor ? `${ui.bulletin} — mes ${ui.students.toLowerCase()}` : ui.bulletin} />
       <Notice
         message={notice}
         tone={notice.includes("succes") ? "emerald" : "amber"}
@@ -110,7 +113,7 @@ export function BulletinsWorkspace({ professor = false }) {
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
           >
-            <option value="">Classe</option>
+            <option value="">{ui.class}</option>
             {classRows.map((classe) => (
               <option key={classe.id} value={classe.id}>
                 {classDisplayName(classe)}
@@ -118,10 +121,9 @@ export function BulletinsWorkspace({ professor = false }) {
             ))}
           </Select>
           <Select value={period} onChange={(e) => setPeriod(e.target.value)}>
-            <option value="1">Trimestre 1</option>
-            <option value="2">Trimestre 2</option>
-            <option value="3">Trimestre 3</option>
-            <option value="annual">Bulletin annuel</option>
+            {periodOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </Select>
           <Button variant="secondary" onClick={() => loadClassData()}>
             <FileText size={16} /> Charger
@@ -129,11 +131,11 @@ export function BulletinsWorkspace({ professor = false }) {
         </div>
       </Card>
       <DataTable
-        title="Eleves"
+        title={ui.students}
         columns={[
-          { key: "name", label: "Eleve" },
+          { key: "name", label: ui.student },
           { key: "matricule", label: "Matricule" },
-          { key: "className", label: "Classe" },
+          { key: "className", label: ui.class },
           {
             key: "section",
             label: "Section",
@@ -177,7 +179,7 @@ export function BulletinsWorkspace({ professor = false }) {
       />
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-1">
-          <h2 className="font-bold">Classement calcule ({periodLabel})</h2>
+          <h2 className="font-bold">Classement calcule ({periodLabelText})</h2>
           <div className="mt-4 space-y-3">
             {bulletins.slice(0, 6).map((item, index) => (
               <div
@@ -195,10 +197,9 @@ export function BulletinsWorkspace({ professor = false }) {
           </div>
         </Card>
         <Card className="p-5 lg:col-span-2">
-          <h2 className="font-bold">Apercu bulletin ({periodLabel})</h2>
+          <h2 className="font-bold">{ui.bulletinPreview} ({periodLabelText})</h2>
           <p className="mt-3 text-sm text-slate-600">
-            Cliquez sur un eleve dans la liste pour afficher son bulletin officiel
-            (meme format, couleurs et texte que le modele Royal Priesthood).
+            Cliquez sur un {ui.student.toLowerCase()} dans la liste pour afficher son {ui.bulletin.toLowerCase()}.
           </p>
           {selectedBulletin && (
             <p className="mt-2 text-sm font-medium text-slate-800">

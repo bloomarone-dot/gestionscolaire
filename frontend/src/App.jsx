@@ -10,13 +10,13 @@ import SuperAdminConsole from './pages/modern/SuperAdminConsole';
 import ReferentielAdminPage, { SubjectCreatePage, EligibilityCreatePage } from './pages/modern/ReferentielAdminPage';
 import {
   AttendancePage,
-  PaymentsPage,
   ParentsPage,
   ReportsPage,
-  SchedulesPage,
   ExpensesPage,
   UsersPage,
 } from './pages/modern/ListPages';
+import PaymentsPage from './pages/modern/PaymentsPage';
+import SchedulesPage from './pages/modern/SchedulesPage';
 import { SettingsPage } from './pages/modern/SchoolSettings';
 import PromotionsPage from './pages/modern/PromotionsPage';
 import ReferentielPage from './pages/modern/ReferentielPage';
@@ -39,13 +39,26 @@ import {
   ProfessorProfilePage,
   ProfessorStudentsPage,
 } from './pages/modern/SchoolOperations';
+import SecretaryLayout from './components/layout/SecretaryLayout';
+import SecretaryDashboard from './pages/modern/SecretaryDashboard';
+import TeamPage from './pages/modern/TeamPage';
 import OfflineBanner from './components/OfflineBanner';
+
+function ProtectedSecretary() {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'secretaire') return <Navigate to="/app/dashboard" replace />;
+  return <SecretaryLayout />;
+}
 
 function ProtectedApp() {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role === 'superadmin') {
     return <Navigate to="/superadmin/dashboard" replace />;
+  }
+  if (user?.role === 'secretaire') {
+    return <Navigate to="/secretary/dashboard" replace />;
   }
   if (user?.role === 'professeur' || user?.role === 'enseignant') {
     return <Navigate to="/professor/dashboard" replace />;
@@ -71,6 +84,7 @@ function LoginRoute() {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <LoginPage />;
   if (user?.role === 'superadmin') return <Navigate to="/superadmin/dashboard" replace />;
+  if (user?.role === 'secretaire') return <Navigate to="/secretary/dashboard" replace />;
   if (user?.role === 'professeur' || user?.role === 'enseignant') return <Navigate to="/professor/dashboard" replace />;
   return <Navigate to="/app/dashboard" replace />;
 }
@@ -79,6 +93,7 @@ function HomeRedirect() {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role === 'superadmin') return <Navigate to="/superadmin/dashboard" replace />;
+  if (user?.role === 'secretaire') return <Navigate to="/secretary/dashboard" replace />;
   if (user?.role === 'professeur' || user?.role === 'enseignant') return <Navigate to="/professor/dashboard" replace />;
   return <Navigate to="/app/dashboard" replace />;
 }
@@ -107,6 +122,14 @@ function AppRoutes() {
         <Route path="bulletins" element={<ProfessorBulletinsPage />} />
         <Route path="profile" element={<ProfessorProfilePage />} />
       </Route>
+      <Route path="/secretary" element={<ProtectedSecretary />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<SecretaryDashboard />} />
+        <Route path="students" element={<OperationalStudentsPage />} />
+        <Route path="students/nouveau" element={<EleveCreatePage />} />
+        <Route path="payments" element={<PaymentsPage />} />
+        <Route path="schedules" element={<SchedulesPage />} />
+      </Route>
       <Route path="/app" element={<ProtectedApp />}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
@@ -115,6 +138,7 @@ function AppRoutes() {
         <Route path="parents" element={<ParentsPage />} />
         <Route path="teachers" element={<OperationalTeachersPage />} />
         <Route path="teachers/nouveau" element={<PersonnelCreatePage />} />
+        <Route path="team" element={<TeamPage />} />
         <Route path="classes" element={<OperationalClassesPage />} />
         <Route path="classes/nouveau" element={<ClasseCreatePage />} />
         <Route path="subjects" element={<OperationalSubjectsPage />} />

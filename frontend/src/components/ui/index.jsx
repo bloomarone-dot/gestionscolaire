@@ -63,7 +63,7 @@ export function Modal({ title, open, onClose, children, footer }) {
   );
 }
 
-export function Table({ columns, rows, renderActions, rowClassName, onRowClick }) {
+export function Table({ columns, rows, renderActions, rowClassName, onRowClick, emptyMessage }) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -74,6 +74,13 @@ export function Table({ columns, rows, renderActions, rowClassName, onRowClick }
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 bg-white">
+          {rows.length === 0 && emptyMessage && (
+            <tr>
+              <td colSpan={columns.length + (renderActions ? 1 : 0)} className="px-4 py-8 text-center text-sm text-slate-500">
+                {emptyMessage}
+              </td>
+            </tr>
+          )}
           {rows.map((row) => (
             <tr
               key={row.id || row.name}
@@ -94,7 +101,7 @@ export function Table({ columns, rows, renderActions, rowClassName, onRowClick }
   );
 }
 
-export function DataTable({ title, description, actions, filters, columns, rows, renderActions, rowClassName, onRowClick }) {
+export function DataTable({ title, description, actions, filters, columns, rows, renderActions, rowClassName, onRowClick, emptyMessage }) {
   return (
     <Card>
       <div className="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
@@ -105,7 +112,7 @@ export function DataTable({ title, description, actions, filters, columns, rows,
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
       {filters && <div className="border-b border-slate-200 p-5">{filters}</div>}
-      <Table columns={columns} rows={rows} renderActions={renderActions} rowClassName={rowClassName} onRowClick={onRowClick} />
+      <Table columns={columns} rows={rows} renderActions={renderActions} rowClassName={rowClassName} onRowClick={onRowClick} emptyMessage={emptyMessage} />
     </Card>
   );
 }

@@ -90,9 +90,7 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
     try {
       const created = await api.createSchool({
         ...schoolForm,
-        subsystems: ['FRANCOPHONE'],
-        teaching_types: ['GENERAL'],
-        channels: ['INTERNAL'],
+        establishment_kind: schoolForm.establishment_kind || 'SCHOOL',
       });
       const next = normalizeSchool(created);
       setSchools((current) => [next, ...current.filter((school) => school.id !== next.id)]);

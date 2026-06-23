@@ -20,6 +20,7 @@ from common.db import Base
 class Role:
     SUPERADMIN = "superadmin"   # admin plateforme — tenant_id NULL
     ADMIN = "admin"             # admin établissement
+    SECRETAIRE = "secretaire"   # secrétariat (centre de langues)
     DIRECTION = "direction"     # principal / censeur — 2 téléphones
     ENSEIGNANT = "enseignant"
     PARENT = "parent"

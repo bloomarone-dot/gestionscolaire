@@ -241,15 +241,11 @@ export function SubjectsPage() {
 }
 
 // ─────────────────────── Sections sans backend (à venir) ───────────────────────
-export function SchedulesPage() {
-  return <ComingSoon title="Emploi du temps" description="Planning par jour, classe, cours et salle." icon={CalendarDays} />;
-}
+export { default as SchedulesPage } from './SchedulesPage';
 export function AttendancePage() {
   return <ComingSoon title="Presences" description="Appel et suivi des presences par classe." icon={ClipboardCheck} />;
 }
-export function PaymentsPage() {
-  return <ComingSoon title="Paiements" description="Frais de scolarite, recus et suivi." icon={WalletCards} />;
-}
+export { default as PaymentsPage } from './PaymentsPage';
 export function GradesPage() {
   return <ComingSoon title="Notes" description="Saisie des notes par classe, matiere et sequence." icon={FileText} />;
 }

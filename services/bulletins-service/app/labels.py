@@ -1,12 +1,13 @@
 """Libellés bilingues + barème d'appréciation du bulletin (modèle officiel Cameroun).
 
 Reproduit le « STUDENT'S PROGRESS REPORT CARD » anglophone (et son équivalent
-francophone). Mise en page identique ; seuls les libellés et la liste des
-matières changent selon le sous-système.
+francophone). Les centres de formation en langues utilisent un relevé simplifié
+(sessions CECRL, sans en-tête MINESEC).
 """
 from typing import Optional
 
 from common.appreciation_scales import label_for_average
+from common.establishment import is_language_center
 from common.subsystem import lang_for_classe, resolve_subsystem_code
 
 LABELS = {
@@ -100,6 +101,35 @@ LABELS = {
     },
 }
 
+LANG_CENTER_OVERRIDES = {
+    "fr": {
+        "report_title": "RELEVÉ DE NOTES",
+        "class": "GROUPE",
+        "class_enrollment": "EFFECTIF",
+        "class_average": "MOYENNE DU GROUPE",
+        "term_average": "MOYENNE DE SESSION",
+        "annual_average": "MOYENNE GLOBALE",
+        "teacher_sign": "Formateur",
+        "parents": "RESPONSABLE",
+        "principal_col": "COORDINATION",
+        "principal": "DIRECTION",
+        "next_term": "Prochaine session",
+        "terms": {1: "SESSION 1", 2: "SESSION 2", 3: "SESSION 3"},
+        "seqs": {1: ("Éval. 1", "Éval. 2"), 2: ("Éval. 3", "Éval. 4"), 3: ("Éval. 5", "Éval. 6")},
+    },
+    "en": {
+        "report_title": "PROGRESS REPORT",
+        "class": "GROUP",
+        "class_enrollment": "ENROLLMENT",
+        "class_average": "GROUP AVERAGE",
+        "term_average": "SESSION AVERAGE",
+        "annual_average": "OVERALL AVERAGE",
+        "teacher_sign": "Trainer",
+        "terms": {1: "SESSION 1", 2: "SESSION 2", 3: "SESSION 3"},
+        "seqs": {1: ("Eval. 1", "Eval. 2"), 2: ("Eval. 3", "Eval. 4"), 3: ("Eval. 5", "Eval. 6")},
+    },
+}
+
 
 def lang_for_subsystem(subsystem_code: Optional[str]) -> str:
     return "en" if subsystem_code == "ANGLOPHONE" else "fr"
@@ -109,12 +139,22 @@ def lang_for_class(classe: Optional[dict]) -> str:
     return lang_for_classe(classe)
 
 
-def term_label(trimestre: int, lang: str) -> str:
-    return LABELS[lang]["terms"].get(trimestre, LABELS[lang]["terms"][1])
+def labels_pack(lang: str, establishment_kind: Optional[str] = None) -> dict:
+    base = LABELS[lang]
+    if not is_language_center(establishment_kind):
+        return base
+    overrides = LANG_CENTER_OVERRIDES.get(lang, LANG_CENTER_OVERRIDES["fr"])
+    return {**base, **overrides}
 
 
-def seq_labels(trimestre: int, lang: str) -> tuple[str, str]:
-    return LABELS[lang]["seqs"].get(trimestre, LABELS[lang]["seqs"][1])
+def term_label(trimestre: int, lang: str, establishment_kind: Optional[str] = None) -> str:
+    pack = labels_pack(lang, establishment_kind)
+    return pack["terms"].get(trimestre, pack["terms"][1])
+
+
+def seq_labels(trimestre: int, lang: str, establishment_kind: Optional[str] = None) -> tuple[str, str]:
+    pack = labels_pack(lang, establishment_kind)
+    return pack["seqs"].get(trimestre, pack["seqs"][1])
 
 
 def seq_types_for(scope: str, trimestre: int) -> list[str]:
@@ -126,25 +166,37 @@ def seq_types_for(scope: str, trimestre: int) -> list[str]:
     return [f"sequence_{2 * trimestre - 1}", f"sequence_{2 * trimestre}"]
 
 
-def seq_columns(scope: str, trimestre: int, lang: str) -> list[str]:
+def seq_columns(
+    scope: str, trimestre: int, lang: str, establishment_kind: Optional[str] = None,
+) -> list[str]:
     """Libellés des colonnes (2 séquences en trimestre ; Moy T1/T2/T3 en annuel)."""
     if scope == "annual":
+        if is_language_center(establishment_kind):
+            return ["Session 1", "Session 2", "Session 3"]
         if lang == "en":
             return ["1st TERM", "2nd TERM", "3rd TERM"]
         return ["Moy. T1", "Moy. T2", "Moy. T3"]
-    return list(seq_labels(trimestre, lang))
+    return list(seq_labels(trimestre, lang, establishment_kind))
 
 
-def period_label(scope: str, trimestre: int, lang: str) -> str:
+def period_label(
+    scope: str, trimestre: int, lang: str, establishment_kind: Optional[str] = None,
+) -> str:
     if scope == "annual":
+        if is_language_center(establishment_kind):
+            return "CERTIFICAT DE FIN DE FORMATION"
         return "ANNUAL" if lang == "en" else "ANNUEL"
-    return term_label(trimestre, lang)
+    return term_label(trimestre, lang, establishment_kind)
 
 
-def report_title(scope: str, lang: str) -> str:
+def report_title(
+    scope: str, lang: str, establishment_kind: Optional[str] = None,
+) -> str:
     if scope == "annual":
+        if is_language_center(establishment_kind):
+            return "CERTIFICAT DE FIN DE FORMATION"
         return "ANNUAL REPORT CARD" if lang == "en" else "BULLETIN ANNUEL"
-    return LABELS[lang]["report_title"]
+    return labels_pack(lang, establishment_kind)["report_title"]
 
 
 def appreciation(moyenne: Optional[float], lang: str, scales: Optional[dict] = None) -> str:

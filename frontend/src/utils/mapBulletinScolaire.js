@@ -31,21 +31,30 @@ export function mapBulletinScolaire(bulletin) {
   const L = bulletin.labels || {};
   const lang = bulletin.lang === 'en' ? 'en' : 'fr';
   const groups = bulletin.groupes_matieres || [];
+  const simplified = bulletin.simplified_bulletin || bulletin.establishment_kind === 'LANGUAGE_CENTER';
 
   const seqLabels = [bulletin.seq1_label, bulletin.seq2_label].filter(Boolean);
   const seqLabel1 = seqLabels[0] || (lang === 'en' ? '3rd SEQ.' : '3e SÉQ.');
   const seqLabel2 = seqLabels[1] || (lang === 'en' ? '4th SEQ.' : '4e SÉQ.');
 
-  const nameEn = (schoolHdr.school_name || 'ROYAL PRIESTHOOD INTERNATIONAL INSTITUTE').toUpperCase();
+  const nameEn = (schoolHdr.school_name || '').toUpperCase();
   const nameFr = (schoolHdr.school_name_fr || schoolHdr.school_name || nameEn).toUpperCase();
-  const motto = schoolHdr.motto || 'a chosen generation';
+  const motto = schoolHdr.motto || '';
   const pobox = schoolHdr.po_box || '';
-  const phone = schoolHdr.phone || '672314497/676 035 708';
+  const phone = schoolHdr.phone || '';
 
   const studentName = `${bulletin.eleve_nom || ''} ${bulletin.eleve_prenom || ''}`.trim().toUpperCase()
     || (bulletin.eleve || '').toUpperCase();
 
+  const flatSubjects = [
+    ...subjectsForGroup(groups, 1),
+    ...subjectsForGroup(groups, 2),
+    ...subjectsForGroup(groups, 3),
+  ];
+
   return {
+    simplified,
+    reportTitle: bulletin.report_title || (simplified ? 'RELEVÉ DE NOTES' : "STUDENT'S PROGRESS REPORT CARD"),
     school: {
       nameEn,
       taglineEn: motto,
@@ -71,7 +80,11 @@ export function mapBulletinScolaire(bulletin) {
       enrollment: empty(bulletin.effectif) || '',
       repeater: empty(bulletin.redoublant) || (lang === 'en' ? 'NO' : 'NON'),
     },
-    subjects: {
+    subjects: simplified ? {
+      firstGroup: flatSubjects,
+      secondGroup: [],
+      thirdGroup: [],
+    } : {
       firstGroup: subjectsForGroup(groups, 1),
       secondGroup: subjectsForGroup(groups, 2),
       thirdGroup: subjectsForGroup(groups, 3),

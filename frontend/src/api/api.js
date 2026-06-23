@@ -1,7 +1,7 @@
 // Service API — toutes les requêtes passent par l'API Gateway (:8000).
 // Les composants gardent leurs noms historiques; cette couche traduit vers les
 // préfixes microservices: /tenants, /pedagogie, /personnel, /eleves,
-// /evaluations, /bulletins.
+// /evaluations, /bulletins, /tresorerie, /planning.
 
 import { normalizeBulletinView } from '../utils/normalizeBulletinView';
 import { resolveSubsystemCode } from '../utils/section';
@@ -478,20 +478,105 @@ export async function updateSchoolProfile(schoolId, profile) {
 
 // Crée le compte administrateur de l'établissement (login téléphone + mot de passe).
 export async function createSchoolAdmin(schoolId, admin) {
+  return createStaffAccount({
+    first_name: admin.first_name,
+    last_name: admin.last_name,
+    phone: admin.phone,
+    email: admin.email,
+    password: admin.password,
+    role: 'admin',
+    tenant_id: Number(schoolId),
+  });
+}
+
+export async function createStaffAccount(account) {
   const res = await fetch('/auth/accounts', {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify({
-      first_name: admin.first_name,
-      last_name: admin.last_name,
-      phone: normalizePhone(admin.phone),
-      email: admin.email || null,
-      password: admin.password,
-      role: 'admin',
-      tenant_id: Number(schoolId),
+      first_name: account.first_name,
+      last_name: account.last_name,
+      phone: normalizePhone(account.phone),
+      email: account.email || null,
+      password: account.password,
+      role: account.role,
+      tenant_id: account.tenant_id != null ? Number(account.tenant_id) : undefined,
     }),
   });
   return handleResponse(res);
+}
+
+export async function fetchEstablishmentAccounts() {
+  return apiRequest('/auth/accounts/establishment');
+}
+
+// ── Trésorerie ────────────────────────────────────────────
+export async function fetchPaiements(params = {}) {
+  const qs = new URLSearchParams();
+  if (params.eleve_id != null) qs.set('eleve_id', String(params.eleve_id));
+  if (params.status) qs.set('status', params.status);
+  const query = qs.toString();
+  return apiRequest(`/tresorerie/paiements${query ? `?${query}` : ''}`);
+}
+
+export async function createPaiement(payload) {
+  return apiRequest('/tresorerie/paiements', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function encaisserPaiement(paiementId, payload) {
+  return apiRequest(`/tresorerie/paiements/${paiementId}/encaisser`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function annulerPaiement(paiementId) {
+  return apiRequest(`/tresorerie/paiements/${paiementId}/annuler`, { method: 'POST' });
+}
+
+export async function fetchTresorerieStats() {
+  return apiRequest('/tresorerie/stats');
+}
+
+export async function downloadPaiementRecu(paiementId, establishmentName = 'Établissement') {
+  const params = new URLSearchParams({ establishment_name: establishmentName });
+  const res = await fetch(`/tresorerie/paiements/${paiementId}/recu.pdf?${params}`, {
+    headers: getHeaders(),
+  });
+  return downloadFileResponse(res, `recu_${paiementId}.pdf`);
+}
+
+// ── Planning (salles & emploi du temps) ───────────────────
+export async function fetchSalles(activesOnly = false) {
+  const qs = activesOnly ? '?actives_only=true' : '';
+  return apiRequest(`/planning/salles${qs}`);
+}
+
+export async function createSalle(payload) {
+  return apiRequest('/planning/salles', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function deleteSalle(salleId) {
+  return deleteRequest(`/planning/salles/${salleId}`);
+}
+
+export async function fetchPlanningSemaine(params = {}) {
+  const qs = new URLSearchParams();
+  if (params.classe_id != null) qs.set('classe_id', String(params.classe_id));
+  if (params.salle_id != null) qs.set('salle_id', String(params.salle_id));
+  const query = qs.toString();
+  return apiRequest(`/planning/semaine${query ? `?${query}` : ''}`);
+}
+
+export async function createSeance(payload) {
+  return apiRequest('/planning/seances', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function deleteSeance(seanceId) {
+  return deleteRequest(`/planning/seances/${seanceId}`);
 }
 
 export async function deleteSchool(schoolId) {

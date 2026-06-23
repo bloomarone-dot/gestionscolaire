@@ -130,6 +130,8 @@ export function normalizeBulletinView(data) {
     section: lang === 'en' ? 'anglophone' : 'francophone',
     subsystem_code: header.subsystem_code || data.subsystem_code
       || (lang === 'en' ? 'ANGLOPHONE' : 'FRANCOPHONE'),
+    establishment_kind: header.establishment_kind || data.establishment_kind,
+    simplified_bulletin: header.simplified_bulletin ?? data.simplified_bulletin ?? false,
     report_title: reportTitle,
     eleve: `${b.nom || ''} ${b.prenom || ''}`.trim(),
     eleve_nom: b.nom,

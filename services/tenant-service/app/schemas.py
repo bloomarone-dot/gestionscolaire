@@ -1,7 +1,13 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from common.establishment import (
+    ESTABLISHMENT_KIND_LANGUAGE_CENTER,
+    ESTABLISHMENT_KIND_SCHOOL,
+    normalize_establishment_kind,
+)
 
 INTERNAL_CHANNEL = "INTERNAL"
 
@@ -22,10 +28,16 @@ class SchoolCreate(BaseModel):
     city: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
-    # Profil pédagogique actif (filtre amont §14)
-    subsystems: List[str] = []   # ex. ["FRANCOPHONE"]
-    teaching_types: List[str] = []  # ex. ["GENERAL"]
-    channels: List[str] = ["INTERNAL"]
+    establishment_kind: str = ESTABLISHMENT_KIND_SCHOOL
+    # Profil pédagogique actif (filtre amont §14) — défaut selon establishment_kind si vide
+    subsystems: List[str] = []
+    teaching_types: List[str] = []
+    channels: List[str] = []
+
+    @field_validator("establishment_kind")
+    @classmethod
+    def _kind(cls, value: str) -> str:
+        return normalize_establishment_kind(value)
 
 
 class SchoolUpdate(BaseModel):
@@ -33,6 +45,7 @@ class SchoolUpdate(BaseModel):
     city: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
+    establishment_kind: Optional[str] = None
     logo_url: Optional[str] = None
     primary_color: Optional[str] = None
     secondary_color: Optional[str] = None
@@ -44,6 +57,13 @@ class SchoolUpdate(BaseModel):
     bulletin_appreciation_scales: Optional[Dict[str, List[AppreciationBand]]] = None
     bulletin_theme: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
+
+    @field_validator("establishment_kind")
+    @classmethod
+    def _kind(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return normalize_establishment_kind(value)
 
 class ProfileUpdate(BaseModel):
     """Mise à jour du filtre amont (§14) et des canaux (§12.2)."""
@@ -57,6 +77,7 @@ class SchoolListItem(BaseModel):
     name: str
     code: Optional[str] = None
     city: Optional[str] = None
+    establishment_kind: str = ESTABLISHMENT_KIND_SCHOOL
     is_active: bool
     model_config = {"from_attributes": True}
 
@@ -79,6 +100,7 @@ class SchoolProfile(BaseModel):
     bulletin_appreciation_scales: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
     bulletin_theme: Dict[str, Any] = Field(default_factory=dict)
     subscription_plan: Optional[str] = None
+    establishment_kind: str = ESTABLISHMENT_KIND_SCHOOL
     is_active: bool
     created_at: datetime
     subsystems: List[str] = []

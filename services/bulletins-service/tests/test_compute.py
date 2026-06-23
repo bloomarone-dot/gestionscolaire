@@ -1,6 +1,6 @@
 """Tests du calcul des bulletins (§11.1) : moyennes, rangs, pondération, spéciales (§11.3)."""
 from app.compute import compute_class_bulletins
-from app.labels import appreciation, decision, lang_for_subsystem
+from app.labels import appreciation, decision, lang_for_subsystem, report_title, term_label
 
 STUDENTS = [
     {"eleve_id": 1, "matricule": "A1", "nom": "Ngo", "prenom": "Ana"},
@@ -175,6 +175,23 @@ def test_totals_equal_sum_of_rounded_row_points():
     assert b["total_coefficient"] == sum(s["coefficient"] for s in b["subjects"] if s["moyenne"] is not None)
 
 
+def test_language_center_flat_groups():
+    subjects = [
+        {"matiere_id": 1, "nom": "Allemand", "coefficient": 4, "source": "OFFICIELLE"},
+        {"matiere_id": 2, "nom": "Expression orale", "coefficient": 3, "source": "OFFICIELLE"},
+    ]
+    notes = [
+        {"eleve_id": 1, "matiere_id": 1, "valeur": 15, "type_evaluation": "sequence_1"},
+        {"eleve_id": 1, "matiere_id": 2, "valeur": 14, "type_evaluation": "sequence_1"},
+    ]
+    res = compute_class_bulletins(
+        [STUDENTS[0]], subjects, notes, "fr", establishment_kind="LANGUAGE_CENTER",
+    )
+    b = _by_id(res)[1]
+    groupes = {s.get("groupe") for s in b["subjects"]}
+    assert groupes == {1}
+
+
 def test_lang_and_labels():
     assert lang_for_subsystem("ANGLOPHONE") == "en"
     assert lang_for_subsystem("FRANCOPHONE") == "fr"
@@ -187,3 +204,5 @@ def test_lang_and_labels():
     assert appreciation(7, "en") == "CNA"
     assert appreciation(12, "en") == "IPA"
     assert appreciation(None, "fr") == ""
+    assert term_label(2, "fr", "LANGUAGE_CENTER") == "SESSION 2"
+    assert report_title("trimestre", "fr", "LANGUAGE_CENTER") == "RELEVÉ DE NOTES"

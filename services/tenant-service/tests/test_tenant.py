@@ -17,6 +17,27 @@ def db():
     session.close()
 
 
+def test_create_school_default_profile(db):
+    school = crud.create_school(db, SchoolCreate(name="Lycée MINESEC", city="Yaoundé"))
+    profile = crud.to_profile(school)
+    assert profile.establishment_kind == "SCHOOL"
+    assert set(profile.subsystems) == {"FRANCOPHONE", "ANGLOPHONE"}
+    assert set(profile.teaching_types) == {"GENERAL", "TECHNIQUE"}
+    assert profile.channels == ["INTERNAL"]
+
+
+def test_create_language_center_default_profile(db):
+    school = crud.create_school(db, SchoolCreate(
+        name="Institut Goethe", city="Douala",
+        establishment_kind="LANGUAGE_CENTER",
+    ))
+    profile = crud.to_profile(school)
+    assert profile.establishment_kind == "LANGUAGE_CENTER"
+    assert profile.subsystems == ["FRANCOPHONE"]
+    assert profile.teaching_types == ["LANGUE"]
+    assert profile.channels == ["INTERNAL"]
+
+
 def test_create_school_with_profile(db):
     school = crud.create_school(db, SchoolCreate(
         name="Collège Bilingue Test", city="Douala",

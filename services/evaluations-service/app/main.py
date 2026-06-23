@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from common.db import Base, get_engine, init_engine
 from common.events import EventPublisher
+from common.roles import GRADES_STAFF
 from common.tenant import TenantContext, require_tenant
 
 from app import crud
@@ -39,12 +40,9 @@ def get_db() -> Session:
         db.close()
 
 
-# Saisie réservée au personnel (enseignant, direction/censeur, admin) — pas les parents.
-STAFF_ROLES = {"admin", "direction", "enseignant", "superadmin"}
-
-
+# Saisie réservée au personnel pédagogique — pas secrétaire ni parents.
 def require_staff(ctx: TenantContext = Depends(require_tenant)) -> TenantContext:
-    if ctx.role not in STAFF_ROLES:
+    if ctx.role not in GRADES_STAFF:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Saisie des notes réservée au personnel.")
     return ctx
 

@@ -30,6 +30,7 @@ def _startup() -> None:
     init_engine(settings.database_url)
     Base.metadata.create_all(bind=get_engine())  # Alembic en Phase 5
     add_missing_columns("schools", {
+        "establishment_kind": "VARCHAR(30) NOT NULL DEFAULT 'SCHOOL'",
         "bulletin_delegation_regional": "VARCHAR(255)",
         "bulletin_delegation_departementale": "VARCHAR(255)",
         "bulletin_next_term_note": "VARCHAR(255)",

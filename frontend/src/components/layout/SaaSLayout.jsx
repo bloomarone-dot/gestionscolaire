@@ -1,69 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, GraduationCap, LayoutDashboard,
-  Layers, Megaphone, Menu, Receipt, Search, Settings, Users, UserCog, WalletCards, X,
-  BarChart3, ClipboardCheck, ClipboardList, School, LogOut, ArrowRightLeft, Sparkles,
+  Bell, ChevronDown, ChevronLeft, GraduationCap, Menu, Search, X, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
+import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
+import { buildAdminNav, flattenNav, NAV_ICONS } from '../../utils/navConfig';
 import { Avatar, Button } from '../ui';
-
-// Sidebar : liste plate de liens dans l'ordre §8 (pas de titres de section dépliables).
-// La structure `nav` reste groupée pour la lisibilité du code ; seul `flatNav` est rendu.
-// Les items « Extra » (Présences, Paiements…) sont hors cahier, conservés en fin de liste.
-const nav = [
-  { to: '/app/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  {
-    group: 'Structure Pédagogique', icon: Layers, items: [
-      { to: '/app/classes', label: 'Classes', icon: School },
-      { to: '/app/subjects', label: 'Matières', icon: BookOpen },
-    ],
-  },
-  {
-    group: 'Personnel', icon: UserCog, items: [
-      { to: '/app/teachers', label: 'Enseignants', icon: GraduationCap, match: { fonction: 'enseignant' } },
-      { to: '/app/teachers', label: 'Direction / Administration', icon: UserCog, match: { fonction: 'direction' } },
-    ],
-  },
-  {
-    group: 'Élèves', icon: Users, items: [
-      { to: '/app/students', label: 'Liste des élèves', icon: Users },
-      { to: '/app/students/nouveau', label: 'Inscriptions', icon: ClipboardList },
-      { to: '/app/promotions', label: 'Promotions / Passages', icon: ArrowRightLeft },
-    ],
-  },
-  {
-    group: 'Évaluations', icon: BarChart3, items: [
-      { to: '/app/grades', label: 'Saisie des notes', icon: BarChart3 },
-      { to: '/app/bulletins', label: 'Bulletins', icon: Receipt },
-    ],
-  },
-  {
-    group: 'Communication', icon: Bell, items: [
-      { to: '/app/announcements', label: 'Annonces', icon: Megaphone },
-      { to: '/app/notifications', label: 'Notifications', icon: Bell },
-    ],
-  },
-  {
-    group: 'Paramètres', icon: Settings, items: [
-      { to: '/app/settings', label: "Profil de l'école", icon: School },
-      { to: '/app/users', label: 'Utilisateurs & Droits', icon: UserCog },
-    ],
-  },
-  {
-    group: 'Extra', icon: Sparkles, items: [
-      { to: '/app/parents', label: 'Parents', icon: UserCog },
-      { to: '/app/schedules', label: 'Emplois du temps', icon: CalendarDays },
-      { to: '/app/attendance', label: 'Présences', icon: ClipboardCheck },
-      { to: '/app/payments', label: 'Paiements', icon: WalletCards },
-      { to: '/app/expenses', label: 'Dépenses', icon: WalletCards },
-      { to: '/app/reports', label: 'Rapports', icon: BarChart3 },
-    ],
-  },
-];
-
-// Tous les liens à plat (pour la recherche et le rail réduit).
-const flatNav = nav.flatMap((entry) => (entry.items ? entry.items : [entry]));
 
 export default function SaaSLayout() {
   const [open, setOpen] = useState(false);
@@ -72,6 +15,12 @@ export default function SaaSLayout() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const { user, logout } = useAuth();
+  const { labels: ui, kind } = useEstablishmentProfile();
+  const nav = useMemo(() => buildAdminNav(ui, kind), [ui, kind]);
+  const flatNav = useMemo(() => flattenNav(nav).map((item) => ({
+    ...item,
+    icon: NAV_ICONS[item.icon] || GraduationCap,
+  })), [nav]);
   const navigate = useNavigate();
   const location = useLocation();
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'Admin Ecole';
@@ -112,7 +61,7 @@ export default function SaaSLayout() {
             {!collapsed && (
               <div>
                 <p className="text-sm font-extrabold tracking-tight">EduGestion</p>
-                <p className="text-xs text-slate-500">School SaaS</p>
+                <p className="text-xs text-slate-500">{ui.appTagline}</p>
               </div>
             )}
           </div>

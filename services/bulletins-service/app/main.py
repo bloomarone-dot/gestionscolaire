@@ -4,10 +4,11 @@ Service d'agrégation : les données viennent des autres services (REST interne)
 sont calculées à la volée. Aucune table propre pour l'instant (persistance possible
 en Phase 5 si l'archivage des bulletins est requis).
 """
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import Response
 
 from common.events import EventNames, EventPublisher
+from common.roles import GRADES_STAFF
 from common.tenant import TenantContext, require_tenant
 
 from app import service
@@ -23,6 +24,12 @@ _publisher: EventPublisher | None = None
 def _startup() -> None:
     global _publisher
     _publisher = EventPublisher(settings.rabbitmq_url, settings.events_exchange)
+
+
+def require_grades_staff(ctx: TenantContext = Depends(require_tenant)) -> TenantContext:
+    if ctx.role not in GRADES_STAFF:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Bulletins réservés au personnel pédagogique.")
+    return ctx
 
 
 @app.get("/health", tags=["infra"])
@@ -44,7 +51,7 @@ def class_bulletins(
     trimestre: int = 1,
     type_evaluation: str | None = None,
     scope: str = "trimestre",
-    ctx: TenantContext = Depends(require_tenant),
+    ctx: TenantContext = Depends(require_grades_staff),
 ):
     return service.build_class_bulletins(ctx, classe_id, trimestre, type_evaluation, scope)
 
@@ -55,7 +62,7 @@ def eleve_bulletin(
     trimestre: int = 1,
     type_evaluation: str | None = None,
     scope: str = "trimestre",
-    ctx: TenantContext = Depends(require_tenant),
+    ctx: TenantContext = Depends(require_grades_staff),
 ):
     return _ensure_bulletin(
         service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation, scope),
@@ -68,7 +75,7 @@ def eleve_bulletin_pdf(
     trimestre: int = 1,
     type_evaluation: str | None = None,
     scope: str = "trimestre",
-    ctx: TenantContext = Depends(require_tenant),
+    ctx: TenantContext = Depends(require_grades_staff),
 ):
     data = _ensure_bulletin(
         service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation, scope),
@@ -86,7 +93,7 @@ def publish_bulletin(
     trimestre: int = 1,
     type_evaluation: str | None = None,
     scope: str = "trimestre",
-    ctx: TenantContext = Depends(require_tenant),
+    ctx: TenantContext = Depends(require_grades_staff),
 ):
     """Publie le bulletin → événement BulletinPublished (notification parent §12).
 

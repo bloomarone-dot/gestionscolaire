@@ -1,0 +1,2 @@
+# gs-common fournit fastapi, sqlalchemy, psycopg2, etc.
+uvicorn[standard]>=0.30

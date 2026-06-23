@@ -16,6 +16,8 @@ from typing import Optional
 
 from common.appreciation_scales import label_for_average, parse_scales
 
+from common.establishment import is_language_center
+
 from app.labels import seq_types_for
 
 _GROUP3_RE = re.compile(
@@ -56,7 +58,7 @@ def _is_complementary_special(subject: dict) -> bool:
     return bool(_COMPLEMENTARY_RE.search(nom))
 
 
-def _partition_subjects(subjects: list[dict]) -> tuple[list[dict], list[dict]]:
+def _partition_subjects(subjects: list[dict], *, flat_groups: bool = False) -> tuple[list[dict], list[dict]]:
     """Sépare matières du tableau principal et complémentaires sans groupe."""
     official: list[dict] = []
     special: list[dict] = []
@@ -64,7 +66,8 @@ def _partition_subjects(subjects: list[dict]) -> tuple[list[dict], list[dict]]:
         if _is_complementary_special(s):
             special.append(s)
         else:
-            official.append({**s, "groupe": _effective_groupe(s)})
+            groupe = 1 if flat_groups else _effective_groupe(s)
+            official.append({**s, "groupe": groupe})
     if not official and special:
         official = [{**s, "groupe": _effective_groupe(s)} for s in special]
         special = []
@@ -136,6 +139,7 @@ def compute_class_bulletins(
     trimestre: int = 1,
     scope: str = "trimestre",
     appreciation_scales: dict | None = None,
+    establishment_kind: str = "SCHOOL",
 ) -> dict:
     """Calcule les bulletins de tous les élèves d'une classe pour une période.
 
@@ -146,7 +150,7 @@ def compute_class_bulletins(
     subjects : [{matiere_id, nom, coefficient, source, enseignant_id, groupe}] (activées)
     notes    : [{eleve_id, matiere_id, valeur, type_evaluation}]
     """
-    official, special = _partition_subjects(subjects)
+    official, special = _partition_subjects(subjects, flat_groups=is_language_center(establishment_kind))
     official.sort(key=lambda s: (s.get("groupe") or 1, (s.get("nom") or "").lower()))
 
     scales = parse_scales(appreciation_scales)

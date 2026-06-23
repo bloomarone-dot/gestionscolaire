@@ -5,11 +5,13 @@ from common.tenant import TenantContext
 
 from datetime import date
 
+from common.establishment import is_language_center
+
 from app import clients
 from app.compute import compute_class_bulletins
 from app.labels import (
-    LABELS,
     decision,
+    labels_pack,
     lang_for_class,
     period_label,
     report_title,
@@ -35,20 +37,30 @@ def _default_school_year() -> str:
 
 def _header(classe: dict, school: dict, lang: str, trimestre: int, scope: str) -> dict:
     name = school.get("name") or ""
+    kind = school.get("establishment_kind") or "SCHOOL"
+    simplified = is_language_center(kind)
     return {
         "school_name": name,
         "school_name_fr": school.get("name_fr") or name,
         "logo_url": school.get("logo_url"),
         "po_box": school.get("bulletin_po_box"),
-        "motto": school.get("bulletin_motto") or "A Chosen Generation : Believe-Achieve-Succeed",
-        "delegation_regional": school.get("bulletin_delegation_regional")
-        or "REGIONAL DELEGATION FOR CENTER",
-        "delegation_departementale": school.get("bulletin_delegation_departementale")
-        or "DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA",
-        "delegation_regional_fr": school.get("bulletin_delegation_regional_fr")
-        or "DELEGATION REGIONALE DU CENTRE",
-        "delegation_departementale_fr": school.get("bulletin_delegation_departementale_fr")
-        or "DELEGATION DEPARTEMENTALE DE LA MEFOU ET AFAMBA",
+        "motto": school.get("bulletin_motto") or (
+            "" if simplified else "A Chosen Generation : Believe-Achieve-Succeed"
+        ),
+        "delegation_regional": "" if simplified else (
+            school.get("bulletin_delegation_regional") or "REGIONAL DELEGATION FOR CENTER"
+        ),
+        "delegation_departementale": "" if simplified else (
+            school.get("bulletin_delegation_departementale")
+            or "DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA"
+        ),
+        "delegation_regional_fr": "" if simplified else (
+            school.get("bulletin_delegation_regional_fr") or "DELEGATION REGIONALE DU CENTRE"
+        ),
+        "delegation_departementale_fr": "" if simplified else (
+            school.get("bulletin_delegation_departementale_fr")
+            or "DELEGATION DEPARTEMENTALE DE LA MEFOU ET AFAMBA"
+        ),
         "next_term": school.get("bulletin_next_term_note"),
         "bulletin_theme": parse_theme(school.get("bulletin_theme"), lang=lang),
         "school_year": school.get("school_year") or _default_school_year(),
@@ -59,10 +71,12 @@ def _header(classe: dict, school: dict, lang: str, trimestre: int, scope: str) -
         "series_code": classe.get("series_code"),
         "trimestre": trimestre,
         "scope": scope,
-        "term": period_label(scope, trimestre, lang),
-        "report_title": report_title(scope, lang),
-        "seq_labels": seq_columns(scope, trimestre, lang),
-        "labels": LABELS[lang],
+        "establishment_kind": kind,
+        "simplified_bulletin": simplified,
+        "term": period_label(scope, trimestre, lang, kind),
+        "report_title": report_title(scope, lang, kind),
+        "seq_labels": seq_columns(scope, trimestre, lang, kind),
+        "labels": labels_pack(lang, kind),
     }
 
 
@@ -101,6 +115,7 @@ def build_class_bulletins(
     result = compute_class_bulletins(
         students, subjects, notes, lang, trimestre, scope,
         appreciation_scales=school.get("bulletin_appreciation_scales"),
+        establishment_kind=school.get("establishment_kind") or "SCHOOL",
     )
     result["header"] = _header(classe, school, lang, trimestre, scope)
     result["header"]["effectif"] = result["effectif"]

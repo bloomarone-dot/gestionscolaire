@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from common.appreciation_scales import dump_scales, parse_scales
 
 from common.bulletin_theme import parse_theme
+from common.establishment import default_profile_for_kind, normalize_establishment_kind
 
 from app.models import (
     NotificationChannel,
@@ -17,13 +18,19 @@ from app.schemas import SchoolCreate, SchoolProfile
 
 
 def create_school(db: Session, payload: SchoolCreate) -> School:
+    kind = normalize_establishment_kind(payload.establishment_kind)
+    defaults = default_profile_for_kind(kind)
+    subsystems = payload.subsystems if payload.subsystems else defaults["subsystems"]
+    teaching_types = payload.teaching_types if payload.teaching_types else defaults["teaching_types"]
+    channels = payload.channels if payload.channels else defaults["channels"]
     school = School(
         name=payload.name, code=payload.code, city=payload.city,
         address=payload.address, phone=payload.phone,
+        establishment_kind=kind,
     )
     db.add(school)
     db.flush()
-    _set_profile(db, school, payload.subsystems, payload.teaching_types, payload.channels)
+    _set_profile(db, school, subsystems, teaching_types, channels)
     db.commit()
     db.refresh(school)
     return school
@@ -90,7 +97,9 @@ def to_profile(school: School) -> SchoolProfile:
         bulletin_next_term_note=school.bulletin_next_term_note,
         bulletin_appreciation_scales=parse_scales(school.bulletin_appreciation_scales),
         bulletin_theme=parse_theme(getattr(school, "bulletin_theme", None)),
-        subscription_plan=school.subscription_plan, is_active=school.is_active,
+        subscription_plan=school.subscription_plan,
+        establishment_kind=normalize_establishment_kind(getattr(school, "establishment_kind", None)),
+        is_active=school.is_active,
         created_at=school.created_at,
         subsystems=[s.subsystem_code for s in school.subsystems],
         teaching_types=[t.type_code for t in school.teaching_types],

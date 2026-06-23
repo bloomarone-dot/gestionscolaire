@@ -51,6 +51,8 @@ class School(Base):
     bulletin_theme = Column(Text, nullable=True)
 
     subscription_plan = Column(String(40), default="standard")
+    # SCHOOL = établissement scolaire MINESEC ; LANGUAGE_CENTER = institut de langues
+    establishment_kind = Column(String(30), default="SCHOOL", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

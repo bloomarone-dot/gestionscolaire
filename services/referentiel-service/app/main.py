@@ -28,7 +28,7 @@ from app.schemas import (
     SubsystemOut,
     TeachingTypeOut,
 )
-from app.seed import seed_all
+from app.seed import seed_all, seed_language_referential
 
 app = FastAPI(title="referentiel-service — SaaS Scolaire", version="0.1.0")
 
@@ -45,6 +45,7 @@ def _startup() -> None:
     db = _SessionLocal()
     try:
         seed_all(db)  # idempotent
+        seed_language_referential(db)  # LANGUE / CECRL sur bases existantes
     finally:
         db.close()
 

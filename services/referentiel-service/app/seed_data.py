@@ -22,12 +22,14 @@ SUBSYSTEMS = [
 TEACHING_TYPES = [
     ("GENERAL", "Général", "General"),
     ("TECHNIQUE", "Technique", "Technical"),
+    ("LANGUE", "Formation en langues", "Language training"),
 ]
 
 # ── Cycles ───────────────────────────────────────────────────────────────────
 CYCLES = [
     ("PREMIER", "Premier Cycle", "First Cycle", 1),
     ("SECOND", "Second Cycle", "Second Cycle", 2),
+    ("CECRL", "Cadre européen commun (CECRL)", "CEFR", 3),
 ]
 
 # ── Niveaux (code, nom, sous-système, type, cycle, examen, ordre) ─────────────
@@ -63,6 +65,13 @@ LEVELS = [
     ("TF5", "Form 5 (Technical)", "ANGLOPHONE", "TECHNIQUE", "PREMIER", "CAP / GCE Technical", 5),
     ("LST", "Lower Sixth Technical", "ANGLOPHONE", "TECHNIQUE", "SECOND", None, 6),
     ("UST", "Upper Sixth Technical", "ANGLOPHONE", "TECHNIQUE", "SECOND", "A Level Technical", 7),
+    # Formation en langues — niveaux CECRL (centres de langues)
+    ("A1", "A1 — Élémentaire", "FRANCOPHONE", "LANGUE", "CECRL", None, 1),
+    ("A2", "A2 — Élémentaire avancé", "FRANCOPHONE", "LANGUE", "CECRL", None, 2),
+    ("B1", "B1 — Intermédiaire", "FRANCOPHONE", "LANGUE", "CECRL", None, 3),
+    ("B2", "B2 — Intermédiaire avancé", "FRANCOPHONE", "LANGUE", "CECRL", None, 4),
+    ("C1", "C1 — Avancé", "FRANCOPHONE", "LANGUE", "CECRL", None, 5),
+    ("C2", "C2 — Maîtrise", "FRANCOPHONE", "LANGUE", "CECRL", None, 6),
 ]
 
 # ── Séries / Spécialités (code, nom_fr, nom_en) ──────────────────────────────
@@ -169,6 +178,14 @@ SUBJECTS = [
     ("EN_LIT", "Literature in English"),
     ("EN_CS", "Computer Science"),
     ("EN_PE", "Physical Education (PE)"),
+    # Formation en langues (CECRL)
+    ("LANG_CIBLE", "Langue cible"),
+    ("LANG_ORAL", "Expression orale"),
+    ("LANG_ECRIT", "Expression écrite"),
+    ("LANG_COMPR_ORALE", "Compréhension orale"),
+    ("LANG_COMPR_ECRITE", "Compréhension écrite"),
+    ("LANG_GRAMMAIRE", "Grammaire"),
+    ("LANG_CULTURE", "Culture et civilisation"),
 ]
 
 # ── §3.2 Premier Cycle Francophone Général (6E→3E), tronc commun ──────────────
@@ -217,6 +234,18 @@ ANGLO_GENERAL = {
     "EN_CS": 1, "EN_PE": 1,
 }
 ANGLO_GENERAL_LEVELS = ["F1", "F2", "F3", "F4", "F5"]
+
+# ── Formation en langues (CECRL) — tronc commun par niveau ─────────────────────
+LANGUE_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"]
+LANGUE_SUBJECTS = {
+    "LANG_CIBLE": 4,
+    "LANG_ORAL": 3,
+    "LANG_ECRIT": 3,
+    "LANG_COMPR_ORALE": 2,
+    "LANG_COMPR_ECRITE": 2,
+    "LANG_GRAMMAIRE": 2,
+    "LANG_CULTURE": 1,
+}
 
 # ── Groupes de bulletin (second cycle francophone uniquement) ─────────────────
 # Décision client : 2 groupes (« 1er Groupe » / « 2e Groupe »), variables selon la

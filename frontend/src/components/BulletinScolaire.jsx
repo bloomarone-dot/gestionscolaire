@@ -232,7 +232,7 @@ function SubjectRow({ s }) {
   );
 }
 
-function SummaryRows({ summary, labels, cols, showDecision }) {
+function SummaryRows({ summary, labels, cols, showDecision, simplified }) {
   const { coefCol, teacherCol } = cols;
 
   return (
@@ -243,16 +243,21 @@ function SummaryRows({ summary, labels, cols, showDecision }) {
         <td style={styles.totalValueCell}>{summary.totalMarks ?? ''}</td>
         <td style={styles.totalValueCell}>{labels.classAverage}</td>
         <td style={styles.totalValueCell}>{summary.classAverage ?? ''}</td>
-        <td style={styles.totalValueCell}>{labels.sanctions}</td>
+        {!simplified && <td style={styles.totalValueCell}>{labels.sanctions}</td>}
       </tr>
 
       <tr>
         <td style={styles.summaryLabelCell}>{labels.termAverage}</td>
         <td colSpan={3} style={styles.summaryValueCell}>{summary.termAverage ?? ''}</td>
         <td style={styles.summaryValueCell}>{summary.appreciation ?? ''}</td>
-        <td colSpan={2} style={styles.summaryLabelCell}>{labels.absences}</td>
-        <td style={styles.summaryValueCell}>{summary.absences ?? '0'}</td>
-        <td style={styles.summaryValueCell}>0</td>
+        {!simplified && (
+          <>
+            <td colSpan={2} style={styles.summaryLabelCell}>{labels.absences}</td>
+            <td style={styles.summaryValueCell}>{summary.absences ?? '0'}</td>
+            <td style={styles.summaryValueCell}>0</td>
+          </>
+        )}
+        {simplified && <td colSpan={teacherCol - 4} style={styles.summaryValueCell} />}
       </tr>
 
       <tr>
@@ -284,13 +289,33 @@ export default function BulletinScolaire({ bulletin }) {
   const data = useMemo(() => mapBulletinScolaire(bulletin), [bulletin]);
   if (!data) return null;
 
-  const { school, student, subjects, summary, groupLabels, seqLabel1, seqLabel2, labels } = data;
+  const {
+    school, student, subjects, summary, groupLabels, seqLabel1, seqLabel2, labels,
+    simplified, reportTitle,
+  } = data;
   const nSeq = 2;
   const cols = bulletinSummaryCols(nSeq);
   const allColspan = cols.nCols;
+  const L = bulletin.labels || {};
 
   return (
     <div style={styles.page} className="bulletin-scolaire-sheet">
+      {simplified ? (
+        <div style={{ ...styles.headerRow, justifyContent: 'center' }}>
+          <div style={styles.logoBox}>
+            {school.logoUrl ? (
+              <img src={school.logoUrl} alt="Logo" style={styles.logoImg} />
+            ) : (
+              <span style={{ ...styles.bold, fontSize: '10px', textAlign: 'center', padding: '4px' }}>{school.nameFr}</span>
+            )}
+          </div>
+          <div style={{ ...styles.headerText, flex: 2 }}>
+            <div style={{ ...styles.bold, fontSize: '12px' }}>{school.nameFr}</div>
+            {school.taglineFr && <div style={{ fontStyle: 'italic' }}>{school.taglineFr}</div>}
+            {school.bpFr && <div>{school.bpFr}</div>}
+          </div>
+        </div>
+      ) : (
       <div style={styles.headerRow}>
         <div style={styles.headerText}>
           <div style={styles.bold}>REPUBLIC OF CAMEROON</div>
@@ -327,33 +352,36 @@ export default function BulletinScolaire({ bulletin }) {
           <div>{school.bpFr}</div>
         </div>
       </div>
+      )}
 
       <table style={styles.table}>
         <ColGroup nSeq={nSeq} />
         <tbody>
           <tr>
             <td colSpan={allColspan} style={styles.titleCell}>
-              STUDENT&apos;S PROGRESS REPORT CARD
+              {reportTitle}
             </td>
           </tr>
 
           <tr>
-            <td style={{ ...styles.nameRow, width: '8%' }}>NAME:</td>
+            <td style={{ ...styles.nameRow, width: '8%' }}>{L.name || 'NOM'}:</td>
             <td colSpan={5} style={styles.nameValue}>{student.name}</td>
-            <td style={{ ...styles.nameRow, textAlign: 'center' }}>CLASS:</td>
+            <td style={{ ...styles.nameRow, textAlign: 'center' }}>{L.class || 'CLASSE'}:</td>
             <td style={styles.nameValue}>{student.class}</td>
             <td style={{ ...styles.nameRow, textAlign: 'center' }}>{student.gender}</td>
           </tr>
 
           <tr>
-            <td colSpan={2} style={styles.infoLabelCell}>CLASS ENROLLMENT: {student.enrollment}</td>
-            <td colSpan={3} style={styles.infoValueCell}>Repeater: {student.repeater}</td>
-            <td colSpan={2} style={styles.infoLabelCell}>{student.term}</td>
-            <td colSpan={2} style={styles.infoLabelCell}>YEAR: {student.year}</td>
+            <td colSpan={2} style={styles.infoLabelCell}>{L.class_enrollment || 'EFFECTIF'}: {student.enrollment}</td>
+            {!simplified && (
+              <td colSpan={3} style={styles.infoValueCell}>Repeater: {student.repeater}</td>
+            )}
+            <td colSpan={simplified ? 5 : 2} style={styles.infoLabelCell}>{student.term}</td>
+            <td colSpan={2} style={styles.infoLabelCell}>{L.year || 'ANNÉE'}: {student.year}</td>
           </tr>
 
           <tr>
-            <td style={styles.infoLabelCell}>UNIQUE ID</td>
+            <td style={styles.infoLabelCell}>{L.unique_id || 'MATRICULE'}</td>
             <td colSpan={8} style={styles.infoValueCell}>{student.uniqueId}</td>
           </tr>
 
@@ -361,24 +389,26 @@ export default function BulletinScolaire({ bulletin }) {
             <td style={styles.colHeader} />
             <td style={styles.colHeader}>{seqLabel1}</td>
             <td style={styles.colHeader}>{seqLabel2}</td>
-            <td style={styles.colHeader}>Average</td>
-            <td style={styles.colHeader}>Coef</td>
-            <td style={styles.colHeader}>Total marks</td>
-            <td style={styles.colHeader}>Rank</td>
-            <td style={styles.colHeader}>Appre.</td>
-            <td style={styles.colHeader}>Teacher&apos;s sign.(MR/MRS/MISS)</td>
+            <td style={styles.colHeader}>{L.average || 'Average'}</td>
+            <td style={styles.colHeader}>{L.coefficient || 'Coef'}</td>
+            <td style={styles.colHeader}>{L.total_marks || 'Total marks'}</td>
+            <td style={styles.colHeader}>{L.rank || 'Rank'}</td>
+            <td style={styles.colHeader}>{L.appreciation || 'Appre.'}</td>
+            <td style={styles.colHeader}>{L.teacher_sign || "Teacher's sign."}</td>
           </tr>
 
           {subjects.firstGroup.length > 0 && (
             <>
-              <tr>
-                <td colSpan={allColspan} style={styles.groupHeader}>{groupLabels.first}</td>
-              </tr>
+              {!simplified && (
+                <tr>
+                  <td colSpan={allColspan} style={styles.groupHeader}>{groupLabels.first}</td>
+                </tr>
+              )}
               {subjects.firstGroup.map((s, i) => <SubjectRow key={`g1-${i}`} s={s} />)}
             </>
           )}
 
-          {subjects.secondGroup.length > 0 && (
+          {!simplified && subjects.secondGroup.length > 0 && (
             <>
               <tr>
                 <td colSpan={allColspan} style={styles.groupHeader}>{groupLabels.second}</td>
@@ -387,7 +417,7 @@ export default function BulletinScolaire({ bulletin }) {
             </>
           )}
 
-          {subjects.thirdGroup.length > 0 && (
+          {!simplified && subjects.thirdGroup.length > 0 && (
             <>
               <tr>
                 <td colSpan={allColspan} style={styles.groupHeader}>{groupLabels.third}</td>
@@ -396,12 +426,21 @@ export default function BulletinScolaire({ bulletin }) {
             </>
           )}
 
-          <SummaryRows summary={summary} labels={labels} cols={cols} showDecision={bulletin.bulletin_scope === 'annual'} />
+          <SummaryRows
+            summary={summary}
+            labels={labels}
+            cols={cols}
+            showDecision={bulletin.bulletin_scope === 'annual'}
+            simplified={simplified}
+          />
         </tbody>
       </table>
 
       <div style={styles.footerRow}>
-        {['PARENTS/GUARDIANS', 'S.D.M', 'PRINCIPAL', 'DATE'].map((label) => (
+        {(simplified
+          ? [L.parents || 'RESPONSABLE', L.principal_col || 'COORDINATION', L.principal || 'DIRECTION', L.date || 'DATE']
+          : ['PARENTS/GUARDIANS', 'S.D.M', 'PRINCIPAL', 'DATE']
+        ).map((label) => (
           <div key={label} style={styles.footerCell}>
             <span style={{ fontWeight: 'bold', fontSize: '9.5px' }}>{label}</span>
           </div>
@@ -410,7 +449,7 @@ export default function BulletinScolaire({ bulletin }) {
 
       {summary.nextTerm && (
         <div style={styles.nextTerm}>
-          Next term re-opens: <strong>{summary.nextTerm}</strong>
+          {(L.next_term || 'Prochaine session')}: <strong>{summary.nextTerm}</strong>
         </div>
       )}
     </div>

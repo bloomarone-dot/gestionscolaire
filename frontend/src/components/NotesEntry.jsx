@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/useAuth';
+import { useEstablishmentProfile } from '../hooks/useEstablishmentProfile';
 import * as api from '../api/api';
 import {
   TRIMESTRES,
@@ -34,6 +35,7 @@ export default function NotesEntry({
   matiereName = '',
 }) {
   const { user } = useAuth();
+  const { kind: establishmentKind } = useEstablishmentProfile();
   const isAdmin = user?.role === 'admin';
 
   const [eleves, setEleves] = useState([]);
@@ -61,7 +63,7 @@ export default function NotesEntry({
   const canAdminActions = isAdmin;
   const classSection = classe?.section || 'francophone';
   const sectionEvalTypes = getEvalTypes(classSection);
-  const uiLabels = getNotesUiLabels(classSection);
+  const uiLabels = getNotesUiLabels(classSection, establishmentKind);
 
   const peutModifier = isAdmin ? !readOnlyMode : (!readOnlyMode && periodeInfo?.peut_saisir === true);
   const isPeriodeFermee = !isAdmin && !readOnlyMode && periodeInfo && !periodeInfo.peut_saisir;
@@ -309,7 +311,7 @@ export default function NotesEntry({
         clearNotesDraft(notesDraftKey(classe.id, selectedMatiere, selectedTrimestre, selectedType));
       }
       const total = newNotes.length + existingNotes.length;
-      setSuccess(`${total} note(s) enregistrée(s) — ${evalTypeLabel(selectedType, classSection)}, ${getTrimestreLabel(selectedTrimestre, classSection)}`);
+      setSuccess(`${total} note(s) enregistrée(s) — ${evalTypeLabel(selectedType, classSection)}, ${getTrimestreLabel(selectedTrimestre, classSection, establishmentKind)}`);
     } catch (err) {
       setError(err.message || 'Erreur lors de la sauvegarde');
     } finally {
@@ -572,7 +574,7 @@ export default function NotesEntry({
             <select id="prof-trimestre" value={selectedTrimestre}
               onChange={(e) => handleTrimestreChange(parseInt(e.target.value, 10))}>
               {TRIMESTRES.map((t) => (
-                <option key={t} value={t}>{getTrimestreLabel(t, classSection)}</option>
+                <option key={t} value={t}>{getTrimestreLabel(t, classSection, establishmentKind)}</option>
               ))}
             </select>
           </div>
@@ -812,7 +814,7 @@ export default function NotesEntry({
             <select id="trimestre-select" value={selectedTrimestre}
               onChange={(e) => handleTrimestreChange(parseInt(e.target.value, 10))}>
               {TRIMESTRES.map((t) => (
-                <option key={t} value={t}>{getTrimestreLabel(t, classSection)}</option>
+                <option key={t} value={t}>{getTrimestreLabel(t, classSection, establishmentKind)}</option>
               ))}
             </select>
           </div>
@@ -842,7 +844,7 @@ export default function NotesEntry({
 
       <div className="notes-period-info">
         <span className="notes-period-badge">
-          {getTrimestreLabel(selectedTrimestre, classSection)} — {evalTypeLabel(selectedType, classSection)}
+          {getTrimestreLabel(selectedTrimestre, classSection, establishmentKind)} — {evalTypeLabel(selectedType, classSection)}
         </span>
         {selectedType === 'trimestre' && (
           <span className="notes-period-hint">

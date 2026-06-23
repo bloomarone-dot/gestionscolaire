@@ -27,6 +27,27 @@ def _coef_map(rows):
     return {s.code: coef for s, coef, *_ in rows}
 
 
+def test_cascade_language_center(db):
+    types = {t.code for t in crud.list_teaching_types(db, "FRANCOPHONE")}
+    assert "LANGUE" in types
+    cycles = crud.list_cycles(db, "FRANCOPHONE", "LANGUE")
+    assert {c.code for c in cycles} == {"CECRL"}
+    levels = crud.list_levels(db, "FRANCOPHONE", "LANGUE", "CECRL")
+    assert [l.code for l in levels] == ["A1", "A2", "B1", "B2", "C1", "C2"]
+    coeffs = _coef_map(crud.resolve_subjects(db, "B1", None))
+    assert coeffs["LANG_CIBLE"] == 4
+    assert coeffs["LANG_ORAL"] == 3
+
+
+def test_seed_language_referential_on_existing_db(db):
+    """Migration douce : bases MINESEC déjà seedées reçoivent LANGUE / CECRL."""
+    from app.seed import seed_language_referential
+
+    seed_language_referential(db)  # no-op, déjà présent via fixture
+    levels = crud.list_levels(db, "FRANCOPHONE", "LANGUE", "CECRL")
+    assert len(levels) == 6
+
+
 def test_cascade_francophone_general(db):
     assert {s.code for s in crud.list_subsystems(db)} == {"FRANCOPHONE", "ANGLOPHONE"}
     cycles = crud.list_cycles(db, "FRANCOPHONE", "GENERAL")

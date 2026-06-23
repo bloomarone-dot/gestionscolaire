@@ -1,8 +1,8 @@
 # Lanceur complet du SaaS Scolaire (microservices). Depuis la racine :
 #   docker compose up --build
 #
-# Démarre : Postgres (9 bases logiques) + RabbitMQ + Redis + API Gateway +
-# 9 services métier + frontend (nginx). Accès : http://localhost:5173
+# Démarre : Postgres (11 bases logiques) + RabbitMQ + Redis + API Gateway +
+# 11 services métier + frontend (nginx). Accès : http://localhost:5173
 #
 name: gestionscolaire
 
@@ -148,6 +148,22 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  tresorerie-service:
+    build: { context: ., dockerfile: services/tresorerie-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/tresorerie_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  planning-service:
+    build: { context: ., dockerfile: services/planning-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/planning_db
+    depends_on: *depends_postgres
     restart: unless-stopped
 
   frontend:

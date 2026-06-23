@@ -129,6 +129,7 @@ def render_bulletin_pdf(data: dict) -> bytes:
     L = header["labels"]
     trimestre = header.get("trimestre", 1)
     seq_lbls = header.get("seq_labels") or list(seq_labels(trimestre, lang))
+    simplified = bool(header.get("simplified_bulletin"))
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -136,13 +137,13 @@ def render_bulletin_pdf(data: dict) -> bytes:
         leftMargin=0.8 * cm, rightMargin=0.8 * cm,
     )
     story = [
-        _national_header(header, th),
+        _simple_header(header, th) if simplified else _national_header(header, th),
         _title_bar(header.get("report_title") or L["report_title"], th),
-        _identity(header, b, L, lang, len(seq_lbls), th),
-        _grades_table(b, L, seq_lbls, lang, th),
+        _identity(header, b, L, lang, len(seq_lbls), th, simplified=simplified),
+        _grades_table(b, L, seq_lbls, lang, th, simplified=simplified),
     ]
     story += [
-        _footer(b, data, header, L, lang, len(seq_lbls), th),
+        _footer(b, data, header, L, lang, len(seq_lbls), th, simplified=simplified),
         _signatures(header, L, lang, th),
         _next_term(header, L),
     ]
@@ -190,6 +191,41 @@ def _national_header(header, th) -> Table:
     return t
 
 
+def _simple_header(header, th) -> Table:
+    """En-tête épuré pour centre de langues (sans bloc MINESEC)."""
+    name = (header.get("school_name_fr") or header.get("school_name") or "").upper()
+    motto = header.get("motto") or ""
+    pobox = header.get("po_box") or ""
+    center_lines = [f"<b>{name}</b>"]
+    if motto:
+        center_lines.append(f"<i>{motto}</i>")
+    if pobox:
+        center_lines.append(f"BP: {pobox}")
+
+    logo_path = resolve_logo_path(header.get("logo_url"))
+    logo_slot_w = 3.4 * cm
+    logo_slot_h = 4.0 * cm
+    if logo_path:
+        logo_w, logo_h = logo_fit_size(logo_path, logo_slot_w, logo_slot_h)
+        logo = RLImage(logo_path, width=logo_w, height=logo_h)
+        logo.hAlign = "CENTER"
+        center = logo
+    else:
+        center = _p("<br/>".join(center_lines), size=8, align=TA_CENTER)
+
+    side_w = (PAGE_W - logo_slot_w) / 2
+    t = Table(
+        [[_p("", size=5), center, _p("", size=5)]],
+        colWidths=[side_w, logo_slot_w, side_w],
+        hAlign="CENTER",
+    )
+    t.setStyle(_grid(
+        ("BACKGROUND", (0, 0), (-1, -1), th["national_header"]),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ))
+    return t
+
+
 def _title_bar(title: str, th) -> Table:
     t = Table([[_p(title, size=9, bold=True, align=TA_CENTER, color=th["text"])]], colWidths=[PAGE_W])
     t.setStyle(TableStyle([
@@ -201,7 +237,7 @@ def _title_bar(title: str, th) -> Table:
     return t
 
 
-def _identity(header, b, L, lang, n_seq: int, th) -> Table:
+def _identity(header, b, L, lang, n_seq: int, th, *, simplified: bool = False) -> Table:
     name = f"{b.get('nom') or ''} {b.get('prenom') or ''}".strip().upper()
     sexe = (b.get("sexe") or "—").upper()
     red = b.get("redoublant") or ("NON" if lang == "fr" else "NO")
@@ -248,8 +284,12 @@ def _identity(header, b, L, lang, n_seq: int, th) -> Table:
         _apply_spans(spans, 0, info_sp)
         rows.append(_row_from_spans([
             (_p(f"{L['class_enrollment']}: {header.get('effectif') or ''}", bold=True), row2[0]),
-            (_p(f"{L['repeater']}: {red}", bold=True), row2[1]),
-            (_p(f"{L.get('series', 'Serie')}: {serie}", bold=True), row2[2] + row2[3]),
+            (_p(f"{L['repeater']}: {red}", bold=True) if not simplified else _p("", ), row2[1]),
+            (_p(
+                f"{L.get('series', 'Serie')}: {serie}" if not simplified
+                else f"{L['year']}: {header.get('school_year') or ''}",
+                bold=True,
+            ), row2[2] + row2[3]),
         ], n))
         _apply_spans(spans, 1, [row2[0], row2[1], row2[2] + row2[3]])
         rows.append(_row_from_spans([
@@ -269,7 +309,7 @@ def _identity(header, b, L, lang, n_seq: int, th) -> Table:
     return t
 
 
-def _grades_table(b, L, seq_lbls, lang, th) -> Table:
+def _grades_table(b, L, seq_lbls, lang, th, *, simplified: bool = False) -> Table:
     n = len(seq_lbls)
     head = [L["subjects"], *seq_lbls, L["average"], L["coefficient"], L["total_marks"],
             L["rank"], L["appreciation"], L["teacher_sign"]]
@@ -285,13 +325,14 @@ def _grades_table(b, L, seq_lbls, lang, th) -> Table:
         groups.setdefault(_effective_groupe(s), []).append(s)
 
     for g in sorted(groups):
-        label = L.get(f"group_{g}", f"GROUP {g}")
-        rows.append([_p(label, bold=True, align=TA_CENTER, color=th["text"])] + [""] * (n + 6))
-        gi = len(rows) - 1
-        style_cmds += [
-            ("SPAN", (0, gi), (-1, gi)),
-            ("BACKGROUND", (0, gi), (-1, gi), th["group_row"]),
-        ]
+        if not simplified:
+            label = L.get(f"group_{g}", f"GROUP {g}")
+            rows.append([_p(label, bold=True, align=TA_CENTER, color=th["text"])] + [""] * (n + 6))
+            gi = len(rows) - 1
+            style_cmds += [
+                ("SPAN", (0, gi), (-1, gi)),
+                ("BACKGROUND", (0, gi), (-1, gi), th["group_row"]),
+            ]
         for s in groups[g]:
             seqs = s.get("seqs") or []
             seq_cells = [_p(_fmt(seqs[i] if i < len(seqs) else None), align=TA_CENTER) for i in range(n)]
@@ -343,7 +384,7 @@ def _special_table(b, L, seq_lbls, th) -> Table:
     return t
 
 
-def _footer(b, data, header, L, lang, n_seq: int, th) -> Table:
+def _footer(b, data, header, L, lang, n_seq: int, th, *, simplified: bool = False) -> Table:
     moy = b.get("moyenne_generale")
     appr = b.get("appreciation_generale") or ""
     effectif = header.get("effectif") or data.get("effectif") or ""
@@ -368,20 +409,28 @@ def _footer(b, data, header, L, lang, n_seq: int, th) -> Table:
         (_p(_fmt(b.get("total_points")), bold=True, align=TA_CENTER), 1),
         (_p(L["class_average"], bold=True, align=TA_CENTER), 1),
         (_p(_fmt(moy_cls), bold=True, align=TA_CENTER), 1),
-        (_p(L["sanctions"], bold=True, align=TA_CENTER), 1),
+        (_p(L["sanctions"], bold=True, align=TA_CENTER) if not simplified else _p("", ), 1),
     ])
 
     term_lbl = L["term_average"] if lang == "en" else (
         L["annual_average"] if header.get("scope") == "annual" else L["term_average"]
     )
-    add_row([
-        (_p(term_lbl, bold=True), 1),
-        (_p(_fmt(moy), bold=True, align=TA_CENTER), coef_idx - 1),
-        (_p(appr, bold=True, align=TA_CENTER), 1),
-        (_p(L["absences"], bold=True, align=TA_CENTER), 2),
-        (_p("0", align=TA_CENTER), 1),
-        (_p("0", align=TA_CENTER), 1),
-    ])
+    if simplified:
+        add_row([
+            (_p(term_lbl, bold=True), 1),
+            (_p(_fmt(moy), bold=True, align=TA_CENTER), coef_idx - 1),
+            (_p(appr, bold=True, align=TA_CENTER), 1),
+            (_p("", ), n_cols - coef_idx),
+        ])
+    else:
+        add_row([
+            (_p(term_lbl, bold=True), 1),
+            (_p(_fmt(moy), bold=True, align=TA_CENTER), coef_idx - 1),
+            (_p(appr, bold=True, align=TA_CENTER), 1),
+            (_p(L["absences"], bold=True, align=TA_CENTER), 2),
+            (_p("0", align=TA_CENTER), 1),
+            (_p("0", align=TA_CENTER), 1),
+        ])
 
     if lang == "en":
         position_row = [
