@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Building2, CheckCircle2, RefreshCw, School, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, Input, PageHeader, Select, StatCard } from '../../components/ui';
+import {
+  ESTABLISHMENT_KINDS,
+  defaultProfileForKind,
+  establishmentKindLabel,
+} from '../../utils/establishmentKind';
 
 const emptySchool = {
   name: '',
@@ -9,6 +14,8 @@ const emptySchool = {
   city: '',
   address: '',
   phone: '',
+  establishment_kind: 'SCHOOL',
+  ...defaultProfileForKind('SCHOOL'),
 };
 
 const emptyAdmin = {
@@ -26,8 +33,13 @@ function normalizeSchool(school) {
     name: school.name || school.nom || school.label || 'Etablissement sans nom',
     code: school.code || school.slug || `SCHOOL-${school.id}`,
     city: school.city || school.ville || '-',
+    establishment_kind: school.establishment_kind || 'SCHOOL',
     status: school.is_active === false ? 'Inactif' : 'Actif',
   };
+}
+
+function setSchoolKind(current, kind) {
+  return { ...current, establishment_kind: kind, ...defaultProfileForKind(kind) };
 }
 
 export default function SuperAdminConsole({ tab = 'dashboard' }) {
@@ -88,9 +100,14 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
     setNotice('');
     setError('');
     try {
+      const kind = schoolForm.establishment_kind || 'SCHOOL';
+      const profile = defaultProfileForKind(kind);
       const created = await api.createSchool({
         ...schoolForm,
-        establishment_kind: schoolForm.establishment_kind || 'SCHOOL',
+        establishment_kind: kind,
+        subsystems: schoolForm.subsystems?.length ? schoolForm.subsystems : profile.subsystems,
+        teaching_types: schoolForm.teaching_types?.length ? schoolForm.teaching_types : profile.teaching_types,
+        channels: schoolForm.channels?.length ? schoolForm.channels : profile.channels,
       });
       const next = normalizeSchool(created);
       setSchools((current) => [next, ...current.filter((school) => school.id !== next.id)]);
@@ -172,6 +189,23 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
               <span className="rounded-xl bg-blue-50 p-3 text-blue-700 ring-1 ring-blue-200"><School size={20} /></span>
             </div>
             <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateSchool}>
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Type d&apos;établissement <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  required
+                  value={schoolForm.establishment_kind}
+                  onChange={(e) => setSchoolForm((current) => setSchoolKind(current, e.target.value))}
+                >
+                  {ESTABLISHMENT_KINDS.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-xs text-slate-400">
+                  École MINESEC ou centre de formation en langues — le profil pédagogique est appliqué automatiquement.
+                </p>
+              </div>
               <Input required placeholder="Nom de l'etablissement" value={schoolForm.name} onChange={(e) => setSchoolForm({ ...schoolForm, name: e.target.value })} />
               <Input required placeholder="Code court" value={schoolForm.code} onChange={(e) => setSchoolForm({ ...schoolForm, code: e.target.value })} />
               <Input placeholder="Ville" value={schoolForm.city} onChange={(e) => setSchoolForm({ ...schoolForm, city: e.target.value })} />
@@ -196,7 +230,11 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
             <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateAdmin}>
               <Select required value={adminForm.school_id} onChange={(e) => setAdminForm({ ...adminForm, school_id: e.target.value })}>
                 <option value="">Selectionner l'etablissement</option>
-                {schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
+                {schools.map((school) => (
+                  <option key={school.id} value={school.id}>
+                    {school.name} ({establishmentKindLabel(school.establishment_kind)})
+                  </option>
+                ))}
               </Select>
               <Input required placeholder="Telephone de connexion" value={adminForm.phone} onChange={(e) => setAdminForm({ ...adminForm, phone: e.target.value })} />
               <Input required placeholder="Prenom" value={adminForm.first_name} onChange={(e) => setAdminForm({ ...adminForm, first_name: e.target.value })} />
@@ -253,6 +291,11 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
             description={loading ? 'Chargement depuis le backend...' : 'Liste synchronisee avec le service tenants.'}
             columns={[
               { key: 'name', label: 'Etablissement' },
+              {
+                key: 'establishment_kind',
+                label: 'Type',
+                render: (row) => establishmentKindLabel(row.establishment_kind),
+              },
               { key: 'code', label: 'Code' },
               { key: 'city', label: 'Ville' },
               { key: 'status', label: 'Statut', render: (row) => <Badge tone={row.status === 'Actif' ? 'emerald' : 'rose'}>{row.status}</Badge> },
