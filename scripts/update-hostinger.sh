@@ -64,5 +64,5 @@ docker compose ps
 
 echo
 echo "✓ Mise à jour terminée."
-echo "  Site : https://scolaire.bloomarone.com"
+echo "  Site : https://bloomaroneschool.bloomarone.com"
 echo "  Comptes : ./scripts/list-accounts.sh"

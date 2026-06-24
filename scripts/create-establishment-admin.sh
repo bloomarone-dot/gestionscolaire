@@ -52,6 +52,6 @@ else
 fi
 
 echo
-echo "Connexion sur https://scolaire.bloomarone.com/login"
+echo "Connexion sur https://bloomaroneschool.bloomarone.com/login"
 echo "  Téléphone   : $ADMIN_PHONE"
 echo "  Mot de passe: $ADMIN_PASSWORD"

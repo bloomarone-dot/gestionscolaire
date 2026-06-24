@@ -15,7 +15,7 @@ if [[ -f .env ]] && grep -q '^WEB_PORT=' .env; then
   WEB_PORT="$(grep '^WEB_PORT=' .env | cut -d= -f2 | tr -d ' \"')"
 fi
 
-DOMAIN="${SCOLAIRE_DOMAIN:-scolaire.bloomarone.com}"
+DOMAIN="${SCOLAIRE_DOMAIN:-bloomaroneschool.bloomarone.com}"
 CONF="/etc/nginx/sites-available/${DOMAIN}"
 ENABLED="/etc/nginx/sites-enabled/${DOMAIN}"
 

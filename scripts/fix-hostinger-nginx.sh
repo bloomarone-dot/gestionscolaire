@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-DOMAIN="${SCOLAIRE_DOMAIN:-scolaire.bloomarone.com}"
+DOMAIN="${SCOLAIRE_DOMAIN:-bloomaroneschool.bloomarone.com}"
 WEB_PORT="${WEB_PORT:-5180}"
 if [[ -f .env ]] && grep -q '^WEB_PORT=' .env; then
   WEB_PORT="$(grep '^WEB_PORT=' .env | cut -d= -f2 | tr -d ' \"')"

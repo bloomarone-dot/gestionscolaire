@@ -67,7 +67,7 @@ services:
     environment:
       JWT_SECRET: *jwt_secret
       INTERNAL_SHARED_SECRET: *internal_secret
-      CORS_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5180,http://127.0.0.1:5180"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:5180,http://127.0.0.1:5180,https://bloomaroneschool.bloomarone.com}"
     ports:
       - "${GATEWAY_PORT:-8082}:8000"
     depends_on:
