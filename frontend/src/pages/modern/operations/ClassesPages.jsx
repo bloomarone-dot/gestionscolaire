@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import * as api from "../../../api/api";
+import LanguageCenterGroupFields from "../../../components/languageCenter/LanguageCenterGroupFields";
 import {
   Badge,
   Button,
@@ -11,7 +12,9 @@ import {
   PageHeader,
   Select,
 } from "../../../components/ui";
+import { useEstablishmentProfile } from "../../../hooks/useEstablishmentProfile";
 import { useReferentielCascade } from "../../../hooks/useReferentielCascade";
+import { buildLanguageCenterClassPayload } from "../../../utils/languageCenter";
 import {
   CascadeFields,
   Notice,
@@ -21,7 +24,18 @@ import {
   useLoad,
 } from "./shared";
 
+const emptyLcGroupForm = {
+  langue: "DE",
+  level_code: "",
+  creneau: "",
+  nom: "",
+  nomTouched: false,
+  effectif_max: 20,
+  prof_principal_id: "",
+};
+
 export function OperationalClassesPage() {
+  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
   const [sectionFilter, setSectionFilter] = useState("");
@@ -85,48 +99,57 @@ export function OperationalClassesPage() {
   return (
     <>
       <PageHeader
-        title="Classes"
+        title={ui.classes}
         actions={
           <Link to="/app/classes/nouveau">
             <Button>
-              <Plus size={16} /> Nouvelle classe
+              <Plus size={16} /> {isLanguageCenter ? "Nouveau groupe" : "Nouvelle classe"}
             </Button>
           </Link>
         }
       />
       <Notice
-        message={loading ? "Chargement des classes..." : error}
+        message={loading ? `Chargement des ${ui.classes.toLowerCase()}...` : error}
         tone={error ? "amber" : "blue"}
       />
       <Notice message={notice} />
-      <Card className="mb-4 p-4">
-        <label className="block max-w-xs">
-          <span className="mb-1 block text-sm font-semibold text-slate-700">Filtrer par section</span>
-          <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-            <option value="">Toutes les sections</option>
-            <option value="FRANCOPHONE">Francophone</option>
-            <option value="ANGLOPHONE">Anglophone</option>
-          </Select>
-        </label>
-      </Card>
+      {!isLanguageCenter && (
+        <Card className="mb-4 p-4">
+          <label className="block max-w-xs">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Filtrer par section</span>
+            <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
+              <option value="">Toutes les sections</option>
+              <option value="FRANCOPHONE">Francophone</option>
+              <option value="ANGLOPHONE">Anglophone</option>
+            </Select>
+          </label>
+        </Card>
+      )}
       <DataTable
-        title="Classes"
+        title={ui.classes}
         columns={[
-          { key: "name", label: "Classe" },
-          {
-            key: "subsystem",
-            label: "Section",
-            render: (row) => (
-              <Badge
-                tone={row.subsystem_code === "ANGLOPHONE" ? "cyan" : "violet"}
-              >
-                {row.subsystem}
-              </Badge>
-            ),
-          },
-          { key: "type", label: "Type" },
-          { key: "level", label: "Niveau" },
-          { key: "serie", label: "Série / Spécialité" },
+          { key: "name", label: isLanguageCenter ? "Groupe" : "Classe" },
+          ...(isLanguageCenter
+            ? [
+                { key: "level", label: "Niveau CECRL" },
+                { key: "type", label: "Parcours", render: () => "Langues" },
+              ]
+            : [
+                {
+                  key: "subsystem",
+                  label: "Section",
+                  render: (row) => (
+                    <Badge
+                      tone={row.subsystem_code === "ANGLOPHONE" ? "cyan" : "violet"}
+                    >
+                      {row.subsystem}
+                    </Badge>
+                  ),
+                },
+                { key: "type", label: "Type" },
+                { key: "level", label: "Niveau" },
+                { key: "serie", label: "Série / Spécialité" },
+              ]),
           {
             key: "effectif",
             label: "Effectif",
@@ -134,7 +157,7 @@ export function OperationalClassesPage() {
           },
           {
             key: "prof_principal_id",
-            label: "Prof. principal",
+            label: isLanguageCenter ? "Formateur référent" : "Prof. principal",
             render: (row) => (
               <Select
                 value={String(row.prof_principal_id ?? "")}
@@ -149,18 +172,20 @@ export function OperationalClassesPage() {
               </Select>
             ),
           },
-          { key: "nb_matieres", label: "Matières" },
-          {
-            key: "statut",
-            label: "Statut",
-            render: (row) => (
-              <Badge tone={row.statut === "Spéciale" ? "amber" : "slate"}>
-                {row.statut}
-              </Badge>
-            ),
-          },
+          { key: "nb_matieres", label: isLanguageCenter ? "Modules" : "Matières" },
+          ...(!isLanguageCenter
+            ? [{
+                key: "statut",
+                label: "Statut",
+                render: (row) => (
+                  <Badge tone={row.statut === "Spéciale" ? "amber" : "slate"}>
+                    {row.statut}
+                  </Badge>
+                ),
+              }]
+            : []),
         ]}
-        rows={rows.filter((row) => !sectionFilter || row.subsystem_code === sectionFilter)}
+        rows={rows.filter((row) => isLanguageCenter || !sectionFilter || row.subsystem_code === sectionFilter)}
         rowClassName={(row) =>
           String(row.id) === highlightId
             ? "bg-blue-50 ring-1 ring-inset ring-blue-200"
@@ -174,6 +199,7 @@ export function OperationalClassesPage() {
 
 export function ClasseCreatePage() {
   const navigate = useNavigate();
+  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
   const { rows: teacherRows } = useLoad(
     useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []),
     [],
@@ -185,12 +211,35 @@ export function ClasseCreatePage() {
     niveau_libre: "",
     specialite_libre: "",
   });
+  const [lcForm, setLcForm] = useState(emptyLcGroupForm);
   const [special, setSpecial] = useState(false);
   const [notice, setNotice] = useState("");
   const cascade = useReferentielCascade();
 
   async function submit(event) {
     event.preventDefault();
+    if (isLanguageCenter) {
+      if (!lcForm.level_code) {
+        setNotice("Choisissez le niveau CECRL (A1, A2, B1…).");
+        return;
+      }
+      if (!lcForm.nom.trim()) {
+        setNotice("Indiquez le nom du groupe.");
+        return;
+      }
+      try {
+        await api.createClasse(buildLanguageCenterClassPayload({
+          nom_personnalise: lcForm.nom.trim(),
+          level_code: lcForm.level_code,
+          effectif_max: Number(lcForm.effectif_max) || 20,
+          prof_principal_id: lcForm.prof_principal_id,
+        }));
+        navigate("/app/classes");
+      } catch (err) {
+        setNotice(err.message || "Création du groupe impossible.");
+      }
+      return;
+    }
     if (!special && !cascade.isComplete) {
       setNotice(
         "Veuillez compléter la cascade (sous-système → … → niveau/série).",
@@ -223,8 +272,8 @@ export function ClasseCreatePage() {
   return (
     <>
       <PageHeader
-        title="Nouvelle classe"
-        breadcrumb="Classes"
+        title={isLanguageCenter ? "Nouveau groupe" : "Nouvelle classe"}
+        breadcrumb={ui.classes}
         actions={
           <Link to="/app/classes">
             <Button variant="secondary">Retour à la liste</Button>
@@ -234,22 +283,35 @@ export function ClasseCreatePage() {
       <Notice message={notice} tone="rose" />
       <Card className="p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-bold">Informations de la classe</h2>
-          <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-            <input
-              type="checkbox"
-              checked={special}
-              onChange={(e) => setSpecial(e.target.checked)}
-            />
-            Classe spéciale (hors référentiel MINESEC)
-          </label>
+          <h2 className="font-bold">
+            {isLanguageCenter ? "Informations du groupe" : "Informations de la classe"}
+          </h2>
+          {!isLanguageCenter && (
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+              <input
+                type="checkbox"
+                checked={special}
+                onChange={(e) => setSpecial(e.target.checked)}
+              />
+              Classe spéciale (hors référentiel MINESEC)
+            </label>
+          )}
         </div>
         <form
           id="class-form"
           className="grid gap-4 md:grid-cols-2"
           onSubmit={submit}
         >
-          {special ? (
+          {isLanguageCenter ? (
+            <LanguageCenterGroupFields
+              form={lcForm}
+              onChange={setLcForm}
+              onSuggestName={(name) => setLcForm((current) => (
+                current.nomTouched ? current : { ...current, nom: name }
+              ))}
+              teacherOptions={teacherRows}
+            />
+          ) : special ? (
             <>
               <Input
                 required
@@ -270,33 +332,37 @@ export function ClasseCreatePage() {
           ) : (
             <CascadeFields cascade={cascade} />
           )}
-          <Input
-            required
-            placeholder="Nom personnalisé (ex. Tle D1)"
-            value={form.nom}
-            onChange={(e) => setForm({ ...form, nom: e.target.value })}
-          />
-          <Input
-            type="number"
-            min="1"
-            placeholder="Effectif maximum"
-            value={form.effectif_max}
-            onChange={(e) => setForm({ ...form, effectif_max: e.target.value })}
-          />
-          <Select
-            value={form.prof_principal_id}
-            onChange={(e) =>
-              setForm({ ...form, prof_principal_id: e.target.value })
-            }
-          >
-            <option value="">Professeur principal (optionnel)</option>
-            {teacherRows.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </Select>
-          {special && (
+          {!isLanguageCenter && (
+            <>
+              <Input
+                required
+                placeholder="Nom personnalisé (ex. Tle D1)"
+                value={form.nom}
+                onChange={(e) => setForm({ ...form, nom: e.target.value })}
+              />
+              <Input
+                type="number"
+                min="1"
+                placeholder="Effectif maximum"
+                value={form.effectif_max}
+                onChange={(e) => setForm({ ...form, effectif_max: e.target.value })}
+              />
+              <Select
+                value={form.prof_principal_id}
+                onChange={(e) =>
+                  setForm({ ...form, prof_principal_id: e.target.value })
+                }
+              >
+                <option value="">Professeur principal (optionnel)</option>
+                {teacherRows.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </Select>
+            </>
+          )}
+          {special && !isLanguageCenter && (
             <p className="md:col-span-2 text-xs text-amber-600">
               Classe hors référentiel : aucune matière n'est pré-remplie.
               Étiquette « Spéciale » appliquée partout.
@@ -309,7 +375,7 @@ export function ClasseCreatePage() {
               </Button>
             </Link>
             <Button type="submit">
-              <Plus size={16} /> Créer la classe
+              <Plus size={16} /> {isLanguageCenter ? "Créer le groupe" : "Créer la classe"}
             </Button>
           </div>
         </form>

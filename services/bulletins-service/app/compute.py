@@ -123,8 +123,33 @@ TRIMESTER_SEQS: dict[int, tuple[str, str]] = {
 }
 
 
-def _trimester_subject_avg(note_map: dict[str, float], trimestre_num: int) -> Optional[float]:
-    """Moyenne matière sur un trimestre = moyenne des 2 séquences du trimestre."""
+def _lc_session_prefix(trimestre: int) -> str:
+    return f"lc_s{trimestre}_w"
+
+
+def _lc_session_period_values(
+    note_map: dict[str, float], trimestre: int,
+) -> tuple[list[Optional[float]], Optional[float]]:
+    """Moyenne de toutes les séances du samedi d'une session ; affiche les 2 dernières."""
+    prefix = _lc_session_prefix(trimestre)
+    pairs = sorted((k, v) for k, v in note_map.items() if k.startswith(prefix))
+    all_vals = [v for _, v in pairs]
+    moyenne = _round(mean(all_vals)) if all_vals else None
+    recent = [v for _, v in pairs[-2:]]
+    while len(recent) < 2:
+        recent.insert(0, None)
+    return recent[-2:], moyenne
+
+
+def _trimester_subject_avg(
+    note_map: dict[str, float],
+    trimestre_num: int,
+    *,
+    establishment_kind: str = "SCHOOL",
+) -> Optional[float]:
+    """Moyenne matière sur un trimestre / session."""
+    if is_language_center(establishment_kind):
+        return _lc_session_period_values(note_map, trimestre_num)[1]
     seq_types = TRIMESTER_SEQS[trimestre_num]
     vals = [note_map.get(t) for t in seq_types]
     present = [v for v in vals if v is not None]
@@ -171,10 +196,15 @@ def compute_class_bulletins(
         d = bucket.get((eleve_id, matiere_id), {})
         if scope == "annual":
             # Note de cadrage MVP §13 : Moy T1, Moy T2, Moy T3 → Moy annuelle.
-            trim_avgs = [_trimester_subject_avg(d, t) for t in (1, 2, 3)]
+            trim_avgs = [
+                _trimester_subject_avg(d, t, establishment_kind=establishment_kind)
+                for t in (1, 2, 3)
+            ]
             present = [v for v in trim_avgs if v is not None]
             moyenne = _round(mean(present)) if present else None
             return trim_avgs, moyenne
+        if is_language_center(establishment_kind):
+            return _lc_session_period_values(d, trimestre)
         vals = [d.get(t) for t in seq_types]
         present = [v for v in vals if v is not None]
         if not present and d:

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRightLeft, CheckCircle2, GraduationCap } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, DataTable, EmptyState, PageHeader, Select } from '../../components/ui';
+import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
+import LanguageCenterPromotionsPanel from './LanguageCenterPromotionsPanel';
 
 // §10 — Outil de fin d'année : décider du passage de chaque élève d'une classe.
 const DECISIONS = [
@@ -49,12 +51,41 @@ function Notice({ message, tone = 'emerald' }) {
 }
 
 export default function PromotionsPage() {
+  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
+  const [saving, setSaving] = useState(false);
+
+  async function handleLcApply(payload) {
+    setSaving(true);
+    try {
+      return await api.applyPromotions(payload);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (isLanguageCenter) {
+    return (
+      <div>
+        <PageHeader
+          title={ui.promotions}
+          breadcrumb="Pilotage pédagogique"
+          description="Fin de session : validez les apprenants pour le niveau CECRL supérieur, ou marquez-les à repasser."
+        />
+        <LanguageCenterPromotionsPanel onApply={handleLcApply} applying={saving} />
+      </div>
+    );
+  }
+
+  return <SchoolPromotionsPanel />;
+}
+
+function SchoolPromotionsPanel() {
   const [classes, setClasses] = useState([]);
   const [sourceId, setSourceId] = useState('');
-  const [rows, setRows] = useState([]);          // { id, name, matricule, status, dest_classe_id }
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState(null);    // { message, tone }
+  const [notice, setNotice] = useState(null);
   const [bulkDest, setBulkDest] = useState('');
 
   useEffect(() => {

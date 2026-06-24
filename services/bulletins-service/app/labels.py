@@ -115,7 +115,7 @@ LANG_CENTER_OVERRIDES = {
         "principal": "DIRECTION",
         "next_term": "Prochaine session",
         "terms": {1: "SESSION 1", 2: "SESSION 2", 3: "SESSION 3"},
-        "seqs": {1: ("Éval. 1", "Éval. 2"), 2: ("Éval. 3", "Éval. 4"), 3: ("Éval. 5", "Éval. 6")},
+        "seqs": {1: ("Séance récente", "Séance préc."), 2: ("Séance récente", "Séance préc."), 3: ("Séance récente", "Séance préc.")},
     },
     "en": {
         "report_title": "PROGRESS REPORT",
@@ -126,7 +126,7 @@ LANG_CENTER_OVERRIDES = {
         "annual_average": "OVERALL AVERAGE",
         "teacher_sign": "Trainer",
         "terms": {1: "SESSION 1", 2: "SESSION 2", 3: "SESSION 3"},
-        "seqs": {1: ("Eval. 1", "Eval. 2"), 2: ("Eval. 3", "Eval. 4"), 3: ("Eval. 5", "Eval. 6")},
+        "seqs": {1: ("Recent session", "Previous"), 2: ("Recent session", "Previous"), 3: ("Recent session", "Previous")},
     },
 }
 

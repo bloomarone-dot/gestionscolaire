@@ -107,6 +107,7 @@ class PromotionItem(BaseModel):
     status: str                      # ADMIS | REDOUBLE | REORIENTE | SORTANT
     dest_classe_id: Optional[int] = None
     new_series_code: Optional[str] = None
+    new_level_code: Optional[str] = None   # centres de langues (CECRL)
 
 
 class PromotionApply(BaseModel):

@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRightLeft, Download, FileUp, Trash2, UserPlus } from "lucide-react";
 import * as api from "../../../api/api";
+import LanguageCenterEnrollmentFields, {
+  buildLanguageCenterEnrollmentCodes,
+} from "../../../components/languageCenter/LanguageCenterEnrollmentFields";
 import {
   Badge,
   Button,
@@ -12,6 +15,7 @@ import {
   PageHeader,
   Select,
 } from "../../../components/ui";
+import { useEstablishmentProfile } from "../../../hooks/useEstablishmentProfile";
 import { useReferentielCascade } from "../../../hooks/useReferentielCascade";
 import {
   CascadeFields,
@@ -24,6 +28,7 @@ import {
 } from "./shared";
 
 export function OperationalStudentsPage() {
+  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
   const loadStudents = useCallback(async () => {
     const [eleves, classesData] = await Promise.all([
       api.fetchEleves_admin(),
@@ -64,7 +69,7 @@ export function OperationalStudentsPage() {
       .catch(() => setAllClasses([]));
   }, []);
 
-  // Classes éligibles au transfert : même niveau (et même série si définie), §6.3.
+  // Groupes éligibles au transfert : même niveau CECRL (centre) ou même niveau/série (école).
   function eligibleFor(student) {
     const cur = allClasses.find(
       (c) => String(c.id) === String(student.classe_id),
@@ -73,6 +78,13 @@ export function OperationalStudentsPage() {
       return allClasses.filter(
         (c) => String(c.id) !== String(student.classe_id),
       );
+    if (isLanguageCenter) {
+      return allClasses.filter(
+        (c) =>
+          c.level_code === cur.level_code &&
+          String(c.id) !== String(student.classe_id),
+      );
+    }
     return allClasses.filter(
       (c) =>
         c.level_code === cur.level_code &&
@@ -162,7 +174,7 @@ export function OperationalStudentsPage() {
   return (
     <>
       <PageHeader
-        title="Élèves"
+        title={ui.studentsList}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => api.downloadElevesImportTemplate(importClasseId || filterClasseId || null)}>
@@ -179,28 +191,28 @@ export function OperationalStudentsPage() {
             </Button>
             <Link to="/app/students/nouveau">
               <Button>
-                <UserPlus size={16} /> Nouvel élève
+                <UserPlus size={16} /> {ui.newStudent}
               </Button>
             </Link>
           </div>
         }
       />
       <Notice
-        message={loading ? "Chargement des eleves..." : error}
+        message={loading ? `Chargement des ${ui.students.toLowerCase()}...` : error}
         tone={error ? "amber" : "blue"}
       />
       <Notice message={notice} />
       <Card className="mb-4 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <label className="text-sm font-semibold text-slate-700">
-            Filtrer par classe
+            Filtrer par {isLanguageCenter ? "groupe" : "classe"}
           </label>
           <Select
             className="md:w-72"
             value={filterClasseId}
             onChange={(e) => setFilterClasseId(e.target.value)}
           >
-            <option value="">Toutes les classes</option>
+            <option value="">{isLanguageCenter ? "Tous les groupes" : "Toutes les classes"}</option>
             {allClasses.map((c) => {
               const row = classRow(c);
               return (
@@ -210,9 +222,11 @@ export function OperationalStudentsPage() {
               );
             })}
           </Select>
-          <p className="text-xs text-slate-500">
-            Un fichier Excel par classe (Form 4, Terminal A…). La section franco ou anglo est détectée automatiquement.
-          </p>
+          {!isLanguageCenter && (
+            <p className="text-xs text-slate-500">
+              Un fichier Excel par classe (Form 4, Terminal A…). La section franco ou anglo est détectée automatiquement.
+            </p>
+          )}
         </div>
       </Card>
       {transfer && (
@@ -230,7 +244,7 @@ export function OperationalStudentsPage() {
                 setTransfer({ ...transfer, targetId: e.target.value })
               }
             >
-              <option value="">Classe de destination (même niveau)…</option>
+              <option value="">{isLanguageCenter ? "Groupe de destination (même niveau)…" : "Classe de destination (même niveau)…"}</option>
               {eligibleFor(transfer.student).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nom || c.nom_personnalise}
@@ -249,13 +263,13 @@ export function OperationalStudentsPage() {
         </Card>
       )}
       <DataTable
-        title="Registre des élèves"
+        title={isLanguageCenter ? `Registre des ${ui.students.toLowerCase()}` : "Registre des élèves"}
         columns={[
           { key: "matricule", label: "Matricule" },
           { key: "name", label: "Nom complet" },
           {
             key: "className",
-            label: "Classe",
+            label: isLanguageCenter ? ui.class : "Classe",
             render: (row) =>
               row.classe_id ? (
                 <Link
@@ -269,7 +283,9 @@ export function OperationalStudentsPage() {
               ),
           },
           { key: "sexe", label: "Sexe" },
-          { key: "parent", label: "Contact parent" },
+          ...(!isLanguageCenter
+            ? [{ key: "parent", label: "Contact parent" }]
+            : [{ key: "parent", label: "Contact / tuteur" }]),
           {
             key: "status",
             label: "Statut",
@@ -367,6 +383,7 @@ export function OperationalStudentsPage() {
 
 export function EleveCreatePage() {
   const navigate = useNavigate();
+  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
   const [form, setForm] = useState({
     nom: "",
     prenom: "",
@@ -378,12 +395,14 @@ export function EleveCreatePage() {
     parent_phone2: "",
     parent_adresse: "",
   });
+  const [lcLevel, setLcLevel] = useState("");
   const [notice, setNotice] = useState("");
   const cascade = useReferentielCascade();
   const [filteredClasses, setFilteredClasses] = useState([]);
 
   // §6 étape 5 : ne proposer que les classes correspondant exactement au profil choisi.
   useEffect(() => {
+    if (isLanguageCenter) return;
     if (!cascade.isComplete) {
       setFilteredClasses([]);
       return;
@@ -399,6 +418,7 @@ export function EleveCreatePage() {
       .catch(() => setFilteredClasses([]));
     setForm((f) => ({ ...f, classe_id: "" }));
   }, [
+    isLanguageCenter,
     cascade.isComplete,
     cascade.value.subsystem_code,
     cascade.value.type_code,
@@ -408,6 +428,41 @@ export function EleveCreatePage() {
 
   async function submit(event) {
     event.preventDefault();
+    if (isLanguageCenter) {
+      if (!lcLevel) {
+        setNotice("Choisissez le niveau CECRL visé.");
+        return;
+      }
+      if (!form.classe_id) {
+        setNotice("Choisissez le groupe d'inscription.");
+        return;
+      }
+      try {
+        await api.createEleve_admin({
+          nom: form.nom,
+          prenom: form.prenom || null,
+          matricule: form.matricule || null,
+          sexe: form.sexe || null,
+          ...buildLanguageCenterEnrollmentCodes(lcLevel),
+          classe_id: Number(form.classe_id),
+          parents:
+            form.parent_nom && form.parent_phone
+              ? [
+                  {
+                    nom: form.parent_nom,
+                    phone: form.parent_phone,
+                    phone2: form.parent_phone2 || null,
+                    adresse: form.parent_adresse || null,
+                  },
+                ]
+              : [],
+        });
+        navigate("/app/students");
+      } catch (err) {
+        setNotice(err.message || "Inscription impossible.");
+      }
+      return;
+    }
     if (!cascade.isComplete) {
       setNotice("Complétez la cascade (sous-système → … → niveau/série).");
       return;
@@ -449,8 +504,8 @@ export function EleveCreatePage() {
   return (
     <>
       <PageHeader
-        title="Nouvel élève"
-        breadcrumb
+        title={ui.newStudent}
+        breadcrumb={ui.enrollment}
         actions={
           <Link to="/app/students">
             <Button variant="secondary">Retour à la liste</Button>
@@ -489,39 +544,48 @@ export function EleveCreatePage() {
             <option value="F">Féminin</option>
           </Select>
 
-          <div className="md:col-span-2 grid gap-4 md:grid-cols-2 rounded-lg bg-slate-50 p-4">
-            <p className="md:col-span-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-              Profil (cascade)
-            </p>
-            <CascadeFields cascade={cascade} />
-            <Select
-              className="md:col-span-2"
-              value={form.classe_id}
-              onChange={(e) => setForm({ ...form, classe_id: e.target.value })}
-              disabled={!cascade.isComplete}
-            >
-              <option value="">
-                {cascade.isComplete
-                  ? filteredClasses.length
-                    ? "Classe correspondante…"
-                    : "Aucune classe pour ce profil"
-                  : "Complétez la cascade"}
-              </option>
-              {filteredClasses.map((classe) => (
-                <option key={classe.id} value={classe.id}>
-                  {classe.name}
+          {isLanguageCenter ? (
+            <LanguageCenterEnrollmentFields
+              levelCode={lcLevel}
+              groupeId={form.classe_id}
+              onLevelChange={setLcLevel}
+              onGroupeChange={(id) => setForm((f) => ({ ...f, classe_id: id }))}
+            />
+          ) : (
+            <div className="md:col-span-2 grid gap-4 md:grid-cols-2 rounded-lg bg-slate-50 p-4">
+              <p className="md:col-span-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+                Profil (cascade)
+              </p>
+              <CascadeFields cascade={cascade} />
+              <Select
+                className="md:col-span-2"
+                value={form.classe_id}
+                onChange={(e) => setForm({ ...form, classe_id: e.target.value })}
+                disabled={!cascade.isComplete}
+              >
+                <option value="">
+                  {cascade.isComplete
+                    ? filteredClasses.length
+                      ? "Classe correspondante…"
+                      : "Aucune classe pour ce profil"
+                    : "Complétez la cascade"}
                 </option>
-              ))}
-            </Select>
-          </div>
+                {filteredClasses.map((classe) => (
+                  <option key={classe.id} value={classe.id}>
+                    {classe.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
 
           <Input
-            placeholder="Nom parent/tuteur"
+            placeholder={isLanguageCenter ? "Contact / tuteur (optionnel)" : "Nom parent/tuteur"}
             value={form.parent_nom}
             onChange={(e) => setForm({ ...form, parent_nom: e.target.value })}
           />
           <Input
-            placeholder="Téléphone parent (obligatoire)"
+            placeholder={isLanguageCenter ? "Téléphone apprenant ou tuteur" : "Téléphone parent (obligatoire)"}
             value={form.parent_phone}
             onChange={(e) => setForm({ ...form, parent_phone: e.target.value })}
           />
@@ -546,7 +610,7 @@ export function EleveCreatePage() {
               </Button>
             </Link>
             <Button type="submit">
-              <UserPlus size={16} /> Inscrire l'élève
+              <UserPlus size={16} /> {isLanguageCenter ? "Inscrire l'apprenant" : "Inscrire l'élève"}
             </Button>
           </div>
         </form>

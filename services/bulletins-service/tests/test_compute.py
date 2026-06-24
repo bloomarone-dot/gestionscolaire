@@ -192,6 +192,23 @@ def test_language_center_flat_groups():
     assert groupes == {1}
 
 
+def test_language_center_saturday_seances_average():
+    subjects = [{"matiere_id": 1, "nom": "Allemand", "coefficient": 4, "source": "OFFICIELLE"}]
+    notes = [
+        {"eleve_id": 1, "matiere_id": 1, "valeur": 12, "type_evaluation": "lc_s1_w01"},
+        {"eleve_id": 1, "matiere_id": 1, "valeur": 16, "type_evaluation": "lc_s1_w02"},
+        {"eleve_id": 1, "matiere_id": 1, "valeur": 14, "type_evaluation": "lc_s1_w03"},
+    ]
+    res = compute_class_bulletins(
+        [STUDENTS[0]], subjects, notes, "fr", trimestre=1,
+        establishment_kind="LANGUAGE_CENTER",
+    )
+    b = _by_id(res)[1]
+    subj = b["subjects"][0]
+    assert subj["moyenne"] == 14.0
+    assert subj["seqs"] == [16.0, 14.0]
+
+
 def test_lang_and_labels():
     assert lang_for_subsystem("ANGLOPHONE") == "en"
     assert lang_for_subsystem("FRANCOPHONE") == "fr"

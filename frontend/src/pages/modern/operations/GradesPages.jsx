@@ -1,7 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Download, Printer } from "lucide-react";
 import * as api from "../../../api/api";
 import { Badge, Button, Card, Input, PageHeader, Select } from "../../../components/ui";
+import { useEstablishmentProfile } from "../../../hooks/useEstablishmentProfile";
+import { LC_TYPE } from "../../../utils/languageCenter";
+import {
+  LC_MAX_SEANCES,
+  LC_SESSION_OPTIONS,
+  lcSeanceLabel,
+  lcSeanceTypeCode,
+} from "../../../utils/languageCenterEvaluations";
+import { getAppreciationForSection, getNotesUiLabels } from "../../../utils/sections";
 import {
   Notice,
   activeYearFromLocalStorage,
@@ -19,6 +28,7 @@ import {
 } from "./shared";
 
 export function GradesWorkspace({ professor = false }) {
+  const { labels: ui, isLanguageCenter, kind } = useEstablishmentProfile();
   const loadClasses = useCallback(
     async () =>
       (professor
@@ -28,9 +38,16 @@ export function GradesWorkspace({ professor = false }) {
     [professor],
   );
   const { rows: classRows } = useLoad(loadClasses, []);
+  const visibleClasses = useMemo(() => {
+    if (!isLanguageCenter) return classRows;
+    return classRows.filter(
+      (c) => c.type_code === LC_TYPE || c.cycle_code === "CECRL",
+    );
+  }, [classRows, isLanguageCenter]);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [trimestre, setTrimestre] = useState(1);
+  const [seanceNum, setSeanceNum] = useState(1);
   const [typeEvaluation, setTypeEvaluation] = useState("sequence_1");
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -43,6 +60,11 @@ export function GradesWorkspace({ professor = false }) {
   );
 
   const seqOptions = sequencesForTrimestre(trimestre);
+
+  useEffect(() => {
+    if (!isLanguageCenter) return;
+    setTypeEvaluation(lcSeanceTypeCode(trimestre, seanceNum));
+  }, [isLanguageCenter, trimestre, seanceNum]);
 
   useEffect(() => {
     let active = true;
@@ -66,10 +88,23 @@ export function GradesWorkspace({ professor = false }) {
     };
   }, []);
 
-  // Changement de trimestre → recadre la séquence sur celles du trimestre.
+  // Changement de trimestre → recadre la séquence sur celles du trimestre (école).
   function changeTrimestre(t) {
     setTrimestre(t);
     setTypeEvaluation(`sequence_${2 * Number(t) - 1}`);
+  }
+
+  function changeSession(session) {
+    const s = Number(session);
+    setTrimestre(s);
+    setSeanceNum(1);
+    setTypeEvaluation(lcSeanceTypeCode(s, 1));
+  }
+
+  function changeSeance(num) {
+    const n = Number(num);
+    setSeanceNum(n);
+    setTypeEvaluation(lcSeanceTypeCode(trimestre, n));
   }
 
   // Charge élèves + matières de la classe.
@@ -165,7 +200,9 @@ export function GradesWorkspace({ professor = false }) {
       );
     if (!selectedClass || !selectedSubject || !notes.length) {
       setNotice(
-        "Selectionnez une classe, une matiere et saisissez au moins une note (0 a 20).",
+        isLanguageCenter
+          ? "Sélectionnez un groupe, un module et saisissez au moins une note (0 à 20)."
+          : "Selectionnez une classe, une matiere et saisissez au moins une note (0 a 20).",
       );
       return;
     }
@@ -179,7 +216,11 @@ export function GradesWorkspace({ professor = false }) {
         type_evaluation: typeEvaluation,
         notes,
       });
-      setNotice(`${notes.length} note(s) enregistree(s) avec succes.`);
+      setNotice(
+        isLanguageCenter
+          ? `${notes.length} évaluation(s) enregistrée(s) — ${lcSeanceLabel(seanceNum)}, session ${trimestre}.`
+          : `${notes.length} note(s) enregistree(s) avec succes.`,
+      );
     } catch (err) {
       setNotice(err.message || "Saisie des notes impossible.");
     } finally {
@@ -193,6 +234,10 @@ export function GradesWorkspace({ professor = false }) {
   const selectedClassName = classNameById(classRows, selectedClass) || "";
   const selectedClassObj = classRows.find(
     (c) => String(c.id) === String(selectedClass),
+  );
+  const noteUi = getNotesUiLabels(
+    selectedClassObj?.subsystem_code === "ANGLOPHONE" ? "anglophone" : "francophone",
+    kind,
   );
 
   function printGradeReportSheet() {
@@ -288,18 +333,24 @@ export function GradesWorkspace({ professor = false }) {
 
   return (
     <>
-      <PageHeader title={professor ? "Mes notes" : "Saisie des notes"} />
+      <PageHeader title={professor ? ui.grades : ui.grades} />
       <Notice
         message={notice}
-        tone={notice.includes("succes") ? "emerald" : "amber"}
+        tone={notice.includes("succ") || notice.includes("enregistr") ? "emerald" : "amber"}
       />
-      {selectedClassObj && <SectionBanner classe={selectedClassObj} />}
+      {selectedClassObj && !isLanguageCenter && <SectionBanner classe={selectedClassObj} />}
+      {isLanguageCenter && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <strong>Centre de langues</strong> — saisissez les notes de chaque <strong>séance du samedi</strong>.
+          La moyenne de session est calculée automatiquement pour le relevé de notes.
+        </div>
+      )}
       <Card className="p-5">
         <form id="grades-form" onSubmit={submit}>
           <div className="grid gap-4 md:grid-cols-4">
             <label className="block">
               <span className="mb-1 block text-sm font-semibold text-slate-700">
-                Classe
+                {isLanguageCenter ? ui.class : "Classe"}
               </span>
               <Select
                 required
@@ -307,7 +358,7 @@ export function GradesWorkspace({ professor = false }) {
                 onChange={(e) => setSelectedClass(e.target.value)}
               >
                 <option value="">Choisir...</option>
-                {classRows.map((classe) => (
+                {visibleClasses.map((classe) => (
                   <option key={classe.id} value={classe.id}>
                     {classDisplayName(classe)}
                   </option>
@@ -316,7 +367,7 @@ export function GradesWorkspace({ professor = false }) {
             </label>
             <label className="block">
               <span className="mb-1 block text-sm font-semibold text-slate-700">
-                Matiere
+                {isLanguageCenter ? "Module" : "Matiere"}
               </span>
               <Select
                 required
@@ -332,34 +383,67 @@ export function GradesWorkspace({ professor = false }) {
                 ))}
               </Select>
             </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-slate-700">
-                Trimestre
-              </span>
-              <Select
-                value={trimestre}
-                onChange={(e) => changeTrimestre(e.target.value)}
-              >
-                <option value="1">Trimestre 1</option>
-                <option value="2">Trimestre 2</option>
-                <option value="3">Trimestre 3</option>
-              </Select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-slate-700">
-                Sequence
-              </span>
-              <Select
-                value={typeEvaluation}
-                onChange={(e) => setTypeEvaluation(e.target.value)}
-              >
-                {seqOptions.map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </label>
+            {isLanguageCenter ? (
+              <>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-semibold text-slate-700">
+                    Session annuelle
+                  </span>
+                  <Select
+                    value={trimestre}
+                    onChange={(e) => changeSession(e.target.value)}
+                  >
+                    {LC_SESSION_OPTIONS.map(({ value, label }) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-semibold text-slate-700">
+                    Séance du samedi
+                  </span>
+                  <Select
+                    value={seanceNum}
+                    onChange={(e) => changeSeance(e.target.value)}
+                  >
+                    {Array.from({ length: LC_MAX_SEANCES }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>{lcSeanceLabel(n)}</option>
+                    ))}
+                  </Select>
+                </label>
+              </>
+            ) : (
+              <>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-semibold text-slate-700">
+                    Trimestre
+                  </span>
+                  <Select
+                    value={trimestre}
+                    onChange={(e) => changeTrimestre(e.target.value)}
+                  >
+                    <option value="1">Trimestre 1</option>
+                    <option value="2">Trimestre 2</option>
+                    <option value="3">Trimestre 3</option>
+                  </Select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-semibold text-slate-700">
+                    Sequence
+                  </span>
+                  <Select
+                    value={typeEvaluation}
+                    onChange={(e) => setTypeEvaluation(e.target.value)}
+                  >
+                    {seqOptions.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              </>
+            )}
           </div>
 
           {selectedSubject && entryOpen !== null && (
@@ -376,30 +460,42 @@ export function GradesWorkspace({ professor = false }) {
 
           {!selectedClass ? (
             <p className="mt-6 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-              Selectionnez une classe pour afficher les eleves.
+              {isLanguageCenter
+                ? "Sélectionnez un groupe pour afficher les apprenants."
+                : "Selectionnez une classe pour afficher les eleves."}
             </p>
           ) : students.length === 0 ? (
             <p className="mt-6 rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-              Aucun eleve dans cette classe.
+              {isLanguageCenter
+                ? "Aucun apprenant dans ce groupe."
+                : "Aucun eleve dans cette classe."}
             </p>
           ) : (
             <>
               <p className="mt-5 text-sm text-slate-500">
-                {students.length} eleve(s)
-                {subjectName ? ` - ${subjectName}` : ""}
+                {students.length} {isLanguageCenter ? "apprenant(s)" : "eleve(s)"}
+                {subjectName ? ` — ${subjectName}` : ""}
+                {isLanguageCenter ? ` — ${lcSeanceLabel(seanceNum)}, session ${trimestre}` : ""}
               </p>
               <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-3 text-left">Matricule</th>
-                      <th className="px-4 py-3 text-left">Eleve</th>
-                      <th className="px-4 py-3 text-left">Note / 20</th>
-                      <th className="px-4 py-3 text-right">Bulletin</th>
+                      <th className="px-4 py-3 text-left">{noteUi.matricule}</th>
+                      <th className="px-4 py-3 text-left">{noteUi.fullName}</th>
+                      <th className="px-4 py-3 text-left">{noteUi.mark}</th>
+                      {!isLanguageCenter && (
+                        <th className="px-4 py-3 text-right">Bulletin</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {students.map((student) => (
+                    {students.map((student) => {
+                      const mark = values[student.id];
+                      const appr = mark !== undefined && mark !== ""
+                        ? getAppreciationForSection(mark, "francophone")
+                        : null;
+                      return (
                       <tr key={student.id}>
                         <td className="px-4 py-2 text-slate-500">
                           {student.matricule}
@@ -407,7 +503,7 @@ export function GradesWorkspace({ professor = false }) {
                         <td className="px-4 py-2 font-semibold">
                           {student.name}
                         </td>
-                        <td className="px-4 py-2 w-32">
+                        <td className="px-4 py-2 w-40">
                           <Input
                             type="number"
                             min="0"
@@ -422,7 +518,11 @@ export function GradesWorkspace({ professor = false }) {
                               }))
                             }
                           />
+                          {isLanguageCenter && appr?.label && mark !== "" && (
+                            <p className="mt-1 text-xs text-slate-500">{appr.label}</p>
+                          )}
                         </td>
+                        {!isLanguageCenter && (
                         <td className="px-4 py-2 text-right">
                           <Button
                             type="button"
@@ -441,27 +541,28 @@ export function GradesWorkspace({ professor = false }) {
                             <Download size={16} />
                           </Button>
                         </td>
+                        )}
                       </tr>
-                    ))}
+                    );})}
                   </tbody>
                 </table>
               </div>
               <div className="mt-5 flex items-center justify-end gap-3">
                 {entryOpen === false && (
                   <span className="text-sm text-rose-600">
-                    Saisie fermee pour cette classe/matiere.
+                    Saisie fermee pour cette {isLanguageCenter ? "combinaison groupe/module" : "classe/matiere"}.
                   </span>
                 )}
                 <Button type="submit" disabled={saving || entryOpen === false}>
                   <CheckCircle2 size={16} />{" "}
-                  {saving ? "Enregistrement..." : "Enregistrer"}
+                  {saving ? "Enregistrement..." : isLanguageCenter ? "Enregistrer l'évaluation" : "Enregistrer"}
                 </Button>
               </div>
             </>
           )}
         </form>
       </Card>
-      {!professor && (
+      {!professor && !isLanguageCenter && (
         <Card className="mt-6 p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>

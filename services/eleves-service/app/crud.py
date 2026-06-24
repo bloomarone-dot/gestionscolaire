@@ -113,6 +113,8 @@ def apply_promotion(db: Session, tenant_id: int, payload: PromotionApply) -> lis
             if item.dest_classe_id is None:
                 raise ValueError(f"Classe de destination requise pour l'élève {e.id}")
             e.classe_id = item.dest_classe_id
+            if item.new_level_code:
+                e.level_code = item.new_level_code
             e.statut = STATUT_INSCRIT
         elif item.status == PROMO_REORIENTE:
             if item.dest_classe_id is None:
@@ -120,6 +122,8 @@ def apply_promotion(db: Session, tenant_id: int, payload: PromotionApply) -> lis
             e.classe_id = item.dest_classe_id
             if item.new_series_code:
                 e.series_code = item.new_series_code
+            if item.new_level_code:
+                e.level_code = item.new_level_code
             e.statut = STATUT_INSCRIT
         elif item.status == PROMO_SORTANT:
             e.classe_id = None

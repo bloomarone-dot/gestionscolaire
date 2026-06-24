@@ -259,7 +259,10 @@ export function classRow(classe) {
     name: classe.nom || classe.nom_personnalise || classe.name,
     subsystem: subsystemLabel(code, classe.specialite_libre || classe.section),
     subsystem_code: code,
+    type_code: classe.type_code || null,
     type: typeLabel(classe.type_code),
+    cycle_code: classe.cycle_code || null,
+    level_code: classe.level_code || classe.niveau || null,
     level:
       classe.niveau ||
       classe.level_code ||

@@ -110,6 +110,21 @@ def test_promotion_admis_requires_dest(db):
         ))
 
 
+def test_promotion_admis_updates_level_code(db):
+    e = _make(db, classe_id=10)
+    e.level_code = "A1"
+    db.commit()
+    crud.apply_promotion(db, TENANT, PromotionApply(
+        source_classe_id=10,
+        items=[PromotionItem(
+            eleve_id=e.id, status="ADMIS", dest_classe_id=30, new_level_code="A2",
+        )],
+    ))
+    moved = crud.get_eleve(db, TENANT, e.id)
+    assert moved.classe_id == 30
+    assert moved.level_code == "A2"
+
+
 def test_tenant_isolation(db):
     e = _make(db, tenant=TENANT)
     assert crud.list_eleves(db, 999) == []
