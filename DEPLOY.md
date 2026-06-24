@@ -38,7 +38,7 @@ docker compose exec postgres pg_dumpall -U gs > backup.sql
 ## Mise à jour
 
 ```bash
-cd /opt/gestionscolaire
+cd /var/www/gestionscolaire
 bash scripts/update-hostinger.sh
 ```
 
@@ -67,7 +67,7 @@ Le dépôt n'utilise **plus** le service Docker `backend` (FastAPI monolithe sur
 Cause la plus fréquente : un ancien **`docker-compose.override.yml`** sur le serveur (créé pour éviter le conflit de port 8000) référence encore `backend`, alors que ce service n'existe plus.
 
 ```bash
-cd /opt/gestionscolaire   # ou votre chemin de déploiement
+cd /var/www/gestionscolaire
 ls -la docker-compose.override.yml
 
 # Sauvegarder et retirer l'override obsolète

@@ -2,7 +2,7 @@
 # Mise à jour Hostinger — gestionscolaire (conserve les données PostgreSQL).
 #
 # Usage :
-#   cd /opt/gestionscolaire
+#   cd /var/www/gestionscolaire
 #   bash scripts/update-hostinger.sh
 #
 set -euo pipefail
