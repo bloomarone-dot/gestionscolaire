@@ -119,6 +119,82 @@ def seed_all(session: Session) -> None:
         for subject_code, coef in D.LANGUE_SUBJECTS.items():
             add_elig(subject_code, level_code, None, coef)
 
+    # École primaire — francophone & anglophone
+    for level_code in D.MATERNELLE_FR_LEVELS:
+        for subject_code, coef in D.MATERNELLE_FR.items():
+            add_elig(subject_code, level_code, None, coef)
+    for level_code in D.ELEMENTAIRE_FR_LEVELS:
+        for subject_code, coef in D.PRIMAIRE_FR.items():
+            add_elig(subject_code, level_code, None, coef)
+    for level_code in D.PRIMAIRE_EN_LEVELS:
+        for subject_code, coef in D.PRIMAIRE_EN.items():
+            add_elig(subject_code, level_code, None, coef)
+
+    session.commit()
+
+
+def seed_maternelle_levels(session: Session) -> None:
+    """Ajoute PS/MS/GS sur une base où SIL existe déjà (migration douce)."""
+    if session.query(Level).filter(Level.code == "PS").first() is not None:
+        return
+
+    subsystems = {s.code: s for s in session.query(Subsystem).all()}
+    types = {t.code: t for t in session.query(TeachingType).all()}
+    if "GENERAL" not in types:
+        return
+
+    cycle = session.query(Cycle).filter(Cycle.code == "PRIMAIRE").first()
+    if cycle is None:
+        cycle = Cycle(code="PRIMAIRE", name_fr="École primaire", name_en="Primary school", order=0)
+        session.add(cycle)
+        session.flush()
+
+    levels: dict[str, Level] = {}
+    for code, name, sub, typ, cyc, exam, order in D.LEVELS:
+        if cyc != "PRIMAIRE" or code not in D.MATERNELLE_FR_LEVELS:
+            continue
+        subsys = subsystems.get(sub)
+        if subsys is None:
+            continue
+        levels[code] = Level(
+            code=code, name=name, subsystem_id=subsys.id,
+            teaching_type_id=types[typ].id, cycle_id=cycle.id,
+            exam=exam, order=order,
+        )
+    if not levels:
+        return
+    session.add_all(levels.values())
+    session.flush()
+
+    subjects: dict[str, Subject] = {}
+    for code, name in D.SUBJECTS:
+        if not code.startswith("PR_"):
+            continue
+        existing = session.query(Subject).filter(Subject.code == code).first()
+        subjects[code] = existing or Subject(code=code, name=name)
+        if existing is None:
+            session.add(subjects[code])
+    session.flush()
+
+    def _add_elig(subject_code: str, level_code: str, coef: float) -> None:
+        level = levels.get(level_code)
+        subj = subjects.get(subject_code) or session.query(Subject).filter(Subject.code == subject_code).first()
+        if level is None or subj is None:
+            return
+        exists = session.query(SubjectEligibility).filter(
+            SubjectEligibility.subject_id == subj.id,
+            SubjectEligibility.level_id == level.id,
+        ).first()
+        if exists is None:
+            session.add(SubjectEligibility(
+                subject_id=subj.id, level_id=level.id,
+                series_id=None, default_coefficient=coef, groupe=None,
+            ))
+
+    for level_code in D.MATERNELLE_FR_LEVELS:
+        for subject_code, coef in D.MATERNELLE_FR.items():
+            _add_elig(subject_code, level_code, coef)
+
     session.commit()
 
 
@@ -186,6 +262,77 @@ def seed_language_referential(session: Session) -> None:
                     default_coefficient=coef,
                     groupe=None,
                 ))
+
+    session.commit()
+
+
+def seed_primary_referential(session: Session) -> None:
+    """Ajoute cycle PRIMAIRE, maternelle PS→GS et niveaux SIL→CM2 sur une base existante."""
+    seed_maternelle_levels(session)
+    if session.query(Level).filter(Level.code == "SIL").first() is not None:
+        return
+
+    subsystems = {s.code: s for s in session.query(Subsystem).all()}
+    types = {t.code: t for t in session.query(TeachingType).all()}
+    if "GENERAL" not in types:
+        return
+
+    cycle = session.query(Cycle).filter(Cycle.code == "PRIMAIRE").first()
+    if cycle is None:
+        cycle = Cycle(code="PRIMAIRE", name_fr="École primaire", name_en="Primary school", order=0)
+        session.add(cycle)
+        session.flush()
+
+    levels: dict[str, Level] = {}
+    for code, name, sub, typ, cyc, exam, order in D.LEVELS:
+        if cyc != "PRIMAIRE":
+            continue
+        subsys = subsystems.get(sub)
+        if subsys is None:
+            continue
+        level = Level(
+            code=code, name=name, subsystem_id=subsys.id,
+            teaching_type_id=types[typ].id, cycle_id=cycle.id,
+            exam=exam, order=order,
+        )
+        levels[code] = level
+    session.add_all(levels.values())
+    session.flush()
+
+    subjects: dict[str, Subject] = {}
+    for code, name in D.SUBJECTS:
+        if not code.startswith("PR_"):
+            continue
+        existing = session.query(Subject).filter(Subject.code == code).first()
+        subjects[code] = existing or Subject(code=code, name=name)
+        if existing is None:
+            session.add(subjects[code])
+    session.flush()
+
+    def _add_elig(subject_code: str, level_code: str, coef: float) -> None:
+        level = levels.get(level_code) or session.query(Level).filter(Level.code == level_code).first()
+        subj = subjects.get(subject_code) or session.query(Subject).filter(Subject.code == subject_code).first()
+        if level is None or subj is None:
+            return
+        exists = session.query(SubjectEligibility).filter(
+            SubjectEligibility.subject_id == subj.id,
+            SubjectEligibility.level_id == level.id,
+        ).first()
+        if exists is None:
+            session.add(SubjectEligibility(
+                subject_id=subj.id, level_id=level.id,
+                series_id=None, default_coefficient=coef, groupe=None,
+            ))
+
+    for level_code in D.ELEMENTAIRE_FR_LEVELS:
+        for subject_code, coef in D.PRIMAIRE_FR.items():
+            _add_elig(subject_code, level_code, coef)
+    for level_code in D.MATERNELLE_FR_LEVELS:
+        for subject_code, coef in D.MATERNELLE_FR.items():
+            _add_elig(subject_code, level_code, coef)
+    for level_code in D.PRIMAIRE_EN_LEVELS:
+        for subject_code, coef in D.PRIMAIRE_EN.items():
+            _add_elig(subject_code, level_code, coef)
 
     session.commit()
 

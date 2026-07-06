@@ -7,7 +7,7 @@ francophone). Les centres de formation en langues utilisent un relevé simplifi�
 from typing import Optional
 
 from common.appreciation_scales import label_for_average
-from common.establishment import is_language_center
+from common.establishment import is_language_center, is_primary_school
 from common.subsystem import lang_for_classe, resolve_subsystem_code
 
 LABELS = {
@@ -101,6 +101,25 @@ LABELS = {
     },
 }
 
+
+PRIMARY_OVERRIDES = {
+    "fr": {
+        "report_title": "BULLETIN SCOLAIRE",
+        "ministry": "MINISTÈRE DE L'ÉDUCATION DE BASE",
+        "country": "RÉPUBLIQUE DU CAMEROUN",
+        "motto_nat": "Paix - Travail - Patrie",
+        "class": "CLASSE",
+        "teacher_sign": "Enseignant(e)",
+        "principal_col": "ENSEIGNANT(E) TITULAIRE",
+        "principal": "DIRECTEUR / DIRECTRICE",
+        "terms": {1: "1er TRIMESTRE", 2: "2e TRIMESTRE", 3: "3e TRIMESTRE"},
+    },
+    "en": {
+        "report_title": "PRIMARY SCHOOL REPORT",
+        "ministry": "MINISTRY OF BASIC EDUCATION",
+    },
+}
+
 LANG_CENTER_OVERRIDES = {
     "fr": {
         "report_title": "RELEVÉ DE NOTES",
@@ -141,6 +160,9 @@ def lang_for_class(classe: Optional[dict]) -> str:
 
 def labels_pack(lang: str, establishment_kind: Optional[str] = None) -> dict:
     base = LABELS[lang]
+    if is_primary_school(establishment_kind):
+        overrides = PRIMARY_OVERRIDES.get(lang, PRIMARY_OVERRIDES["fr"])
+        return {**base, **overrides}
     if not is_language_center(establishment_kind):
         return base
     overrides = LANG_CENTER_OVERRIDES.get(lang, LANG_CENTER_OVERRIDES["fr"])

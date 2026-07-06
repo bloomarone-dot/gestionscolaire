@@ -4,6 +4,7 @@ import * as api from '../../api/api';
 import { Badge, Button, DataTable, EmptyState, PageHeader, Select } from '../../components/ui';
 import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
 import LanguageCenterPromotionsPanel from './LanguageCenterPromotionsPanel';
+import { suggestPrimaryDestination } from '../../utils/primarySchool';
 
 // §10 — Outil de fin d'année : décider du passage de chaque élève d'une classe.
 const DECISIONS = [
@@ -31,8 +32,9 @@ function className(classe) {
 }
 
 // Classe de destination « logique » : niveau suivant, même série si possible (§10.2).
-function suggestDestination(classes, source) {
+function suggestDestination(classes, source, { primary = false } = {}) {
   if (!source) return '';
+  if (primary) return suggestPrimaryDestination(classes, source);
   const next = NEXT_LEVEL[source.level_code];
   if (!next) return '';
   const others = classes.filter((c) => c.level_code === next && String(c.id) !== String(source.id));
@@ -51,7 +53,7 @@ function Notice({ message, tone = 'emerald' }) {
 }
 
 export default function PromotionsPage() {
-  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
+  const { labels: ui, isLanguageCenter, isPrimarySchool } = useEstablishmentProfile();
   const [saving, setSaving] = useState(false);
 
   async function handleLcApply(payload) {
@@ -76,10 +78,10 @@ export default function PromotionsPage() {
     );
   }
 
-  return <SchoolPromotionsPanel />;
+  return <SchoolPromotionsPanel isPrimarySchool={isPrimarySchool} />;
 }
 
-function SchoolPromotionsPanel() {
+function SchoolPromotionsPanel({ isPrimarySchool = false }) {
   const [classes, setClasses] = useState([]);
   const [sourceId, setSourceId] = useState('');
   const [rows, setRows] = useState([]);
@@ -119,7 +121,7 @@ function SchoolPromotionsPanel() {
   function onSourceChange(value) {
     setSourceId(value);
     const source = classes.find((c) => String(c.id) === String(value));
-    const suggestion = suggestDestination(classes, source);
+    const suggestion = suggestDestination(classes, source, { primary: isPrimarySchool });
     setBulkDest(suggestion);
     loadStudents(value, suggestion);
     if (suggestion) {
@@ -226,9 +228,13 @@ function SchoolPromotionsPanel() {
   return (
     <div>
       <PageHeader
-        title="Passages de fin d'année"
+        title={isPrimarySchool ? 'Passages de fin d\'année — Primaire' : 'Passages de fin d\'année'}
         breadcrumb="Scolarité"
-        description="Décidez du passage de chaque élève : admis, redouble, réorienté ou sortant, puis appliquez en une fois."
+        description={
+          isPrimarySchool
+            ? 'Décidez du passage SIL → CP → … → CM2 (ou Class 1 → 6) pour chaque élève.'
+            : 'Décidez du passage de chaque élève : admis, redouble, réorienté ou sortant, puis appliquez en une fois.'
+        }
         actions={
           <Button onClick={submit} disabled={!sourceId || !rows.length || saving}>
             <CheckCircle2 size={16} /> {saving ? 'Application…' : 'Appliquer les passages'}

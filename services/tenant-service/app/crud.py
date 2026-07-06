@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from common.appreciation_scales import dump_scales, parse_scales
 
 from common.bulletin_theme import parse_theme
+from common.bulletin_layout import parse_layout
 from common.establishment import default_profile_for_kind, normalize_establishment_kind
 
 from app.models import (
@@ -97,6 +98,11 @@ def to_profile(school: School) -> SchoolProfile:
         bulletin_next_term_note=school.bulletin_next_term_note,
         bulletin_appreciation_scales=parse_scales(school.bulletin_appreciation_scales),
         bulletin_theme=parse_theme(getattr(school, "bulletin_theme", None)),
+        bulletin_layout_profile=parse_layout(
+            getattr(school, "bulletin_layout_profile", None),
+            getattr(school, "establishment_kind", None),
+        ),
+        bulletin_reference_url=getattr(school, "bulletin_reference_url", None),
         subscription_plan=school.subscription_plan,
         establishment_kind=normalize_establishment_kind(getattr(school, "establishment_kind", None)),
         is_active=school.is_active,

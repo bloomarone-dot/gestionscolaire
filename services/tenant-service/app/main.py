@@ -8,6 +8,7 @@ from common.tenant import TenantContext, get_context, require_roles
 from common.appreciation_scales import dump_scales
 
 from common.bulletin_theme import dump_theme, parse_theme
+from common.bulletin_layout import dump_layout, parse_layout
 
 from app import crud
 from app.config import settings
@@ -36,6 +37,8 @@ def _startup() -> None:
         "bulletin_next_term_note": "VARCHAR(255)",
         "bulletin_appreciation_scales": "TEXT",
         "bulletin_theme": "TEXT",
+        "bulletin_layout_profile": "TEXT",
+        "bulletin_reference_url": "TEXT",
     })
     _SessionLocal = sessionmaker(bind=get_engine(), future=True)
 
@@ -117,6 +120,8 @@ def update_school(
             value = dump_scales(value)
         if field == "bulletin_theme" and value is not None:
             value = dump_theme(value)
+        if field == "bulletin_layout_profile" and value is not None:
+            value = dump_layout(value)
         setattr(school, field, value)
     db.commit()
     db.refresh(school)

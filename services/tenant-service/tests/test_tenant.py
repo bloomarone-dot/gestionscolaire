@@ -38,6 +38,18 @@ def test_create_language_center_default_profile(db):
     assert profile.channels == ["INTERNAL"]
 
 
+def test_create_primary_school_default_profile(db):
+    school = crud.create_school(db, SchoolCreate(
+        name="École Les Petits Génies", city="Yaoundé",
+        establishment_kind="PRIMARY_SCHOOL",
+    ))
+    profile = crud.to_profile(school)
+    assert profile.establishment_kind == "PRIMARY_SCHOOL"
+    assert set(profile.subsystems) == {"FRANCOPHONE", "ANGLOPHONE"}
+    assert profile.teaching_types == ["GENERAL"]
+    assert profile.channels == ["INTERNAL"]
+
+
 def test_create_school_with_profile(db):
     school = crud.create_school(db, SchoolCreate(
         name="Collège Bilingue Test", city="Douala",

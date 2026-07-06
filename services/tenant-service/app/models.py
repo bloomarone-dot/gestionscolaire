@@ -49,6 +49,9 @@ class School(Base):
     bulletin_appreciation_scales = Column(Text, nullable=True)
     # Thème visuel bulletin (JSON couleurs par section) — SaaS multi-établissements
     bulletin_theme = Column(Text, nullable=True)
+    # Profil de présentation détecté depuis un bulletin modèle téléversé (JSON)
+    bulletin_layout_profile = Column(Text, nullable=True)
+    bulletin_reference_url = Column(Text, nullable=True)
 
     subscription_plan = Column(String(40), default="standard")
     # SCHOOL = établissement scolaire MINESEC ; LANGUAGE_CENTER = institut de langues

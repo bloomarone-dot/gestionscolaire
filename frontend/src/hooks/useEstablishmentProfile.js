@@ -3,6 +3,7 @@ import * as api from '../api/api';
 import {
   getEstablishmentUiLabels,
   isLanguageCenter,
+  isPrimarySchool,
   periodOptions,
 } from '../utils/establishmentKind';
 
@@ -27,6 +28,7 @@ export function useEstablishmentProfile() {
     loading,
     kind,
     isLanguageCenter: isLanguageCenter(kind),
+    isPrimarySchool: isPrimarySchool(kind),
     labels,
     periodOptions: periodOptions(kind),
     simplifiedBulletin: isLanguageCenter(kind),

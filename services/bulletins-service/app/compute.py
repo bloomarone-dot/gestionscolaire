@@ -16,7 +16,7 @@ from typing import Optional
 
 from common.appreciation_scales import label_for_average, parse_scales
 
-from common.establishment import is_language_center
+from common.establishment import is_language_center, is_primary_school
 
 from app.labels import seq_types_for
 
@@ -175,7 +175,8 @@ def compute_class_bulletins(
     subjects : [{matiere_id, nom, coefficient, source, enseignant_id, groupe}] (activées)
     notes    : [{eleve_id, matiere_id, valeur, type_evaluation}]
     """
-    official, special = _partition_subjects(subjects, flat_groups=is_language_center(establishment_kind))
+    flat = is_language_center(establishment_kind) or is_primary_school(establishment_kind)
+    official, special = _partition_subjects(subjects, flat_groups=flat)
     official.sort(key=lambda s: (s.get("groupe") or 1, (s.get("nom") or "").lower()))
 
     scales = parse_scales(appreciation_scales)

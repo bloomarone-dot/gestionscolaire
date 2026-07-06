@@ -3,7 +3,7 @@ import {
   GraduationCap, LayoutDashboard, Megaphone, Receipt, School, Settings,
   UserCog, Users, WalletCards, Sparkles,
 } from 'lucide-react';
-import { isLanguageCenter } from './establishmentKind';
+import { isLanguageCenter, isPrimarySchool } from './establishmentKind';
 
 export const NAV_ICONS = {
   LayoutDashboard,
@@ -86,6 +86,47 @@ function languageCenterAdminNav(ui) {
   ];
 }
 
+/** Menu admin — école primaire. */
+function primarySchoolAdminNav(ui) {
+  return [
+    { to: '/app/dashboard', label: 'Tableau de bord', icon: 'LayoutDashboard' },
+    {
+      group: 'Pédagogie',
+      icon: 'School',
+      items: [
+        { to: '/app/classes', label: ui.classes, icon: 'School' },
+        { to: '/app/subjects', label: ui.subjects, icon: 'BookOpen' },
+        { to: '/app/grades', label: ui.grades, icon: 'BarChart3' },
+        { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
+        { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
+      ],
+    },
+    {
+      group: 'Élèves',
+      icon: 'Users',
+      items: [
+        { to: '/app/students', label: ui.studentsList, icon: 'Users' },
+        { to: '/app/students/nouveau', label: ui.enrollment, icon: 'ClipboardList' },
+      ],
+    },
+    {
+      group: 'Équipe',
+      icon: 'UserCog',
+      items: [
+        { to: '/app/team', label: 'Équipe & comptes', icon: 'UserCog' },
+        { to: '/app/teachers', label: ui.teachers, icon: 'GraduationCap', match: { fonction: 'enseignant' } },
+      ],
+    },
+    {
+      group: 'Paramètres',
+      icon: 'Settings',
+      items: [
+        { to: '/app/settings', label: ui.schoolProfile, icon: 'School' },
+      ],
+    },
+  ];
+}
+
 /** Menu admin — école MINESEC (structure existante enrichie). */
 function schoolAdminNav(ui) {
   return [
@@ -155,7 +196,9 @@ function schoolAdminNav(ui) {
 }
 
 export function buildAdminNav(ui, establishmentKind = 'SCHOOL') {
-  return isLanguageCenter(establishmentKind) ? languageCenterAdminNav(ui) : schoolAdminNav(ui);
+  if (isLanguageCenter(establishmentKind)) return languageCenterAdminNav(ui);
+  if (isPrimarySchool(establishmentKind)) return primarySchoolAdminNav(ui);
+  return schoolAdminNav(ui);
 }
 
 export function buildSecretaryNav(ui) {

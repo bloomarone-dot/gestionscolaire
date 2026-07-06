@@ -1,3 +1,5 @@
 # gs-common fournit fastapi, sqlalchemy, psycopg2, python-jose, passlib, etc.
 uvicorn[standard]>=0.30
 reportlab>=4.0
+Pillow>=10.0
+pymupdf>=1.24

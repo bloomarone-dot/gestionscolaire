@@ -5,6 +5,8 @@ import * as api from "../../../api/api";
 import LanguageCenterEnrollmentFields, {
   buildLanguageCenterEnrollmentCodes,
 } from "../../../components/languageCenter/LanguageCenterEnrollmentFields";
+import PrimarySchoolEnrollmentFields from "../../../components/primarySchool/PrimarySchoolEnrollmentFields";
+import { buildPrimaryEnrollmentCodes, PS_SUBSYSTEM_FR } from "../../../utils/primarySchool";
 import {
   Badge,
   Button,
@@ -28,7 +30,7 @@ import {
 } from "./shared";
 
 export function OperationalStudentsPage() {
-  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
+  const { labels: ui, isLanguageCenter, isPrimarySchool } = useEstablishmentProfile();
   const loadStudents = useCallback(async () => {
     const [eleves, classesData] = await Promise.all([
       api.fetchEleves_admin(),
@@ -78,10 +80,11 @@ export function OperationalStudentsPage() {
       return allClasses.filter(
         (c) => String(c.id) !== String(student.classe_id),
       );
-    if (isLanguageCenter) {
+    if (isLanguageCenter || isPrimarySchool) {
       return allClasses.filter(
         (c) =>
           c.level_code === cur.level_code &&
+          (!isPrimarySchool || c.subsystem_code === cur.subsystem_code) &&
           String(c.id) !== String(student.classe_id),
       );
     }
@@ -383,7 +386,7 @@ export function OperationalStudentsPage() {
 
 export function EleveCreatePage() {
   const navigate = useNavigate();
-  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
+  const { labels: ui, isLanguageCenter, isPrimarySchool } = useEstablishmentProfile();
   const [form, setForm] = useState({
     nom: "",
     prenom: "",
@@ -396,13 +399,15 @@ export function EleveCreatePage() {
     parent_adresse: "",
   });
   const [lcLevel, setLcLevel] = useState("");
+  const [psSection, setPsSection] = useState(PS_SUBSYSTEM_FR);
+  const [psLevel, setPsLevel] = useState("");
   const [notice, setNotice] = useState("");
   const cascade = useReferentielCascade();
   const [filteredClasses, setFilteredClasses] = useState([]);
 
   // §6 étape 5 : ne proposer que les classes correspondant exactement au profil choisi.
   useEffect(() => {
-    if (isLanguageCenter) return;
+    if (isLanguageCenter || isPrimarySchool) return;
     if (!cascade.isComplete) {
       setFilteredClasses([]);
       return;
@@ -419,6 +424,7 @@ export function EleveCreatePage() {
     setForm((f) => ({ ...f, classe_id: "" }));
   }, [
     isLanguageCenter,
+    isPrimarySchool,
     cascade.isComplete,
     cascade.value.subsystem_code,
     cascade.value.type_code,
@@ -444,6 +450,41 @@ export function EleveCreatePage() {
           matricule: form.matricule || null,
           sexe: form.sexe || null,
           ...buildLanguageCenterEnrollmentCodes(lcLevel),
+          classe_id: Number(form.classe_id),
+          parents:
+            form.parent_nom && form.parent_phone
+              ? [
+                  {
+                    nom: form.parent_nom,
+                    phone: form.parent_phone,
+                    phone2: form.parent_phone2 || null,
+                    adresse: form.parent_adresse || null,
+                  },
+                ]
+              : [],
+        });
+        navigate("/app/students");
+      } catch (err) {
+        setNotice(err.message || "Inscription impossible.");
+      }
+      return;
+    }
+    if (isPrimarySchool) {
+      if (!psLevel) {
+        setNotice("Choisissez le niveau (SIL, CP, CE1…).");
+        return;
+      }
+      if (!form.classe_id) {
+        setNotice("Choisissez la classe d'inscription.");
+        return;
+      }
+      try {
+        await api.createEleve_admin({
+          nom: form.nom,
+          prenom: form.prenom || null,
+          matricule: form.matricule || null,
+          sexe: form.sexe || null,
+          ...buildPrimaryEnrollmentCodes(psLevel, psSection),
           classe_id: Number(form.classe_id),
           parents:
             form.parent_nom && form.parent_phone
@@ -551,6 +592,15 @@ export function EleveCreatePage() {
               onLevelChange={setLcLevel}
               onGroupeChange={(id) => setForm((f) => ({ ...f, classe_id: id }))}
             />
+          ) : isPrimarySchool ? (
+            <PrimarySchoolEnrollmentFields
+              section={psSection}
+              levelCode={psLevel}
+              classeId={form.classe_id}
+              onSectionChange={setPsSection}
+              onLevelChange={setPsLevel}
+              onClasseChange={(id) => setForm((f) => ({ ...f, classe_id: id }))}
+            />
           ) : (
             <div className="md:col-span-2 grid gap-4 md:grid-cols-2 rounded-lg bg-slate-50 p-4">
               <p className="md:col-span-2 text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -580,12 +630,12 @@ export function EleveCreatePage() {
           )}
 
           <Input
-            placeholder={isLanguageCenter ? "Contact / tuteur (optionnel)" : "Nom parent/tuteur"}
+            placeholder={isLanguageCenter || isPrimarySchool ? "Contact / tuteur (optionnel)" : "Nom parent/tuteur"}
             value={form.parent_nom}
             onChange={(e) => setForm({ ...form, parent_nom: e.target.value })}
           />
           <Input
-            placeholder={isLanguageCenter ? "Téléphone apprenant ou tuteur" : "Téléphone parent (obligatoire)"}
+            placeholder={isLanguageCenter || isPrimarySchool ? "Téléphone apprenant ou tuteur" : "Téléphone parent (obligatoire)"}
             value={form.parent_phone}
             onChange={(e) => setForm({ ...form, parent_phone: e.target.value })}
           />
@@ -610,7 +660,7 @@ export function EleveCreatePage() {
               </Button>
             </Link>
             <Button type="submit">
-              <UserPlus size={16} /> {isLanguageCenter ? "Inscrire l'apprenant" : "Inscrire l'élève"}
+              <UserPlus size={16} /> {isLanguageCenter ? "Inscrire l'apprenant" : isPrimarySchool ? "Inscrire l'élève" : "Inscrire l'élève"}
             </Button>
           </div>
         </form>

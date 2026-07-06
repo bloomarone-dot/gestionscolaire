@@ -56,6 +56,8 @@ class SchoolUpdate(BaseModel):
     bulletin_next_term_note: Optional[str] = None
     bulletin_appreciation_scales: Optional[Dict[str, List[AppreciationBand]]] = None
     bulletin_theme: Optional[Dict[str, Any]] = None
+    bulletin_layout_profile: Optional[Dict[str, Any]] = None
+    bulletin_reference_url: Optional[str] = None
     is_active: Optional[bool] = None
 
     @field_validator("establishment_kind")
@@ -99,6 +101,8 @@ class SchoolProfile(BaseModel):
     bulletin_next_term_note: Optional[str] = None
     bulletin_appreciation_scales: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
     bulletin_theme: Dict[str, Any] = Field(default_factory=dict)
+    bulletin_layout_profile: Dict[str, Any] = Field(default_factory=dict)
+    bulletin_reference_url: Optional[str] = None
     subscription_plan: Optional[str] = None
     establishment_kind: str = ESTABLISHMENT_KIND_SCHOOL
     is_active: bool

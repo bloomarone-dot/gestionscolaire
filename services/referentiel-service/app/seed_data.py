@@ -27,6 +27,7 @@ TEACHING_TYPES = [
 
 # ── Cycles ───────────────────────────────────────────────────────────────────
 CYCLES = [
+    ("PRIMAIRE", "École primaire", "Primary school", 0),
     ("PREMIER", "Premier Cycle", "First Cycle", 1),
     ("SECOND", "Second Cycle", "Second Cycle", 2),
     ("CECRL", "Cadre européen commun (CECRL)", "CEFR", 3),
@@ -34,6 +35,23 @@ CYCLES = [
 
 # ── Niveaux (code, nom, sous-système, type, cycle, examen, ordre) ─────────────
 LEVELS = [
+    # École primaire — Francophone (Maternelle PS→GS puis SIL → CM2)
+    ("PS", "Petite Section (Maternelle)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", None, 1),
+    ("MS", "Moyenne Section (Maternelle)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", None, 2),
+    ("GS", "Grande Section (Maternelle)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", None, 3),
+    ("SIL", "Section d'Initiation au Langage (SIL)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", None, 4),
+    ("CP", "Cours Préparatoire (CP)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", None, 5),
+    ("CE1", "Cours Élémentaire 1 (CE1)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", None, 6),
+    ("CE2", "Cours Élémentaire 2 (CE2)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", None, 7),
+    ("CM1", "Cours Moyen 1 (CM1)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", None, 8),
+    ("CM2", "Cours Moyen 2 (CM2)", "FRANCOPHONE", "GENERAL", "PRIMAIRE", "CEP", 9),
+    # École primaire — Anglophone (Class 1 → 6)
+    ("P1", "Class 1", "ANGLOPHONE", "GENERAL", "PRIMAIRE", None, 1),
+    ("P2", "Class 2", "ANGLOPHONE", "GENERAL", "PRIMAIRE", None, 2),
+    ("P3", "Class 3", "ANGLOPHONE", "GENERAL", "PRIMAIRE", None, 3),
+    ("P4", "Class 4", "ANGLOPHONE", "GENERAL", "PRIMAIRE", None, 4),
+    ("P5", "Class 5", "ANGLOPHONE", "GENERAL", "PRIMAIRE", None, 5),
+    ("P6", "Class 6", "ANGLOPHONE", "GENERAL", "PRIMAIRE", "Primary Leaving Certificate", 6),
     # Tableau A — Francophone Général
     ("6E", "6ème", "FRANCOPHONE", "GENERAL", "PREMIER", None, 1),
     ("5E", "5ème", "FRANCOPHONE", "GENERAL", "PREMIER", None, 2),
@@ -186,6 +204,22 @@ SUBJECTS = [
     ("LANG_COMPR_ECRITE", "Compréhension écrite"),
     ("LANG_GRAMMAIRE", "Grammaire"),
     ("LANG_CULTURE", "Culture et civilisation"),
+    # École primaire
+    ("PR_FR", "Français / Lecture"),
+    ("PR_MATHS", "Mathématiques"),
+    ("PR_EVEIL", "Éveil scientifique"),
+    ("PR_HG", "Histoire-Géographie"),
+    ("PR_EPS", "EPS"),
+    ("PR_ARTS", "Arts plastiques"),
+    ("PR_ANGLAIS", "Anglais"),
+    ("PR_ENGLISH", "English"),
+    ("PR_SCIENCE", "Science"),
+    ("PR_SOCIAL", "Social Studies"),
+    # Maternelle francophone
+    ("PR_GRAPH", "Graphisme / Dessin"),
+    ("PR_ORAL", "Oralisation"),
+    ("PR_PSYCHOMOT", "Psychomotricité"),
+    ("PR_VIE_SOC", "Vie sociale"),
 ]
 
 # ── §3.2 Premier Cycle Francophone Général (6E→3E), tronc commun ──────────────
@@ -245,6 +279,22 @@ LANGUE_SUBJECTS = {
     "LANG_COMPR_ECRITE": 2,
     "LANG_GRAMMAIRE": 2,
     "LANG_CULTURE": 1,
+}
+
+# ── École primaire — tronc commun par niveau ───────────────────────────────────
+MATERNELLE_FR_LEVELS = ["PS", "MS", "GS"]
+MATERNELLE_FR = {
+    "PR_GRAPH": 2, "PR_ORAL": 3, "PR_PSYCHOMOT": 2, "PR_VIE_SOC": 2, "PR_FR": 2,
+}
+PRIMAIRE_FR_LEVELS = ["PS", "MS", "GS", "SIL", "CP", "CE1", "CE2", "CM1", "CM2"]
+ELEMENTAIRE_FR_LEVELS = ["SIL", "CP", "CE1", "CE2", "CM1", "CM2"]
+PRIMAIRE_FR = {
+    "PR_FR": 4, "PR_MATHS": 4, "PR_EVEIL": 2, "PR_HG": 2,
+    "PR_EPS": 1, "PR_ARTS": 1, "PR_ANGLAIS": 2,
+}
+PRIMAIRE_EN_LEVELS = ["P1", "P2", "P3", "P4", "P5", "P6"]
+PRIMAIRE_EN = {
+    "PR_ENGLISH": 4, "PR_MATHS": 4, "PR_SCIENCE": 2, "PR_SOCIAL": 2, "PR_EPS": 1,
 }
 
 # ── Groupes de bulletin (second cycle francophone uniquement) ─────────────────

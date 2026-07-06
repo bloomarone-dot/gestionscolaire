@@ -130,20 +130,31 @@ def render_bulletin_pdf(data: dict) -> bytes:
     trimestre = header.get("trimestre", 1)
     seq_lbls = header.get("seq_labels") or list(seq_labels(trimestre, lang))
     simplified = bool(header.get("simplified_bulletin"))
+    layout = header.get("layout_profile") or {}
+    header_style = layout.get("header_style") or ("school_only" if simplified else "bilingual")
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=A4, topMargin=0.65 * cm, bottomMargin=0.65 * cm,
         leftMargin=0.8 * cm, rightMargin=0.8 * cm,
     )
+    if header_style == "school_only" or simplified:
+        head_block = _simple_header(header, th)
+    elif header_style == "fr_only":
+        head_block = _primary_fr_header(header, th)
+    elif header_style == "en_only":
+        head_block = _national_header(header, th, en_only=True)
+    else:
+        head_block = _national_header(header, th)
+
     story = [
-        _simple_header(header, th) if simplified else _national_header(header, th),
+        head_block,
         _title_bar(header.get("report_title") or L["report_title"], th),
-        _identity(header, b, L, lang, len(seq_lbls), th, simplified=simplified),
-        _grades_table(b, L, seq_lbls, lang, th, simplified=simplified),
+        _identity(header, b, L, lang, len(seq_lbls), th),
+        _grades_table(b, L, seq_lbls, lang, th, header=header),
     ]
     story += [
-        _footer(b, data, header, L, lang, len(seq_lbls), th, simplified=simplified),
+        _footer(b, data, header, L, lang, len(seq_lbls), th),
         _signatures(header, L, lang, th),
         _next_term(header, L),
     ]
@@ -151,7 +162,24 @@ def render_bulletin_pdf(data: dict) -> bytes:
     return buf.getvalue()
 
 
-def _national_header(header, th) -> Table:
+def _head_lines(header, lang_side: str) -> list[str]:
+    """Lignes ministérielles — personnalisables via layout_profile."""
+    if lang_side == "en":
+        base = [
+            "REPUBLIC OF CAMEROON",
+            "Peace-Work-Fatherland",
+            header.get("ministry_en") or "MINISTRY OF SECONDARY EDUCATION",
+        ]
+    else:
+        base = [
+            "REPUBLIQUE DU CAMEROUN",
+            "Paix-Travail-Patrie",
+            header.get("ministry_fr") or "MINISTERE DE L'ENSEIGNEMENT SECONDAIRE",
+        ]
+    return base
+
+
+def _national_header(header, th, *, en_only: bool = False) -> Table:
     school_en = (header.get("school_name") or "").upper()
     school_fr = (header.get("school_name_fr") or school_en).upper()
     reg_en = header.get("delegation_regional") or "REGIONAL DELEGATION FOR CENTER"
@@ -161,8 +189,8 @@ def _national_header(header, th) -> Table:
     motto = header.get("motto") or "A Chosen Generation : Believe-Achieve-Succeed"
     pobox = header.get("po_box") or ""
 
-    en_lines = EN_HEAD + [reg_en, dep_en, f"<b>{school_en}</b>", f"<i>{motto}</i>", f"PO BOX: {pobox}"]
-    fr_lines = FR_HEAD + [reg_fr, dep_fr, f"<b>{school_fr}</b>", f"<i>{motto}</i>", f"BP: {pobox}"]
+    en_lines = _head_lines(header, "en") + [reg_en, dep_en, f"<b>{school_en}</b>", f"<i>{motto}</i>", f"PO BOX: {pobox}"]
+    fr_lines = _head_lines(header, "fr") + [reg_fr, dep_fr, f"<b>{school_fr}</b>", f"<i>{motto}</i>", f"BP: {pobox}"]
 
     logo_path = resolve_logo_path(header.get("logo_url"))
     logo_slot_w = 3.4 * cm
@@ -173,14 +201,58 @@ def _national_header(header, th) -> Table:
         logo.hAlign = "CENTER"
         center = logo
     else:
-        logo_w = logo_slot_w
         center = _p(f"<b>{school_en}</b><br/><i>{motto}</i>", size=7, align=TA_CENTER)
 
     side_w = (PAGE_W - logo_slot_w) / 2
+    if en_only:
+        row = [[_p("<br/>".join(en_lines), size=5.5, align=TA_CENTER)]]
+        col_widths = [PAGE_W]
+    else:
+        row = [[
+            _p("<br/>".join(en_lines), size=5.5, align=TA_CENTER),
+            center,
+            _p("<br/>".join(fr_lines), size=5.5, align=TA_CENTER),
+        ]]
+        col_widths = [side_w, logo_slot_w, side_w]
+    t = Table(row, colWidths=col_widths, hAlign="CENTER")
+    t.setStyle(_grid(
+        ("BACKGROUND", (0, 0), (-1, -1), th["national_header"]),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ))
+    return t
+
+
+def _primary_fr_header(header, th) -> Table:
+    """En-tête francophone — maternelle / primaire (MINEDUB)."""
+    school_fr = (header.get("school_name_fr") or header.get("school_name") or "").upper()
+    reg_fr = header.get("delegation_regional_fr") or header.get("delegation_regional") or "DELEGATION REGIONALE"
+    dep_fr = header.get("delegation_departementale_fr") or header.get("delegation_departementale") or ""
+    motto = header.get("motto") or ""
+    pobox = header.get("po_box") or ""
+
+    fr_lines = _head_lines(header, "fr") + [reg_fr]
+    if dep_fr:
+        fr_lines.append(dep_fr)
+    fr_lines += [f"<b>{school_fr}</b>"]
+    if motto:
+        fr_lines.append(f"<i>{motto}</i>")
+    if pobox:
+        fr_lines.append(f"BP: {pobox}")
+
+    logo_path = resolve_logo_path(header.get("logo_url"))
+    logo_slot_w = 3.2 * cm
+    logo_slot_h = 3.6 * cm
+    if logo_path:
+        logo_w, logo_h = logo_fit_size(logo_path, logo_slot_w, logo_slot_h)
+        logo = RLImage(logo_path, width=logo_w, height=logo_h)
+        logo.hAlign = "CENTER"
+        center = logo
+    else:
+        center = _p(f"<b>{school_fr}</b>", size=8, align=TA_CENTER)
+
+    side_w = (PAGE_W - logo_slot_w) / 2
     t = Table(
-        [[_p("<br/>".join(en_lines), size=5.5, align=TA_CENTER),
-          center,
-          _p("<br/>".join(fr_lines), size=5.5, align=TA_CENTER)]],
+        [[_p("<br/>".join(fr_lines), size=6, align=TA_CENTER), center, _p("", size=5)]],
         colWidths=[side_w, logo_slot_w, side_w],
         hAlign="CENTER",
     )
@@ -237,11 +309,14 @@ def _title_bar(title: str, th) -> Table:
     return t
 
 
-def _identity(header, b, L, lang, n_seq: int, th, *, simplified: bool = False) -> Table:
+def _identity(header, b, L, lang, n_seq: int, th) -> Table:
     name = f"{b.get('nom') or ''} {b.get('prenom') or ''}".strip().upper()
     sexe = (b.get("sexe") or "—").upper()
     red = b.get("redoublant") or ("NON" if lang == "fr" else "NO")
     serie = header.get("series_code") or header.get("series") or "—"
+    show_series = bool(header.get("show_series"))
+    show_repeater = bool(header.get("show_repeater", header.get("show_sanctions")))
+    compact = not show_series and not show_repeater
     col_w = _col_widths(n_seq)
     n = len(col_w)
     info_sp = _span_parts(n, 4)

@@ -5,7 +5,7 @@ from common.tenant import TenantContext
 
 from datetime import date
 
-from common.establishment import is_language_center
+from common.establishment import is_language_center, is_primary_school
 
 from app import clients
 from app.compute import compute_class_bulletins
@@ -20,9 +20,13 @@ from app.labels import (
 
 try:
     from common.bulletin_theme import parse_theme
+    from common.bulletin_layout import parse_layout
     from common.subsystem import resolve_subsystem_code
 except ImportError:
     def parse_theme(raw, lang=None):  # type: ignore
+        return raw or {}
+
+    def parse_layout(raw, kind=None):  # type: ignore
         return raw or {}
 
     def resolve_subsystem_code(classe):  # type: ignore
@@ -38,7 +42,11 @@ def _default_school_year() -> str:
 def _header(classe: dict, school: dict, lang: str, trimestre: int, scope: str) -> dict:
     name = school.get("name") or ""
     kind = school.get("establishment_kind") or "SCHOOL"
-    simplified = is_language_center(kind)
+    layout = parse_layout(school.get("bulletin_layout_profile"), kind)
+    simplified = is_language_center(kind) or layout.get("header_style") == "school_only"
+    primary = is_primary_school(kind)
+    if primary and layout.get("header_style") == "bilingual" and not school.get("bulletin_layout_profile"):
+        layout = {**layout, "header_style": "fr_only"}
     return {
         "school_name": name,
         "school_name_fr": school.get("name_fr") or name,
@@ -73,6 +81,13 @@ def _header(classe: dict, school: dict, lang: str, trimestre: int, scope: str) -
         "scope": scope,
         "establishment_kind": kind,
         "simplified_bulletin": simplified,
+        "layout_profile": layout,
+        "show_subject_groups": bool(layout.get("show_subject_groups", not primary and not simplified)),
+        "show_series": bool(layout.get("show_series", not primary)),
+        "show_sanctions": bool(layout.get("show_sanctions", not primary and not simplified)),
+        "show_absences": bool(layout.get("show_absences", not primary and not simplified)),
+        "ministry_fr": layout.get("ministry_fr"),
+        "ministry_en": layout.get("ministry_en"),
         "term": period_label(scope, trimestre, lang, kind),
         "report_title": report_title(scope, lang, kind),
         "seq_labels": seq_columns(scope, trimestre, lang, kind),

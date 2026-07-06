@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import * as api from "../../../api/api";
 import LanguageCenterGroupFields from "../../../components/languageCenter/LanguageCenterGroupFields";
+import PrimarySchoolGroupFields from "../../../components/primarySchool/PrimarySchoolGroupFields";
 import {
   Badge,
   Button,
@@ -15,6 +16,7 @@ import {
 import { useEstablishmentProfile } from "../../../hooks/useEstablishmentProfile";
 import { useReferentielCascade } from "../../../hooks/useReferentielCascade";
 import { buildLanguageCenterClassPayload } from "../../../utils/languageCenter";
+import { buildPrimaryClassPayload, PS_SUBSYSTEM_FR } from "../../../utils/primarySchool";
 import {
   CascadeFields,
   Notice,
@@ -34,8 +36,18 @@ const emptyLcGroupForm = {
   prof_principal_id: "",
 };
 
+const emptyPsForm = {
+  section: PS_SUBSYSTEM_FR,
+  level_code: "",
+  suffix: "",
+  nom: "",
+  nomTouched: false,
+  effectif_max: 35,
+  prof_principal_id: "",
+};
+
 export function OperationalClassesPage() {
-  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
+  const { labels: ui, isLanguageCenter, isPrimarySchool } = useEstablishmentProfile();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
   const [sectionFilter, setSectionFilter] = useState("");
@@ -116,7 +128,9 @@ export function OperationalClassesPage() {
       {!isLanguageCenter && (
         <Card className="mb-4 p-4">
           <label className="block max-w-xs">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Filtrer par section</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">
+              {isPrimarySchool ? "Filtrer par section" : "Filtrer par section"}
+            </span>
             <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
               <option value="">Toutes les sections</option>
               <option value="FRANCOPHONE">Francophone</option>
@@ -134,7 +148,20 @@ export function OperationalClassesPage() {
                 { key: "level", label: "Niveau CECRL" },
                 { key: "type", label: "Parcours", render: () => "Langues" },
               ]
-            : [
+            : isPrimarySchool
+              ? [
+                  {
+                    key: "subsystem",
+                    label: "Section",
+                    render: (row) => (
+                      <Badge tone={row.subsystem_code === "ANGLOPHONE" ? "cyan" : "violet"}>
+                        {row.subsystem}
+                      </Badge>
+                    ),
+                  },
+                  { key: "level", label: "Niveau" },
+                ]
+              : [
                 {
                   key: "subsystem",
                   label: "Section",
@@ -157,7 +184,7 @@ export function OperationalClassesPage() {
           },
           {
             key: "prof_principal_id",
-            label: isLanguageCenter ? "Formateur référent" : "Prof. principal",
+            label: isLanguageCenter ? "Formateur référent" : isPrimarySchool ? "Enseignant titulaire" : "Prof. principal",
             render: (row) => (
               <Select
                 value={String(row.prof_principal_id ?? "")}
@@ -173,7 +200,7 @@ export function OperationalClassesPage() {
             ),
           },
           { key: "nb_matieres", label: isLanguageCenter ? "Modules" : "Matières" },
-          ...(!isLanguageCenter
+          ...(!isLanguageCenter && !isPrimarySchool
             ? [{
                 key: "statut",
                 label: "Statut",
@@ -199,7 +226,7 @@ export function OperationalClassesPage() {
 
 export function ClasseCreatePage() {
   const navigate = useNavigate();
-  const { labels: ui, isLanguageCenter } = useEstablishmentProfile();
+  const { labels: ui, isLanguageCenter, isPrimarySchool } = useEstablishmentProfile();
   const { rows: teacherRows } = useLoad(
     useCallback(async () => (await api.fetchProfesseurs()).map(teacherRow), []),
     [],
@@ -212,6 +239,7 @@ export function ClasseCreatePage() {
     specialite_libre: "",
   });
   const [lcForm, setLcForm] = useState(emptyLcGroupForm);
+  const [psForm, setPsForm] = useState(emptyPsForm);
   const [special, setSpecial] = useState(false);
   const [notice, setNotice] = useState("");
   const cascade = useReferentielCascade();
@@ -237,6 +265,29 @@ export function ClasseCreatePage() {
         navigate("/app/classes");
       } catch (err) {
         setNotice(err.message || "Création du groupe impossible.");
+      }
+      return;
+    }
+    if (isPrimarySchool) {
+      if (!psForm.level_code) {
+        setNotice("Choisissez le niveau (SIL, CP, CE1…).");
+        return;
+      }
+      if (!psForm.nom.trim()) {
+        setNotice("Indiquez le nom de la classe.");
+        return;
+      }
+      try {
+        await api.createClasse(buildPrimaryClassPayload({
+          nom_personnalise: psForm.nom.trim(),
+          level_code: psForm.level_code,
+          subsystem_code: psForm.section,
+          effectif_max: Number(psForm.effectif_max) || 35,
+          prof_principal_id: psForm.prof_principal_id,
+        }));
+        navigate("/app/classes");
+      } catch (err) {
+        setNotice(err.message || "Création de la classe impossible.");
       }
       return;
     }
@@ -286,7 +337,7 @@ export function ClasseCreatePage() {
           <h2 className="font-bold">
             {isLanguageCenter ? "Informations du groupe" : "Informations de la classe"}
           </h2>
-          {!isLanguageCenter && (
+          {!isLanguageCenter && !isPrimarySchool && (
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
               <input
                 type="checkbox"
@@ -307,6 +358,15 @@ export function ClasseCreatePage() {
               form={lcForm}
               onChange={setLcForm}
               onSuggestName={(name) => setLcForm((current) => (
+                current.nomTouched ? current : { ...current, nom: name }
+              ))}
+              teacherOptions={teacherRows}
+            />
+          ) : isPrimarySchool ? (
+            <PrimarySchoolGroupFields
+              form={psForm}
+              onChange={setPsForm}
+              onSuggestName={(name) => setPsForm((current) => (
                 current.nomTouched ? current : { ...current, nom: name }
               ))}
               teacherOptions={teacherRows}
@@ -332,7 +392,7 @@ export function ClasseCreatePage() {
           ) : (
             <CascadeFields cascade={cascade} />
           )}
-          {!isLanguageCenter && (
+          {!isLanguageCenter && !isPrimarySchool && (
             <>
               <Input
                 required

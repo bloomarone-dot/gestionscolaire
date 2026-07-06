@@ -5,7 +5,7 @@ import SaaSLayout from './components/layout/SaaSLayout';
 import SuperAdminLayout from './components/layout/SuperAdminLayout';
 import ProfessorLayout from './components/layout/ProfessorLayout';
 import LoginPage from './pages/LoginPage';
-import Dashboard from './pages/modern/Dashboard';
+import Dashboard from './pages/modern/AdminDashboard';
 import SuperAdminConsole from './pages/modern/SuperAdminConsole';
 import ReferentielAdminPage, { SubjectCreatePage, EligibilityCreatePage } from './pages/modern/ReferentielAdminPage';
 import {

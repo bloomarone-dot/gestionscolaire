@@ -1,5 +1,6 @@
 export const ESTABLISHMENT_KINDS = [
   { value: 'SCHOOL', label: 'École / collège / lycée' },
+  { value: 'PRIMARY_SCHOOL', label: 'École primaire' },
   { value: 'LANGUAGE_CENTER', label: 'Centre de formation en langues' },
 ];
 
@@ -59,8 +60,40 @@ const LANGUAGE_CENTER_UI = {
   loginTagline: 'Connectez-vous à votre espace de gestion du centre.',
 };
 
+const PRIMARY_SCHOOL_UI = {
+  classes: 'Classes',
+  class: 'Classe',
+  classOf: "Classe d'origine",
+  student: 'Élève',
+  students: 'Élèves',
+  studentsList: 'Liste des élèves',
+  enrollment: 'Inscriptions',
+  newStudent: 'Nouvel élève',
+  promotions: 'Passages de classe',
+  trimestre: 'Trimestre',
+  sessionPeriod: 'Période de saisie',
+  bulletin: 'Bulletins',
+  bulletinAnnual: 'Bulletin annuel',
+  bulletinPreview: 'Aperçu bulletin',
+  schoolProfile: "Profil de l'école",
+  teachers: 'Enseignants',
+  subjects: 'Matières',
+  grades: 'Saisie des notes',
+  dashboardStudents: 'Élèves',
+  dashboardClasses: 'Classes',
+  dashboardDesc: "Vue d'ensemble de l'école primaire.",
+  recentEnrollment: 'Dernières inscriptions',
+  effectifs: 'Effectifs par classe',
+  appTagline: 'École primaire',
+  loginTagline: 'Connectez-vous à votre espace de gestion primaire.',
+};
+
 export function isLanguageCenter(kind) {
   return kind === 'LANGUAGE_CENTER';
+}
+
+export function isPrimarySchool(kind) {
+  return kind === 'PRIMARY_SCHOOL';
 }
 
 export function establishmentKindLabel(kind) {
@@ -69,7 +102,9 @@ export function establishmentKindLabel(kind) {
 }
 
 export function getEstablishmentUiLabels(kind) {
-  return isLanguageCenter(kind) ? LANGUAGE_CENTER_UI : SCHOOL_UI;
+  if (isLanguageCenter(kind)) return LANGUAGE_CENTER_UI;
+  if (isPrimarySchool(kind)) return PRIMARY_SCHOOL_UI;
+  return SCHOOL_UI;
 }
 
 export function defaultProfileForKind(kind) {
@@ -77,6 +112,13 @@ export function defaultProfileForKind(kind) {
     return {
       subsystems: ['FRANCOPHONE'],
       teaching_types: ['LANGUE'],
+      channels: ['INTERNAL'],
+    };
+  }
+  if (kind === 'PRIMARY_SCHOOL') {
+    return {
+      subsystems: ['FRANCOPHONE', 'ANGLOPHONE'],
+      teaching_types: ['GENERAL'],
       channels: ['INTERNAL'],
     };
   }
