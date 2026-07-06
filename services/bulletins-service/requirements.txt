@@ -3,3 +3,4 @@ uvicorn[standard]>=0.30
 reportlab>=4.0
 Pillow>=10.0
 pymupdf>=1.24
+python-multipart>=0.0.9
