@@ -316,7 +316,6 @@ def _identity(header, b, L, lang, n_seq: int, th) -> Table:
     serie = header.get("series_code") or header.get("series") or "—"
     show_series = bool(header.get("show_series"))
     show_repeater = bool(header.get("show_repeater", header.get("show_sanctions")))
-    compact = not show_series and not show_repeater
     col_w = _col_widths(n_seq)
     n = len(col_w)
     info_sp = _span_parts(n, 4)
@@ -359,9 +358,9 @@ def _identity(header, b, L, lang, n_seq: int, th) -> Table:
         _apply_spans(spans, 0, info_sp)
         rows.append(_row_from_spans([
             (_p(f"{L['class_enrollment']}: {header.get('effectif') or ''}", bold=True), row2[0]),
-            (_p(f"{L['repeater']}: {red}", bold=True) if not simplified else _p("", ), row2[1]),
+            (_p(f"{L['repeater']}: {red}", bold=True) if show_repeater else _p("", ), row2[1]),
             (_p(
-                f"{L.get('series', 'Serie')}: {serie}" if not simplified
+                f"{L.get('series', 'Serie')}: {serie}" if show_series
                 else f"{L['year']}: {header.get('school_year') or ''}",
                 bold=True,
             ), row2[2] + row2[3]),
@@ -384,7 +383,9 @@ def _identity(header, b, L, lang, n_seq: int, th) -> Table:
     return t
 
 
-def _grades_table(b, L, seq_lbls, lang, th, *, simplified: bool = False) -> Table:
+def _grades_table(b, L, seq_lbls, lang, th, *, header: dict | None = None) -> Table:
+    header = header or {}
+    show_groups = bool(header.get("show_subject_groups", True))
     n = len(seq_lbls)
     head = [L["subjects"], *seq_lbls, L["average"], L["coefficient"], L["total_marks"],
             L["rank"], L["appreciation"], L["teacher_sign"]]
@@ -400,7 +401,7 @@ def _grades_table(b, L, seq_lbls, lang, th, *, simplified: bool = False) -> Tabl
         groups.setdefault(_effective_groupe(s), []).append(s)
 
     for g in sorted(groups):
-        if not simplified:
+        if show_groups:
             label = L.get(f"group_{g}", f"GROUP {g}")
             rows.append([_p(label, bold=True, align=TA_CENTER, color=th["text"])] + [""] * (n + 6))
             gi = len(rows) - 1
@@ -459,7 +460,10 @@ def _special_table(b, L, seq_lbls, th) -> Table:
     return t
 
 
-def _footer(b, data, header, L, lang, n_seq: int, th, *, simplified: bool = False) -> Table:
+def _footer(b, data, header, L, lang, n_seq: int, th) -> Table:
+    show_sanctions = bool(header.get("show_sanctions"))
+    show_absences = bool(header.get("show_absences"))
+    compact = not show_sanctions and not show_absences
     moy = b.get("moyenne_generale")
     appr = b.get("appreciation_generale") or ""
     effectif = header.get("effectif") or data.get("effectif") or ""
@@ -484,13 +488,13 @@ def _footer(b, data, header, L, lang, n_seq: int, th, *, simplified: bool = Fals
         (_p(_fmt(b.get("total_points")), bold=True, align=TA_CENTER), 1),
         (_p(L["class_average"], bold=True, align=TA_CENTER), 1),
         (_p(_fmt(moy_cls), bold=True, align=TA_CENTER), 1),
-        (_p(L["sanctions"], bold=True, align=TA_CENTER) if not simplified else _p("", ), 1),
+        (_p(L["sanctions"], bold=True, align=TA_CENTER) if show_sanctions else _p("", ), 1),
     ])
 
     term_lbl = L["term_average"] if lang == "en" else (
         L["annual_average"] if header.get("scope") == "annual" else L["term_average"]
     )
-    if simplified:
+    if compact:
         add_row([
             (_p(term_lbl, bold=True), 1),
             (_p(_fmt(moy), bold=True, align=TA_CENTER), coef_idx - 1),
@@ -502,9 +506,9 @@ def _footer(b, data, header, L, lang, n_seq: int, th, *, simplified: bool = Fals
             (_p(term_lbl, bold=True), 1),
             (_p(_fmt(moy), bold=True, align=TA_CENTER), coef_idx - 1),
             (_p(appr, bold=True, align=TA_CENTER), 1),
-            (_p(L["absences"], bold=True, align=TA_CENTER), 2),
-            (_p("0", align=TA_CENTER), 1),
-            (_p("0", align=TA_CENTER), 1),
+            (_p(L["absences"], bold=True, align=TA_CENTER) if show_absences else _p("", ), 2),
+            (_p("0", align=TA_CENTER) if show_absences else _p("", ), 1),
+            (_p("0", align=TA_CENTER) if show_absences else _p("", ), 1),
         ])
 
     if lang == "en":

@@ -69,13 +69,13 @@ export default function PrimarySchoolDashboard() {
     <>
       <PageHeader
         title="Tableau de bord — École primaire"
-        description="Vue d'ensemble des classes, effectifs et inscriptions (SIL → CM2)."
+        description="Vue d'ensemble des classes, effectifs et inscriptions (Maternelle PS→GS, SIL → CM2)."
         breadcrumb="Accueil / Primaire"
       />
 
       <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-        Section <strong>école primaire</strong> — gestion des niveaux SIL, CP, CE1… CM2
-        (francophone) et Class 1→6 (anglophone).
+        Section <strong>école primaire</strong> — gestion de la maternelle (PS, MS, GS)
+        et du primaire (SIL, CP, CE1… CM2) en section francophone.
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

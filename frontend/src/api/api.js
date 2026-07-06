@@ -476,6 +476,19 @@ export async function updateSchoolProfile(schoolId, profile) {
   return handleResponse(res);
 }
 
+/** Analyse un bulletin modèle (PDF ou image) — détection automatique de la présentation. */
+export async function analyzeBulletinTemplate(file) {
+  const form = new FormData();
+  form.append('file', file);
+  const headers = getHeaders(true, false);
+  const res = await fetch('/bulletins/template/analyze', {
+    method: 'POST',
+    headers,
+    body: form,
+  });
+  return handleResponse(res);
+}
+
 // Crée le compte administrateur de l'établissement (login téléphone + mot de passe).
 export async function createSchoolAdmin(schoolId, admin) {
   return createStaffAccount({

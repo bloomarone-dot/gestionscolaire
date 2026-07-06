@@ -4,7 +4,7 @@ Service d'agrégation : les données viennent des autres services (REST interne)
 sont calculées à la volée. Aucune table propre pour l'instant (persistance possible
 en Phase 5 si l'archivage des bulletins est requis).
 """
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 
 from common.events import EventNames, EventPublisher
@@ -13,7 +13,9 @@ from common.tenant import TenantContext, require_tenant
 
 from app import service
 from app.config import settings
+from app.layout_analyzer import analyze_bulletin_template
 from app.pdf import render_bulletin_pdf
+from app import clients
 
 app = FastAPI(title="bulletins-service — SaaS Scolaire", version="0.1.0")
 
@@ -43,6 +45,25 @@ def _ensure_bulletin(data: dict) -> dict:
     if data.get("bulletin") is None:
         raise HTTPException(status_code=404, detail="Bulletin introuvable pour cet élève")
     return data
+
+
+@app.post("/bulletins/template/analyze", tags=["bulletins"])
+async def analyze_template(
+    file: UploadFile = File(...),
+    ctx: TenantContext = Depends(require_grades_staff),
+):
+    """Analyse un bulletin modèle (PDF/image) et détecte la présentation."""
+    data = await file.read()
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Fichier vide")
+    if len(data) > 8 * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Fichier trop volumineux (max 8 Mo)")
+    school = clients.get_school(ctx)
+    kind = school.get("establishment_kind") or "SCHOOL"
+    try:
+        return analyze_bulletin_template(data, file.filename or "bulletin.pdf", kind)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
 
 
 @app.get("/bulletins/classe/{classe_id}", tags=["bulletins"])
