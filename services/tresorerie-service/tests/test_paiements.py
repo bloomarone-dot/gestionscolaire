@@ -73,3 +73,39 @@ def test_stats_pending_and_month(db):
     assert s["pending_amount"] == Decimal("50000")
     assert s["paid_month_count"] == 1
     assert s["paid_month_amount"] == Decimal("15000")
+
+
+def test_parent_payment_flow(db):
+    row = crud.create_paiement(
+        db,
+        TENANT,
+        PaiementCreate(
+            eleve_id=5,
+            eleve_nom="Mbarga",
+            eleve_prenom="Paul",
+            label="Scolarité mensuelle",
+            amount=Decimal("25000"),
+        ),
+        recorded_by=1,
+    )
+    linked = crud.ensure_payment_token(db, TENANT, row.id)
+    assert linked.payment_token
+
+    from app.schemas import ParentPayInit
+    _, checkout = crud.initiate_parent_payment(
+        db,
+        linked.payment_token,
+        ParentPayInit(parent_phone="699112233", provider="MTN_MOMO"),
+        return_url="http://localhost/payer/test",
+    )
+    assert checkout["provider_reference"]
+    assert checkout["sandbox"] is True
+
+    paid = crud.confirm_parent_payment(db, linked.payment_token)
+    assert paid.status == STATUS_PAYE
+    assert paid.paid_online is True
+    assert paid.payment_method == "MOBILE_MONEY"
+    assert paid.receipt_number
+
+    s = crud.stats(db, TENANT)
+    assert s["online_month_count"] >= 1

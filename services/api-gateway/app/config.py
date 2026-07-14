@@ -17,6 +17,7 @@ class GatewaySettings(BaseServiceSettings):
     notifications_service_url: str = "http://notifications-service:8000"
     tresorerie_service_url: str = "http://tresorerie-service:8000"
     planning_service_url: str = "http://planning-service:8000"
+    progression_service_url: str = "http://progression-service:8000"
 
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5180,http://127.0.0.1:5180"
 
@@ -34,6 +35,7 @@ class GatewaySettings(BaseServiceSettings):
             "notifications": self.notifications_service_url,
             "tresorerie": self.tresorerie_service_url,
             "planning": self.planning_service_url,
+            "progression": self.progression_service_url,
         }
 
 

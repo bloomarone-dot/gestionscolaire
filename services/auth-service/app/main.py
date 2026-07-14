@@ -25,6 +25,7 @@ from common.roles import ADMIN_CREATABLE
 from app.schemas import (
     AccountCreate,
     AccountResponse,
+    AccountUpdate,
     LoginRequest,
     TokenResponse,
 )
@@ -161,6 +162,33 @@ def create_account(
             tenant_id=tenant_id,
         )
         session.add(account)
+        session.commit()
+        session.refresh(account)
+        return AccountResponse.model_validate(account)
+    finally:
+        session.close()
+
+
+@app.patch("/auth/accounts/{account_id}", response_model=AccountResponse, tags=["auth"])
+def update_account(
+    account_id: int,
+    payload: AccountUpdate,
+    ctx: TenantContext = Depends(require_roles(Role.SUPERADMIN, Role.ADMIN)),
+) -> AccountResponse:
+    """Met à jour le rôle ou l'état d'un compte (attribution automatique personnel)."""
+    session = _get_session()
+    try:
+        account = session.get(Account, account_id)
+        if not account:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Compte introuvable")
+        if ctx.role == Role.ADMIN and account.tenant_id != ctx.tenant_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Accès refusé")
+        if payload.role is not None:
+            if ctx.role == Role.ADMIN and payload.role in (Role.ADMIN, Role.SUPERADMIN):
+                raise HTTPException(status.HTTP_403_FORBIDDEN, "Rôle non autorisé")
+            account.role = payload.role
+        if payload.is_active is not None:
+            account.is_active = payload.is_active
         session.commit()
         session.refresh(account)
         return AccountResponse.model_validate(account)

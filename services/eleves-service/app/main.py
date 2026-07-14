@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, sessionmaker
 
-from common.db import Base, get_engine, init_engine
+from common.db import Base, add_missing_columns, get_engine, init_engine
 from common.events import EventNames, EventPublisher
 from common.tenant import TenantContext, require_tenant
 
@@ -34,6 +34,7 @@ def _startup() -> None:
     global _SessionLocal, _publisher
     init_engine(settings.database_url)
     Base.metadata.create_all(bind=get_engine())  # Alembic en Phase 5
+    add_missing_columns("eleves", {"etat_sante": "TEXT"})
     _SessionLocal = sessionmaker(bind=get_engine(), future=True)
     _publisher = EventPublisher(settings.rabbitmq_url, settings.events_exchange)
 
@@ -62,7 +63,9 @@ def _row(e: Eleve) -> EleveRow:
 def _detail(e: Eleve) -> EleveDetail:
     return EleveDetail(
         **_row(e).model_dump(), date_naissance=e.date_naissance,
-        lieu_naissance=e.lieu_naissance, subsystem_code=e.subsystem_code,
+        lieu_naissance=e.lieu_naissance, photo_url=e.photo_url,
+        etat_sante=e.etat_sante,
+        subsystem_code=e.subsystem_code,
         type_code=e.type_code, level_code=e.level_code, series_code=e.series_code,
         created_at=e.created_at,
         parents=[ParentOut.model_validate(p) for p in e.parents],

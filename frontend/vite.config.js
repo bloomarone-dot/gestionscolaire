@@ -9,7 +9,8 @@ export default defineConfig(({ mode }) => {
   const gateway = env.VITE_GATEWAY_URL || 'http://127.0.0.1:8082'
   const proxied = [
     '/auth', '/tenants', '/referentiel', '/pedagogie', '/personnel',
-    '/eleves', '/evaluations', '/bulletins', '/notifications', '/tresorerie', '/planning',
+    '/eleves', '/evaluations', '/bulletins', '/notifications', '/tresorerie',
+    '/planning', '/progression', '/health',
   ]
   return {
     plugins: [react()],

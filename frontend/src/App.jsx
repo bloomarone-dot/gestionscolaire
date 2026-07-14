@@ -12,13 +12,15 @@ import {
   AttendancePage,
   ParentsPage,
   ReportsPage,
-  ExpensesPage,
   UsersPage,
 } from './pages/modern/ListPages';
+import ExpensesPage from './pages/modern/ExpensesPage';
 import PaymentsPage from './pages/modern/PaymentsPage';
 import SchedulesPage from './pages/modern/SchedulesPage';
 import { SettingsPage } from './pages/modern/SchoolSettings';
 import PromotionsPage from './pages/modern/PromotionsPage';
+import ProgressionPoliciesPage from './pages/modern/ProgressionPoliciesPage';
+import ProgressionProposalsPage from './pages/modern/ProgressionProposalsPage';
 import ReferentielPage from './pages/modern/ReferentielPage';
 import NotificationsPage from './pages/modern/NotificationsPage';
 import AnnouncementsPage from './pages/modern/AnnouncementsPage';
@@ -42,6 +44,7 @@ import {
 import SecretaryLayout from './components/layout/SecretaryLayout';
 import SecretaryDashboard from './pages/modern/SecretaryDashboard';
 import TeamPage from './pages/modern/TeamPage';
+import ParentPaymentPage from './pages/ParentPaymentPage';
 import OfflineBanner from './components/OfflineBanner';
 
 function ProtectedSecretary() {
@@ -103,6 +106,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/payer/:token" element={<ParentPaymentPage />} />
       <Route path="/superadmin" element={<ProtectedSuperAdmin />}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<SuperAdminConsole tab="dashboard" />} />
@@ -148,6 +152,8 @@ function AppRoutes() {
         <Route path="grades" element={<OperationalGradesPage />} />
         <Route path="bulletins" element={<OperationalBulletinsPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
+        <Route path="progression/policies" element={<ProgressionPoliciesPage />} />
+        <Route path="progression/proposals" element={<ProgressionProposalsPage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="payments" element={<PaymentsPage />} />

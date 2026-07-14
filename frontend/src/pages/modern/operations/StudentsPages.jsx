@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRightLeft, Download, FileUp, Trash2, UserPlus } from "lucide-react";
+import { ArrowRightLeft, Download, FileUp, Pencil, Trash2, UserPlus } from "lucide-react";
 import * as api from "../../../api/api";
+import HealthFields, { parseHealth, serializeHealth } from "../../../components/HealthFields";
 import LanguageCenterEnrollmentFields, {
   buildLanguageCenterEnrollmentCodes,
 } from "../../../components/languageCenter/LanguageCenterEnrollmentFields";
 import PrimarySchoolEnrollmentFields from "../../../components/primarySchool/PrimarySchoolEnrollmentFields";
 import { buildPrimaryEnrollmentCodes, PS_SUBSYSTEM_FR } from "../../../utils/primarySchool";
+import { compressImageFile } from "../../../utils/imageCompress";
 import {
   Badge,
   Button,
@@ -53,6 +55,8 @@ export function OperationalStudentsPage() {
   const [importClasseId, setImportClasseId] = useState("");
   const [importLoading, setImportLoading] = useState(false);
   const [filterClasseId, setFilterClasseId] = useState("");
+  const [fiche, setFiche] = useState(null);
+  const [ficheSaving, setFicheSaving] = useState(false);
 
   const classRows = allClasses.map(classRow);
   const importClassObj = classRows.find(
@@ -126,6 +130,60 @@ export function OperationalStudentsPage() {
     }
   }
 
+  async function openFiche(row) {
+    try {
+      const detail = await api.fetchEleve_admin(row.id);
+      setFiche({
+        id: detail.id,
+        nom: detail.nom || "",
+        prenom: detail.prenom || "",
+        sexe: detail.sexe || "",
+        date_naissance: detail.date_naissance || "",
+        lieu_naissance: detail.lieu_naissance || "",
+        health: parseHealth(detail.etat_sante),
+        photo_url: detail.photo_url || "",
+        matricule: detail.matricule || "",
+      });
+    } catch (err) {
+      setNotice(err.message);
+    }
+  }
+
+  async function saveFiche() {
+    if (!fiche) return;
+    setFicheSaving(true);
+    try {
+      await api.updateEleve_admin(fiche.id, {
+        nom: fiche.nom,
+        prenom: fiche.prenom || null,
+        sexe: fiche.sexe || null,
+        date_naissance: fiche.date_naissance || null,
+        lieu_naissance: fiche.lieu_naissance || null,
+        etat_sante: serializeHealth(fiche.health),
+        photo_url: fiche.photo_url || null,
+      });
+      setNotice("Fiche élève enregistrée.");
+      setFiche(null);
+      const refreshed = await loadStudents();
+      setRows(refreshed);
+    } catch (err) {
+      setNotice(err.message);
+    } finally {
+      setFicheSaving(false);
+    }
+  }
+
+  async function handleFichePhoto(event) {
+    const file = event.target.files?.[0];
+    if (!file || !fiche) return;
+    try {
+      const dataUrl = await compressImageFile(file);
+      setFiche((f) => ({ ...f, photo_url: dataUrl }));
+    } catch (err) {
+      setNotice(err.message || "Photo impossible.");
+    }
+  }
+
   async function handleDelete(row) {
     if (!window.confirm(`Supprimer l'eleve "${row.name}" ?`)) return;
     try {
@@ -192,13 +250,12 @@ export function OperationalStudentsPage() {
             >
               <Download size={16} /> Exporter Excel
             </Button>
-            <Link to="/app/students/nouveau">
-              <Button>
-                <UserPlus size={16} /> {ui.newStudent}
-              </Button>
-            </Link>
           </div>
         }
+      />
+      <Notice
+        message={`La création d'un élève se fait uniquement depuis « ${ui.enrollment} » (menu Inscription) — cette liste sert à consulter, modifier et supprimer.`}
+        tone="blue"
       />
       <Notice
         message={loading ? `Chargement des ${ui.students.toLowerCase()}...` : error}
@@ -301,6 +358,14 @@ export function OperationalStudentsPage() {
             <Button
               variant="secondary"
               className="px-2"
+              title="Fiche élève"
+              onClick={() => openFiche(row)}
+            >
+              <Pencil size={16} />
+            </Button>
+            <Button
+              variant="secondary"
+              className="px-2"
               title="Transférer (§6.3)"
               onClick={() => setTransfer({ student: row, targetId: "" })}
             >
@@ -317,6 +382,51 @@ export function OperationalStudentsPage() {
           </div>
         )}
       />
+      <Modal
+        title="Fiche élève"
+        open={Boolean(fiche)}
+        onClose={() => setFiche(null)}
+        footer={(
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setFiche(null)}>Fermer</Button>
+            <Button onClick={saveFiche} disabled={ficheSaving}>
+              {ficheSaving ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </div>
+        )}
+      >
+        {fiche && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              {fiche.photo_url ? (
+                <img src={fiche.photo_url} alt="" className="h-20 w-20 rounded-full object-cover ring-2 ring-slate-200" />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-400">Photo</div>
+              )}
+              <label className="cursor-pointer text-sm font-semibold text-blue-600">
+                Changer la photo
+                <input type="file" accept="image/*" className="hidden" onChange={handleFichePhoto} />
+              </label>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Input placeholder="Nom" value={fiche.nom} onChange={(e) => setFiche({ ...fiche, nom: e.target.value })} />
+              <Input placeholder="Prénom" value={fiche.prenom} onChange={(e) => setFiche({ ...fiche, prenom: e.target.value })} />
+              <Input type="date" value={fiche.date_naissance || ""} onChange={(e) => setFiche({ ...fiche, date_naissance: e.target.value })} />
+              <Input placeholder="Lieu de naissance" value={fiche.lieu_naissance} onChange={(e) => setFiche({ ...fiche, lieu_naissance: e.target.value })} />
+              <Select className="md:col-span-2" value={fiche.sexe} onChange={(e) => setFiche({ ...fiche, sexe: e.target.value })}>
+                <option value="">Sexe</option>
+                <option value="M">Masculin</option>
+                <option value="F">Féminin</option>
+              </Select>
+            </div>
+            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">État de santé</p>
+              <HealthFields value={fiche.health} onChange={(health) => setFiche({ ...fiche, health })} />
+            </div>
+            <p className="text-xs text-slate-400">Matricule : {fiche.matricule}</p>
+          </div>
+        )}
+      </Modal>
       <Modal
         title="Importer une liste d'élèves"
         open={showImport}
@@ -392,18 +502,84 @@ export function EleveCreatePage() {
     prenom: "",
     matricule: "",
     sexe: "",
+    date_naissance: "",
+    lieu_naissance: "",
+    photo_url: "",
     classe_id: "",
     parent_nom: "",
     parent_phone: "",
     parent_phone2: "",
     parent_adresse: "",
   });
+  const [health, setHealth] = useState(() => parseHealth(""));
   const [lcLevel, setLcLevel] = useState("");
   const [psSection, setPsSection] = useState(PS_SUBSYSTEM_FR);
   const [psLevel, setPsLevel] = useState("");
   const [notice, setNotice] = useState("");
   const cascade = useReferentielCascade();
   const [filteredClasses, setFilteredClasses] = useState([]);
+
+  // Paiement à l'inscription (facultatif) + grille de frais de la classe visée.
+  const [feeSchedule, setFeeSchedule] = useState(null);
+  const [paiement, setPaiement] = useState({ amount: "", method: "ESPECES" });
+
+  const identityFields = {
+    date_naissance: form.date_naissance || null,
+    lieu_naissance: form.lieu_naissance || null,
+    etat_sante: serializeHealth(health),
+    photo_url: form.photo_url || null,
+  };
+
+  const feeTotal = feeSchedule
+    ? Number(feeSchedule.inscription || 0) + Number(feeSchedule.tranche1 || 0)
+      + Number(feeSchedule.tranche2 || 0) + Number(feeSchedule.tranche3 || 0)
+    : 0;
+  const versement = Number(paiement.amount) || 0;
+  const resteApresVersement = feeTotal ? Math.max(0, feeTotal - versement) : 0;
+
+  // Charge la grille de frais dès qu'une classe est sélectionnée.
+  useEffect(() => {
+    if (!form.classe_id) { setFeeSchedule(null); return; }
+    let alive = true;
+    api
+      .fetchFeeSchedules()
+      .then((list) => {
+        if (!alive) return;
+        const s = (list || []).find((f) => String(f.classe_id) === String(form.classe_id));
+        setFeeSchedule(s || null);
+      })
+      .catch(() => { if (alive) setFeeSchedule(null); });
+    return () => { alive = false; };
+  }, [form.classe_id]);
+
+  async function recordInitialPayment(eleve) {
+    if (versement <= 0 || !eleve?.id || !form.classe_id) return;
+    try {
+      await api.payerPension({
+        eleve_id: eleve.id,
+        classe_id: Number(form.classe_id),
+        eleve_nom: [form.nom, form.prenom].filter(Boolean).join(" "),
+        matricule: eleve.matricule || form.matricule || null,
+        amount: versement,
+        payment_method: paiement.method,
+        paid_online: paiement.method === "MOBILE_MONEY",
+      });
+    } catch (err) {
+      // L'élève est créé même si le versement échoue : on prévient sans bloquer.
+      setNotice(`Élève inscrit, mais le versement n'a pas pu être enregistré : ${err.message}`);
+    }
+  }
+
+  async function handleCreatePhoto(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImageFile(file);
+      setForm((f) => ({ ...f, photo_url: dataUrl }));
+    } catch (err) {
+      setNotice(err.message || "Photo impossible.");
+    }
+  }
 
   // §6 étape 5 : ne proposer que les classes correspondant exactement au profil choisi.
   useEffect(() => {
@@ -444,11 +620,12 @@ export function EleveCreatePage() {
         return;
       }
       try {
-        await api.createEleve_admin({
+        const created = await api.createEleve_admin({
           nom: form.nom,
           prenom: form.prenom || null,
           matricule: form.matricule || null,
           sexe: form.sexe || null,
+          ...identityFields,
           ...buildLanguageCenterEnrollmentCodes(lcLevel),
           classe_id: Number(form.classe_id),
           parents:
@@ -463,6 +640,7 @@ export function EleveCreatePage() {
                 ]
               : [],
         });
+        await recordInitialPayment(created);
         navigate("/app/students");
       } catch (err) {
         setNotice(err.message || "Inscription impossible.");
@@ -479,11 +657,12 @@ export function EleveCreatePage() {
         return;
       }
       try {
-        await api.createEleve_admin({
+        const created = await api.createEleve_admin({
           nom: form.nom,
           prenom: form.prenom || null,
           matricule: form.matricule || null,
           sexe: form.sexe || null,
+          ...identityFields,
           ...buildPrimaryEnrollmentCodes(psLevel, psSection),
           classe_id: Number(form.classe_id),
           parents:
@@ -498,6 +677,7 @@ export function EleveCreatePage() {
                 ]
               : [],
         });
+        await recordInitialPayment(created);
         navigate("/app/students");
       } catch (err) {
         setNotice(err.message || "Inscription impossible.");
@@ -513,11 +693,12 @@ export function EleveCreatePage() {
       return;
     }
     try {
-      await api.createEleve_admin({
+      const created = await api.createEleve_admin({
         nom: form.nom,
         prenom: form.prenom || null,
         matricule: form.matricule || null,
         sexe: form.sexe || null,
+        ...identityFields,
         subsystem_code: cascade.value.subsystem_code,
         type_code: cascade.value.type_code,
         cycle_code: cascade.value.cycle_code || null,
@@ -536,6 +717,7 @@ export function EleveCreatePage() {
               ]
             : [],
       });
+      await recordInitialPayment(created);
       navigate("/app/students");
     } catch (err) {
       setNotice(err.message || "Creation de l'eleve impossible.");
@@ -584,6 +766,31 @@ export function EleveCreatePage() {
             <option value="M">Masculin</option>
             <option value="F">Féminin</option>
           </Select>
+
+          <Input
+            type="date"
+            placeholder="Date de naissance"
+            value={form.date_naissance}
+            onChange={(e) => setForm({ ...form, date_naissance: e.target.value })}
+          />
+          <Input
+            placeholder="Lieu de naissance"
+            value={form.lieu_naissance}
+            onChange={(e) => setForm({ ...form, lieu_naissance: e.target.value })}
+          />
+          <div className="md:col-span-2 rounded-lg border border-slate-100 bg-slate-50 p-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">État de santé</p>
+            <HealthFields value={health} onChange={setHealth} />
+          </div>
+          <label className="md:col-span-2 flex items-center gap-3 text-sm">
+            {form.photo_url ? (
+              <img src={form.photo_url} alt="" className="h-14 w-14 rounded-full object-cover" />
+            ) : null}
+            <span className="font-semibold text-blue-600 cursor-pointer">
+              Photo de l'élève
+              <input type="file" accept="image/*" className="hidden" onChange={handleCreatePhoto} />
+            </span>
+          </label>
 
           {isLanguageCenter ? (
             <LanguageCenterEnrollmentFields
@@ -653,6 +860,61 @@ export function EleveCreatePage() {
               setForm({ ...form, parent_adresse: e.target.value })
             }
           />
+
+          <div className="md:col-span-2 rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-emerald-700">
+              Paiement à l'inscription (facultatif)
+            </p>
+            {form.classe_id ? (
+              feeSchedule ? (
+                <div className="mb-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
+                  <span>Inscription : <b>{Number(feeSchedule.inscription || 0).toLocaleString("fr-FR")} XAF</b></span>
+                  <span>1ère tranche : <b>{Number(feeSchedule.tranche1 || 0).toLocaleString("fr-FR")} XAF</b></span>
+                  <span>2ème tranche : <b>{Number(feeSchedule.tranche2 || 0).toLocaleString("fr-FR")} XAF</b></span>
+                  <span>3ème tranche : <b>{Number(feeSchedule.tranche3 || 0).toLocaleString("fr-FR")} XAF</b></span>
+                </div>
+              ) : (
+                <p className="mb-3 text-xs text-amber-600">
+                  Aucune grille de frais définie pour cette classe. Configurez-la dans Paramètres → Frais de scolarité.
+                </p>
+              )
+            ) : (
+              <p className="mb-3 text-xs text-slate-500">Choisissez d'abord la classe pour afficher la grille de frais.</p>
+            )}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">Montant versé</span>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={paiement.amount}
+                  onChange={(e) => setPaiement((p) => ({ ...p, amount: e.target.value }))}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">Mode</span>
+                <Select value={paiement.method} onChange={(e) => setPaiement((p) => ({ ...p, method: e.target.value }))}>
+                  <option value="ESPECES">Espèces</option>
+                  <option value="MOBILE_MONEY">Mobile Money</option>
+                  <option value="VIREMENT">Virement</option>
+                  <option value="CHEQUE">Chèque</option>
+                </Select>
+              </label>
+              {feeTotal > 0 && (
+                <div className="flex flex-col justify-end text-sm">
+                  <span className="text-slate-500">Total dû : {feeTotal.toLocaleString("fr-FR")} XAF</span>
+                  <span className="font-semibold text-rose-600">
+                    Reste à payer : {resteApresVersement.toLocaleString("fr-FR")} XAF
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              Le versement est affecté automatiquement : inscription d'abord, puis 1ère → 3ème tranche.
+            </p>
+          </div>
+
           <div className="md:col-span-2 flex justify-end gap-2">
             <Link to="/app/students">
               <Button type="button" variant="secondary">

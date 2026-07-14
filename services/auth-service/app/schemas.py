@@ -61,3 +61,8 @@ class AccountResponse(BaseModel):
     is_active: bool
 
     model_config = {"from_attributes": True}
+
+
+class AccountUpdate(BaseModel):
+    role: Optional[str] = None
+    is_active: Optional[bool] = None

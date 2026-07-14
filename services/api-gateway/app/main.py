@@ -33,6 +33,12 @@ PUBLIC_PATHS = {
     "auth/login",
 }
 
+# Préfixes sans authentification (paiement parent via lien sécurisé).
+PUBLIC_PREFIXES = (
+    "tresorerie/public/",
+    "tresorerie/webhooks/",
+)
+
 _ROUTES = settings.routes()
 
 
@@ -68,7 +74,10 @@ async def proxy(prefix: str, path: str, request: Request) -> Response:
     headers = {k: v for k, v in request.headers.items() if not _hop_by_hop(k)}
 
     # Authentification, sauf routes publiques.
-    if full_path not in PUBLIC_PATHS:
+    is_public = full_path in PUBLIC_PATHS or any(
+        full_path.startswith(prefix) for prefix in PUBLIC_PREFIXES
+    )
+    if not is_public:
         auth = request.headers.get("authorization", "")
         if not auth.lower().startswith("bearer "):
             return JSONResponse({"detail": "Token manquant"}, status_code=401)
@@ -93,9 +102,20 @@ async def proxy(prefix: str, path: str, request: Request) -> Response:
 
     body = await request.body()
     url = f"{target}/{full_path}"
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        upstream = await client.request(
-            request.method, url, headers=headers, params=request.query_params, content=body
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            upstream = await client.request(
+                request.method, url, headers=headers, params=request.query_params, content=body
+            )
+    except httpx.ConnectError:
+        return JSONResponse(
+            {"detail": f"Service « {prefix} » injoignable. Vérifiez Docker (docker compose ps)."},
+            status_code=502,
+        )
+    except httpx.TimeoutException:
+        return JSONResponse(
+            {"detail": f"Délai dépassé vers le service « {prefix} ». Réessayez."},
+            status_code=504,
         )
 
     resp_headers = {

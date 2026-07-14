@@ -2,7 +2,7 @@
 #   docker compose up --build
 #
 # Démarre : Postgres (11 bases logiques) + RabbitMQ + Redis + API Gateway +
-# 11 services métier + frontend (nginx). Accès : http://localhost:5173
+# 11 services métier + frontend (nginx). Accès : http://localhost:5180
 #
 name: gestionscolaire
 
@@ -155,6 +155,8 @@ services:
     environment:
       <<: *common_env
       DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/tresorerie_db
+      MOBILE_PAYMENT_SANDBOX: "true"
+      PUBLIC_APP_URL: http://localhost:5180
     depends_on: *depends_postgres
     restart: unless-stopped
 
@@ -163,6 +165,14 @@ services:
     environment:
       <<: *common_env
       DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/planning_db
+    depends_on: *depends_postgres
+    restart: unless-stopped
+
+  progression-service:
+    build: { context: ., dockerfile: services/progression-service/Dockerfile }
+    environment:
+      <<: *common_env
+      DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/progression_db
     depends_on: *depends_postgres
     restart: unless-stopped
 

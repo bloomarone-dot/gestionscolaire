@@ -77,12 +77,45 @@ class PersonnelUpdate(BaseModel):
     nom: Optional[str] = None
     prenom: Optional[str] = None
     sexe: Optional[str] = None
+    phone: Optional[str] = None
     phone2: Optional[str] = None
     email: Optional[str] = None
     specialite: Optional[str] = None
     diplome: Optional[str] = None
     fonction: Optional[str] = None
     is_active: Optional[bool] = None
+
+    @field_validator("phone", "phone2")
+    @classmethod
+    def _normalize_phones(cls, value: Optional[str]) -> Optional[str]:
+        if value is None or not str(value).strip():
+            return value
+        return normalize_phone(value)
+
+
+class StaffCreate(BaseModel):
+    """Création personnel école primaire — une seule ligne, toutes fonctions."""
+    nom: str
+    prenom: Optional[str] = None
+    sexe: Optional[str] = "M"
+    phone: str
+    phone2: Optional[str] = None
+    email: Optional[str] = None
+    specialite: Optional[str] = None
+    fonction: str
+    password: Optional[str] = None
+
+    @field_validator("nom", "phone", "fonction")
+    @classmethod
+    def _not_empty(cls, v, info):
+        return _required(v, info.field_name)
+
+    @field_validator("phone", "phone2")
+    @classmethod
+    def _normalize_phones(cls, value: Optional[str]) -> Optional[str]:
+        if value is None or not str(value).strip():
+            return value
+        return normalize_phone(value)
 
 
 class PersonnelRow(BaseModel):

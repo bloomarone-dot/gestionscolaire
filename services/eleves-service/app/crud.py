@@ -17,6 +17,8 @@ PROMO_ADMIS = "ADMIS"
 PROMO_REDOUBLE = "REDOUBLE"
 PROMO_REORIENTE = "REORIENTE"
 PROMO_SORTANT = "SORTANT"
+PROMO_EXCLU = "EXCLU"
+PROMO_ABANDON = "ABANDON"
 
 
 class NotFound(Exception):
@@ -35,6 +37,7 @@ def create_eleve(db: Session, tenant_id: int, payload: EleveCreate) -> Eleve:
         tenant_id=tenant_id, matricule=matricule, nom=payload.nom, prenom=payload.prenom,
         date_naissance=payload.date_naissance, sexe=payload.sexe,
         lieu_naissance=payload.lieu_naissance,
+        photo_url=payload.photo_url, etat_sante=payload.etat_sante,
         subsystem_code=payload.subsystem_code, type_code=payload.type_code,
         cycle_code=payload.cycle_code, level_code=payload.level_code,
         series_code=payload.series_code, classe_id=payload.classe_id,
@@ -128,6 +131,12 @@ def apply_promotion(db: Session, tenant_id: int, payload: PromotionApply) -> lis
         elif item.status == PROMO_SORTANT:
             e.classe_id = None
             e.statut = STATUT_DIPLOME
+        elif item.status == PROMO_EXCLU:
+            e.classe_id = None
+            e.statut = STATUT_EXCLU
+        elif item.status == PROMO_ABANDON:
+            e.classe_id = None
+            e.statut = STATUT_ABANDON
         else:
             raise ValueError(f"Statut de promotion inconnu : {item.status}")
         results.append({"eleve_id": e.id, "status": item.status, "classe_id": e.classe_id})

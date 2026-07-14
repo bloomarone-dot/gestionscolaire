@@ -297,13 +297,7 @@ export function subjectRow(subject, classe = null) {
   };
 }
 
-export const STAFF_FUNCTIONS = [
-  "Censeur",
-  "Directeur d'etudes",
-  "Surveillant General",
-  "Surveillant de discipline",
-  "Principal",
-];
+export { STAFF_FUNCTIONS } from "../../../utils/personnelFunctions";
 
 export function personnelRow(p) {
   return {

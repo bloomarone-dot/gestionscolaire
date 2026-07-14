@@ -26,6 +26,8 @@ class EleveCreate(BaseModel):
     date_naissance: Optional[date] = None
     sexe: Optional[str] = None
     lieu_naissance: Optional[str] = None
+    photo_url: Optional[str] = None
+    etat_sante: Optional[str] = None
     matricule: Optional[str] = None  # généré si absent (§6.1)
 
     subsystem_code: Optional[str] = None
@@ -50,8 +52,10 @@ class EleveUpdate(BaseModel):
     prenom: Optional[str] = None
     matricule: Optional[str] = None
     sexe: Optional[str] = None
+    date_naissance: Optional[date] = None
     lieu_naissance: Optional[str] = None
     photo_url: Optional[str] = None
+    etat_sante: Optional[str] = None
     classe_id: Optional[int] = None
     statut: Optional[str] = None
 
@@ -89,6 +93,8 @@ class EleveRow(BaseModel):
 class EleveDetail(EleveRow):
     date_naissance: Optional[date] = None
     lieu_naissance: Optional[str] = None
+    photo_url: Optional[str] = None
+    etat_sante: Optional[str] = None
     subsystem_code: Optional[str] = None
     type_code: Optional[str] = None
     level_code: Optional[str] = None

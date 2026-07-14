@@ -12,6 +12,11 @@ from common.establishment import (
 INTERNAL_CHANNEL = "INTERNAL"
 
 
+class OperationalSettings(BaseModel):
+    personnel_auto_roles: bool = False
+    fonction_auth_roles: Dict[str, str] = Field(default_factory=dict)
+
+
 class AppreciationBand(BaseModel):
     min: float = Field(ge=0, le=20)
     label: str = Field(min_length=1, max_length=40)
@@ -58,6 +63,7 @@ class SchoolUpdate(BaseModel):
     bulletin_theme: Optional[Dict[str, Any]] = None
     bulletin_layout_profile: Optional[Dict[str, Any]] = None
     bulletin_reference_url: Optional[str] = None
+    operational_settings: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
     @field_validator("establishment_kind")
@@ -110,3 +116,4 @@ class SchoolProfile(BaseModel):
     subsystems: List[str] = []
     teaching_types: List[str] = []
     channels: List[str] = []
+    operational_settings: Dict[str, Any] = Field(default_factory=dict)

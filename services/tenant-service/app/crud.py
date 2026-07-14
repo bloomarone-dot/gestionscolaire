@@ -9,6 +9,8 @@ from common.bulletin_theme import parse_theme
 from common.bulletin_layout import parse_layout
 from common.establishment import default_profile_for_kind, normalize_establishment_kind
 
+from common.personnel_roles import dump_operational_settings, parse_operational_settings
+
 from app.models import (
     NotificationChannel,
     School,
@@ -110,4 +112,7 @@ def to_profile(school: School) -> SchoolProfile:
         subsystems=[s.subsystem_code for s in school.subsystems],
         teaching_types=[t.type_code for t in school.teaching_types],
         channels=[c.channel for c in school.channels if c.enabled],
+        operational_settings=parse_operational_settings(
+            getattr(school, "operational_settings", None),
+        ),
     )

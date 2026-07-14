@@ -9,16 +9,20 @@ from sqlalchemy.orm import Session, sessionmaker
 from common.db import Base, get_engine, init_engine
 from common.tenant import TenantContext, require_roles, require_tenant
 
+from common.personnel_roles import is_teacher_fonction, resolve_auth_role
+
 from app import auth_client, crud
 from app.auth_client import AuthClientError
 from app.config import settings
 from app.models import ROLE_DIRECTION, ROLE_ENSEIGNANT, Personnel
+from app.tenant_client import fetch_operational_settings
 from app.schemas import (
     DirectionCreate,
     EnseignantCreate,
     PersonnelDetail,
     PersonnelRow,
     PersonnelUpdate,
+    StaffCreate,
 )
 
 app = FastAPI(title="personnel-service — SaaS Scolaire", version="0.1.0")
@@ -58,6 +62,19 @@ def _detail(p: Personnel) -> PersonnelDetail:
     )
 
 
+def _maybe_sync_auth_role(ctx: TenantContext, p: Personnel) -> None:
+    settings_data = fetch_operational_settings(ctx)
+    if not settings_data.get("personnel_auto_roles"):
+        return
+    if not p.account_id or not p.fonction:
+        return
+    role = resolve_auth_role(p.fonction, settings_data)
+    try:
+        auth_client.update_login_account(ctx, p.account_id, role=role)
+    except AuthClientError:
+        pass
+
+
 @app.get("/health", tags=["infra"])
 def health() -> dict:
     return {"status": "ok", "service": "personnel-service"}
@@ -79,6 +96,7 @@ def create_enseignant(
             phone2=payload.phone2, email=payload.email, password=payload.password,
         )
         p = crud.create_enseignant(db, ctx.tenant_id, payload, account.get("id"))
+        _maybe_sync_auth_role(ctx, p)
     except AuthClientError as e:
         raise HTTPException(e.status_code, e.detail)
     except Exception as e:
@@ -109,6 +127,7 @@ def create_direction(
             phone2=payload.phone2, email=payload.email, password=payload.password,
         )
         p = crud.create_direction(db, ctx.tenant_id, payload, account.get("id"))
+        _maybe_sync_auth_role(ctx, p)
     except AuthClientError as e:
         raise HTTPException(e.status_code, e.detail)
     except Exception as e:
@@ -121,6 +140,43 @@ def create_direction(
 @app.get("/personnel/direction", response_model=list[PersonnelRow], tags=["direction"])
 def list_direction(db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
     return [_row(p) for p in crud.list_personnel(db, ctx.tenant_id, ROLE_DIRECTION)]
+
+
+@app.post("/personnel/staff", status_code=status.HTTP_201_CREATED, tags=["personnel"])
+def create_staff_member(
+    payload: StaffCreate,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+    _: TenantContext = Depends(require_roles("admin")),
+):
+    """École primaire — tout membre du personnel avec attribution de fonction libre."""
+    settings_data = fetch_operational_settings(ctx)
+    auth_role = (
+        resolve_auth_role(payload.fonction, settings_data)
+        if settings_data.get("personnel_auto_roles")
+        else ("enseignant" if is_teacher_fonction(payload.fonction) else "direction")
+    )
+    account = None
+    try:
+        account = auth_client.create_login_account(
+            ctx,
+            phone=payload.phone,
+            role=auth_role,
+            first_name=payload.prenom,
+            last_name=payload.nom,
+            phone2=payload.phone2,
+            email=payload.email,
+            password=payload.password,
+        )
+        p = crud.create_staff(db, ctx.tenant_id, payload, account.get("id"))
+        _maybe_sync_auth_role(ctx, p)
+    except AuthClientError as e:
+        raise HTTPException(e.status_code, e.detail)
+    except Exception as e:
+        if account and account.get("id"):
+            auth_client.delete_login_account(ctx, account["id"])
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Création impossible : {e}") from e
+    return {"personnel": _detail(p).model_dump(), "generated_password": account.get("generated_password")}
 
 
 # ════════════════════════════ TOUT LE PERSONNEL ══════════════════════════════
@@ -160,7 +216,9 @@ def update_personnel(
     ctx: TenantContext = Depends(require_tenant),
 ):
     try:
-        return _detail(crud.update_personnel(db, ctx.tenant_id, personnel_id, payload))
+        p = crud.update_personnel(db, ctx.tenant_id, personnel_id, payload)
+        _maybe_sync_auth_role(ctx, p)
+        return _detail(p)
     except crud.NotFound as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 

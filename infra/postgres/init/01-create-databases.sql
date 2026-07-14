@@ -13,3 +13,4 @@ CREATE DATABASE bulletins_db;
 CREATE DATABASE notifications_db;
 CREATE DATABASE tresorerie_db;
 CREATE DATABASE planning_db;
+CREATE DATABASE progression_db;

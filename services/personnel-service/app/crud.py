@@ -3,8 +3,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from common.personnel_roles import is_teacher_fonction, resolve_auth_role
+
 from app.models import ROLE_DIRECTION, ROLE_ENSEIGNANT, Personnel, TeachableSubject
-from app.schemas import DirectionCreate, EnseignantCreate, PersonnelUpdate
+from app.schemas import DirectionCreate, EnseignantCreate, PersonnelUpdate, StaffCreate
 
 
 class NotFound(Exception):
@@ -19,6 +21,7 @@ def create_enseignant(
         nom=payload.nom, prenom=payload.prenom, sexe=payload.sexe,
         phone=payload.phone, phone2=payload.phone2, email=payload.email,
         specialite=payload.specialite, diplome=payload.diplome,
+        fonction="Enseignant",
         account_id=account_id,
     )
     db.add(p)
@@ -66,11 +69,37 @@ def get_personnel(db: Session, tenant_id: int, personnel_id: int) -> Personnel:
     return p
 
 
+def create_staff(
+    db: Session, tenant_id: int, payload: StaffCreate, account_id: Optional[int]
+) -> Personnel:
+    role_type = ROLE_ENSEIGNANT if is_teacher_fonction(payload.fonction) else ROLE_DIRECTION
+    p = Personnel(
+        tenant_id=tenant_id,
+        role_type=role_type,
+        nom=payload.nom,
+        prenom=payload.prenom,
+        sexe=payload.sexe or "M",
+        phone=payload.phone,
+        phone2=payload.phone2,
+        email=payload.email,
+        specialite=payload.specialite,
+        fonction=payload.fonction,
+        account_id=account_id,
+    )
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return p
+
+
 def update_personnel(
     db: Session, tenant_id: int, personnel_id: int, payload: PersonnelUpdate
 ) -> Personnel:
     p = get_personnel(db, tenant_id, personnel_id)
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    if "fonction" in data and data["fonction"]:
+        p.role_type = ROLE_ENSEIGNANT if is_teacher_fonction(data["fonction"]) else ROLE_DIRECTION
+    for field, value in data.items():
         setattr(p, field, value)
     db.commit()
     db.refresh(p)

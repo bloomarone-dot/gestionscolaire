@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  BarChart3, ClipboardList, GraduationCap, School, UserPlus, Users,
+  BarChart3, ClipboardList, GraduationCap, School, UserPlus, Users, WalletCards,
 } from 'lucide-react';
 import * as api from '../../api/api';
 import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
@@ -14,6 +14,7 @@ export default function PrimarySchoolDashboard() {
   const [eleves, setEleves] = useState([]);
   const [classes, setClasses] = useState([]);
   const [profs, setProfs] = useState([]);
+  const [tresorerie, setTresorerie] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,11 +23,13 @@ export default function PrimarySchoolDashboard() {
       api.fetchEleves_admin().catch(() => []),
       api.fetchClasses().catch(() => []),
       api.fetchProfesseurs().catch(() => []),
-    ]).then(([e, c, p]) => {
+      api.fetchTresorerieStats().catch(() => null),
+    ]).then(([e, c, p, t]) => {
       if (!active) return;
       setEleves(Array.isArray(e) ? e : []);
       setClasses(Array.isArray(c) ? c.map(classRow) : []);
       setProfs(Array.isArray(p) ? p : []);
+      setTresorerie(t);
       setLoading(false);
     });
     return () => { active = false; };
@@ -61,9 +64,16 @@ export default function PrimarySchoolDashboard() {
   const shortcuts = [
     { to: '/app/students/nouveau', label: ui.enrollment, icon: UserPlus, tone: 'bg-blue-100 text-blue-700' },
     { to: '/app/classes/nouveau', label: 'Nouvelle classe', icon: School, tone: 'bg-emerald-100 text-emerald-700' },
+    { to: '/app/payments', label: 'Paiements parents', icon: WalletCards, tone: 'bg-amber-100 text-amber-700' },
     { to: '/app/grades', label: ui.grades, icon: BarChart3, tone: 'bg-violet-100 text-violet-700' },
-    { to: '/app/promotions', label: ui.promotions, icon: ClipboardList, tone: 'bg-amber-100 text-amber-700' },
+    { to: '/app/promotions', label: ui.promotions, icon: ClipboardList, tone: 'bg-slate-100 text-slate-700' },
   ];
+
+  function formatXaf(value) {
+    const n = Number(value);
+    if (Number.isNaN(n)) return '—';
+    return `${n.toLocaleString('fr-FR')} XAF`;
+  }
 
   return (
     <>
@@ -76,9 +86,10 @@ export default function PrimarySchoolDashboard() {
       <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
         Section <strong>école primaire</strong> — gestion de la maternelle (PS, MS, GS)
         et du primaire (SIL, CP, CE1… CM2) en section francophone.
+        Les frais scolaires peuvent être réglés par les parents via <strong>Mobile Money</strong> (lien sécurisé).
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label={ui.dashboardStudents} value={loading ? '…' : eleves.length} trend="Inscrits" icon={Users} tone="blue" />
         <StatCard label={ui.dashboardClasses} value={loading ? '…' : classes.length} trend="Actives" icon={School} tone="emerald" />
         <StatCard label={ui.teachers} value={loading ? '…' : profs.length} trend="Enseignants" icon={GraduationCap} tone="slate" />
@@ -88,6 +99,13 @@ export default function PrimarySchoolDashboard() {
           trend={`${eleves.length} élèves inscrits`}
           icon={Users}
           tone="violet"
+        />
+        <StatCard
+          label="Paiements en ligne"
+          value={loading ? '…' : (tresorerie?.online_month_count ?? 0)}
+          trend={formatXaf(tresorerie?.online_month_amount)}
+          icon={WalletCards}
+          tone="amber"
         />
       </div>
 

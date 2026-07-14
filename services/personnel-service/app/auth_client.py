@@ -78,3 +78,31 @@ def delete_login_account(ctx: TenantContext, account_id: int) -> None:
     except httpx.HTTPStatusError:
         # Best-effort : ne pas masquer l'erreur principale si le rollback échoue.
         pass
+
+
+def update_login_account(
+    ctx: TenantContext,
+    account_id: int,
+    *,
+    role: str | None = None,
+    is_active: bool | None = None,
+) -> dict | None:
+    """Met à jour le rôle du compte (attribution automatique depuis la fonction)."""
+    body: dict = {}
+    if role is not None:
+        body["role"] = role
+    if is_active is not None:
+        body["is_active"] = is_active
+    if not body:
+        return None
+    try:
+        return _client.patch(f"/auth/accounts/{account_id}", ctx=ctx, json=body)
+    except httpx.HTTPStatusError as exc:
+        detail = "Impossible de mettre à jour le compte."
+        try:
+            payload = exc.response.json()
+            if isinstance(payload.get("detail"), str):
+                detail = payload["detail"]
+        except Exception:
+            pass
+        raise AuthClientError(exc.response.status_code, detail) from exc

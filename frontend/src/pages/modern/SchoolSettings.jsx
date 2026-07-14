@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
 import * as api from '../../api/api';
 import { useAuth } from '../../context/useAuth';
-import { Button, Card, Input, PageHeader } from '../../components/ui';
+import { Button, Card, Input, PageHeader, Select } from '../../components/ui';
 import BulletinThemeEditor from '../../components/BulletinThemeEditor';
 import { DEFAULT_BULLETIN_THEME, normalizeBulletinTheme } from '../../utils/bulletinTheme';
 import { compressImageFile } from '../../utils/imageCompress';
@@ -112,6 +112,178 @@ function AppreciationScaleEditor({ title, bands, onChange }) {
   );
 }
 
+const MONTHS = [
+  [1, 'Janvier'], [2, 'Février'], [3, 'Mars'], [4, 'Avril'], [5, 'Mai'], [6, 'Juin'],
+  [7, 'Juillet'], [8, 'Août'], [9, 'Septembre'], [10, 'Octobre'], [11, 'Novembre'], [12, 'Décembre'],
+];
+
+const EMPTY_FEE = {
+  inscription: '', tranche1: '', tranche2: '', tranche3: '',
+  t1_start_month: '', t1_end_month: '', t2_start_month: '', t2_end_month: '',
+  t3_start_month: '', t3_end_month: '',
+};
+
+function MonthRange({ label, start, end, onStart, onEnd }) {
+  return (
+    <div>
+      <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">{label}</span>
+      <div className="flex items-center gap-2">
+        <Select value={start} onChange={(e) => onStart(e.target.value)}>
+          <option value="">Début…</option>
+          {MONTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </Select>
+        <span className="text-slate-400">→</span>
+        <Select value={end} onChange={(e) => onEnd(e.target.value)}>
+          <option value="">Fin…</option>
+          {MONTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function FeesScheduleCard() {
+  const [classes, setClasses] = useState([]);
+  const [schedulesById, setSchedulesById] = useState({});
+  const [classeId, setClasseId] = useState('');
+  const [fee, setFee] = useState(EMPTY_FEE);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      api.fetchClasses().catch(() => []),
+      api.fetchFeeSchedules().catch(() => []),
+    ]).then(([cls, fees]) => {
+      setClasses(Array.isArray(cls) ? cls : []);
+      const map = {};
+      (fees || []).forEach((f) => { map[f.classe_id] = f; });
+      setSchedulesById(map);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!classeId) { setFee(EMPTY_FEE); return; }
+    const s = schedulesById[classeId];
+    setFee(s ? {
+      inscription: s.inscription ?? '', tranche1: s.tranche1 ?? '', tranche2: s.tranche2 ?? '', tranche3: s.tranche3 ?? '',
+      t1_start_month: s.t1_start_month ?? '', t1_end_month: s.t1_end_month ?? '',
+      t2_start_month: s.t2_start_month ?? '', t2_end_month: s.t2_end_month ?? '',
+      t3_start_month: s.t3_start_month ?? '', t3_end_month: s.t3_end_month ?? '',
+    } : EMPTY_FEE);
+  }, [classeId, schedulesById]);
+
+  const setF = (k, v) => setFee((f) => ({ ...f, [k]: v }));
+  const num = (v) => (v === '' || v == null ? 0 : Number(v));
+  const monthOrNull = (v) => (v === '' || v == null ? null : Number(v));
+
+  async function save() {
+    if (!classeId) { setErr('Choisissez une classe.'); return; }
+    setSaving(true); setMsg(''); setErr('');
+    try {
+      const classe = classes.find((c) => String(c.id) === String(classeId));
+      const saved = await api.saveFeeSchedule(classeId, {
+        classe_nom: classe?.nom || classe?.nom_personnalise || null,
+        inscription: num(fee.inscription),
+        tranche1: num(fee.tranche1),
+        tranche2: num(fee.tranche2),
+        tranche3: num(fee.tranche3),
+        t1_start_month: monthOrNull(fee.t1_start_month),
+        t1_end_month: monthOrNull(fee.t1_end_month),
+        t2_start_month: monthOrNull(fee.t2_start_month),
+        t2_end_month: monthOrNull(fee.t2_end_month),
+        t3_start_month: monthOrNull(fee.t3_start_month),
+        t3_end_month: monthOrNull(fee.t3_end_month),
+      });
+      setSchedulesById((m) => ({ ...m, [classeId]: saved }));
+      setMsg('Grille de frais enregistrée pour cette classe.');
+    } catch (e) {
+      setErr(e.message || 'Enregistrement impossible.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const total = num(fee.inscription) + num(fee.tranche1) + num(fee.tranche2) + num(fee.tranche3);
+
+  return (
+    <Card className="p-5">
+      <h2 className="mb-1 text-lg font-bold text-slate-900">Frais de scolarité par classe</h2>
+      <p className="mb-4 text-sm text-slate-500">
+        Définissez, pour chaque classe, le montant de l'inscription (à part) et des 3 tranches de pension,
+        ainsi que la période couverte par chaque tranche. Ces montants alimentent l'inscription et le suivi des paiements.
+      </p>
+
+      {msg && <div className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
+      {err && <div className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{err}</div>}
+
+      <div className="mb-4 max-w-md">
+        <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">Classe</span>
+        <Select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
+          <option value="">— Choisir une classe —</option>
+          {classes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nom || c.nom_personnalise || `Classe ${c.id}`}
+              {schedulesById[c.id] ? ' ✓' : ''}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      {classeId && (
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">Inscription (XAF)</span>
+              <Input type="number" min="0" value={fee.inscription} onChange={(e) => setF('inscription', e.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">1ère tranche (XAF)</span>
+              <Input type="number" min="0" value={fee.tranche1} onChange={(e) => setF('tranche1', e.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">2ème tranche (XAF)</span>
+              <Input type="number" min="0" value={fee.tranche2} onChange={(e) => setF('tranche2', e.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">3ème tranche (XAF)</span>
+              <Input type="number" min="0" value={fee.tranche3} onChange={(e) => setF('tranche3', e.target.value)} />
+            </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <MonthRange
+              label="Période 1ère tranche"
+              start={fee.t1_start_month} end={fee.t1_end_month}
+              onStart={(v) => setF('t1_start_month', v)} onEnd={(v) => setF('t1_end_month', v)}
+            />
+            <MonthRange
+              label="Période 2ème tranche"
+              start={fee.t2_start_month} end={fee.t2_end_month}
+              onStart={(v) => setF('t2_start_month', v)} onEnd={(v) => setF('t2_end_month', v)}
+            />
+            <MonthRange
+              label="Période 3ème tranche"
+              start={fee.t3_start_month} end={fee.t3_end_month}
+              onStart={(v) => setF('t3_start_month', v)} onEnd={(v) => setF('t3_end_month', v)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-600">
+              Total annuel : <b>{total.toLocaleString('fr-FR')} XAF</b>
+            </p>
+            <Button type="button" onClick={save} disabled={saving}>
+              <Save size={16} /> {saving ? 'Enregistrement…' : 'Enregistrer cette classe'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function SettingsPage() {
   const { user, selectedSchool } = useAuth();
   const [school, setSchool] = useState(null);
@@ -130,6 +302,7 @@ export function SettingsPage() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [profile, setProfile] = useState({ subsystems: [], teaching_types: [], channels: ['INTERNAL'] });
+  const [personnelAutoRoles, setPersonnelAutoRoles] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
@@ -164,6 +337,7 @@ export function SettingsPage() {
           teaching_types: s.teaching_types || [],
           channels: s.channels?.length ? s.channels : ['INTERNAL'],
         });
+        setPersonnelAutoRoles(Boolean(s.operational_settings?.personnel_auto_roles));
       } catch (err) {
         if (active) setError(err.message || "Impossible de charger l'etablissement.");
       } finally {
@@ -242,6 +416,10 @@ export function SettingsPage() {
     try {
       const updated = await api.updateSchool(school.id, {
         ...form,
+        operational_settings: {
+          personnel_auto_roles: personnelAutoRoles,
+          fonction_auth_roles: school.operational_settings?.fonction_auth_roles || {},
+        },
         bulletin_appreciation_scales: appreciationScales,
         bulletin_layout_profile: layoutProfile,
         bulletin_reference_url: bulletinReferenceUrl || null,
@@ -423,10 +601,31 @@ export function SettingsPage() {
           </div>
         </Card>
 
+        <Card className="p-5">
+          <h2 className="mb-1 text-lg font-bold text-slate-900">Personnel & rôles</h2>
+          <p className="mb-4 text-sm text-slate-500">
+            Attribution automatique du rôle de connexion selon la fonction (instituteur → enseignant,
+            directeur → direction, agent de sécurité → direction, etc.).
+          </p>
+          <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+            <input
+              type="checkbox"
+              checked={personnelAutoRoles}
+              onChange={(e) => setPersonnelAutoRoles(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            Activer l'attribution automatique des rôles à la création / modification du personnel
+          </label>
+        </Card>
+
         <div className="flex gap-2">
           <Button disabled={saving}><Save size={16} /> {saving ? 'Enregistrement...' : 'Enregistrer'}</Button>
         </div>
       </form>
+
+      <div className="mt-6">
+        <FeesScheduleCard />
+      </div>
 
       <form onSubmit={handleProfileSubmit} className="mt-6">
         <Card className="p-5">

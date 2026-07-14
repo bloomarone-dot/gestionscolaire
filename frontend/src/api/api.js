@@ -156,7 +156,8 @@ async function apiRequest(path, { method = 'GET', body, auth = true } = {}) {
     headers: getHeaders(auth, body !== undefined),
   };
   if (body !== undefined) {
-    options.body = JSON.stringify(body);
+    // Accepte objet OU chaîne déjà JSON (évite double stringify → 422 « JSON string »).
+    options.body = typeof body === 'string' ? body : JSON.stringify(body);
   }
   const res = await apiFetch(path, options);
   return handleResponse(res);
@@ -195,7 +196,7 @@ async function handleAuthResponse(res) {
 // ── Authentification ──────────────────────────────────────
 export async function login(username, password) {
   const phone = normalizePhone(username);
-  const res = await fetch('/auth/login', {
+  const res = await apiFetch('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, password: String(password || '').trim() }),
@@ -562,6 +563,154 @@ export async function downloadPaiementRecu(paiementId, establishmentName = 'Éta
   return downloadFileResponse(res, `recu_${paiementId}.pdf`);
 }
 
+export async function genererLienParentPaiement(paiementId) {
+  return apiRequest(`/tresorerie/paiements/${paiementId}/lien-parent`, { method: 'POST' });
+}
+
+export async function fetchPublicPaiement(token) {
+  const res = await fetch(`/tresorerie/public/paiements/${token}`);
+  return handleResponse(res);
+}
+
+export async function initierPaiementParent(token, payload) {
+  const res = await fetch(`/tresorerie/public/paiements/${token}/initier`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function confirmerPaiementParent(token) {
+  const res = await fetch(`/tresorerie/public/paiements/${token}/confirmer`, { method: 'POST' });
+  return handleResponse(res);
+}
+
+export async function downloadPublicPaiementRecu(token) {
+  const res = await fetch(`/tresorerie/public/paiements/${token}/recu.pdf`);
+  return downloadFileResponse(res, 'recu_paiement.pdf');
+}
+
+export async function fetchRetraits() {
+  return apiRequest('/tresorerie/retraits');
+}
+
+export async function createRetrait(payload) {
+  return apiRequest('/tresorerie/retraits', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchEleve_admin(eleveId) {
+  return apiRequest(`/eleves/${eleveId}`);
+}
+
+// ── Scolarité : grille de frais + versements (inscription + 3 tranches) ──
+export async function fetchFeeSchedules() {
+  return apiRequest('/tresorerie/fees');
+}
+
+export async function saveFeeSchedule(classeId, payload) {
+  return apiRequest(`/tresorerie/fees/${classeId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchPensionResume(eleveId, classeId = null) {
+  const qs = classeId != null ? `?classe_id=${classeId}` : '';
+  return apiRequest(`/tresorerie/pension/${eleveId}/resume${qs}`);
+}
+
+export async function payerPension(payload) {
+  return apiRequest('/tresorerie/pension/payer', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchPensionComptes() {
+  return apiRequest('/tresorerie/pension/comptes');
+}
+
+// ── Progression académique (politiques, propositions, inscriptions) ─────
+export async function fetchProgressionCriteria() {
+  return apiRequest('/progression/criteria');
+}
+
+export async function fetchProgressionDecisions() {
+  return apiRequest('/progression/decisions');
+}
+
+export async function createProgressionDecision(payload) {
+  return apiRequest('/progression/decisions', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function fetchProgressionPolicies() {
+  return apiRequest('/progression/policies');
+}
+
+export async function createProgressionPolicy(payload) {
+  return apiRequest('/progression/policies', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function updateProgressionPolicy(policyId, payload) {
+  return apiRequest(`/progression/policies/${policyId}`, { method: 'PUT', body: JSON.stringify(payload) });
+}
+
+export async function versionProgressionPolicy(policyId) {
+  return apiRequest(`/progression/policies/${policyId}/version`, { method: 'POST' });
+}
+
+export async function activateProgressionPolicy(policyId) {
+  return apiRequest(`/progression/policies/${policyId}/activate`, { method: 'POST' });
+}
+
+export async function deactivateProgressionPolicy(policyId) {
+  return apiRequest(`/progression/policies/${policyId}/deactivate`, { method: 'POST' });
+}
+
+export async function computeProgressionProposals(payload) {
+  return apiRequest('/progression/compute', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function fetchProgressionProposals(params = {}) {
+  const qs = new URLSearchParams();
+  if (params.classe_id != null) qs.set('classe_id', String(params.classe_id));
+  if (params.annee_scolaire) qs.set('annee_scolaire', params.annee_scolaire);
+  if (params.status) qs.set('status', params.status);
+  const query = qs.toString();
+  return apiRequest(`/progression/proposals${query ? `?${query}` : ''}`);
+}
+
+export async function validateProgressionProposal(proposalId, payload) {
+  return apiRequest(`/progression/proposals/${proposalId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+}
+
+export async function fetchProposalHistory(proposalId) {
+  return apiRequest(`/progression/proposals/${proposalId}/history`);
+}
+
+export async function prepareNextYearEnrollments(payload) {
+  return apiRequest('/progression/enrollment/prepare', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function applyNextYearEnrollments(payload) {
+  return apiRequest('/progression/enrollment/apply', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function createStaffMember(data) {
+  const res = await fetch('/personnel/staff', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  const payload = await handleResponse(res);
+  const personnel = payload?.personnel ?? payload;
+  return { ...personnel, generated_password: payload?.generated_password ?? null };
+}
+
 // ── Planning (salles & emploi du temps) ───────────────────
 export async function fetchSalles(activesOnly = false) {
   const qs = activesOnly ? '?actives_only=true' : '';
@@ -675,6 +824,10 @@ export async function updateProfesseur(profId, profData) {
     body: JSON.stringify(profData),
   });
   return handleResponse(res);
+}
+
+export async function fetchPersonnelMember(personnelId) {
+  return apiRequest(`/personnel/${personnelId}`);
 }
 
 export async function deleteProfesseur(profId) {

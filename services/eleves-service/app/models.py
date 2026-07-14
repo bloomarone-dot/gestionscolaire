@@ -25,6 +25,7 @@ STATUT_INSCRIT = "INSCRIT"
 STATUT_TRANSFERE = "TRANSFERE"
 STATUT_EXCLU = "EXCLU"
 STATUT_DIPLOME = "DIPLOME"
+STATUT_ABANDON = "ABANDON"
 
 
 class Eleve(Base):
@@ -40,6 +41,7 @@ class Eleve(Base):
     sexe = Column(String(1), nullable=True)
     lieu_naissance = Column(String(120), nullable=True)
     photo_url = Column(String, nullable=True)
+    etat_sante = Column(String, nullable=True)  # allergies, groupe sanguin, notes médicales
 
     # Profil pédagogique (cascade §6, codes du référentiel)
     subsystem_code = Column(String(20), nullable=True)

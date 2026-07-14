@@ -1,20 +1,25 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { UserPlus } from "lucide-react";
+import { Pencil, UserPlus } from "lucide-react";
 import * as api from "../../../api/api";
+import { useEstablishmentProfile } from "../../../hooks/useEstablishmentProfile";
+import {
+  isTeacherFonction,
+  staffFunctionsForKind,
+} from "../../../utils/personnelFunctions";
 import {
   Badge,
   Button,
   Card,
   DataTable,
   Input,
+  Modal,
   PageHeader,
   Select,
 } from "../../../components/ui";
 import {
   EMPTY_PERSONNEL,
   Notice,
-  STAFF_FUNCTIONS,
   deleteAction,
   emptyRows,
   personnelRow,
@@ -29,9 +34,12 @@ function normalizePhone(value) {
 }
 
 export function OperationalTeachersPage() {
+  const { isPrimarySchool } = useEstablishmentProfile();
   const [searchParams] = useSearchParams();
   const view =
     searchParams.get("fonction") === "direction" ? "direction" : "enseignant";
+  const [editRow, setEditRow] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
   const loadPersonnel = useCallback(async () => {
     const [personnel, matieres] = await Promise.all([
       api.fetchPersonnel(),
@@ -59,21 +67,75 @@ export function OperationalTeachersPage() {
         };
       })
       .filter((p) =>
-        view === "enseignant"
-          ? p.fonction === "Enseignant"
-          : p.fonction !== "Enseignant",
+        isPrimarySchool
+          ? true
+          : view === "enseignant"
+            ? p.fonction === "Enseignant"
+            : p.fonction !== "Enseignant",
       );
-  }, [view]);
+  }, [view, isPrimarySchool]);
   const { rows, setRows, loading, error } = useLoad(loadPersonnel, []);
   const [notice, setNotice] = useState("");
 
-  const pageTitle =
-    view === "direction" ? "Direction / Administration" : "Enseignants";
+  const pageTitle = isPrimarySchool
+    ? "Personnel de l'école"
+    : view === "direction"
+      ? "Direction / Administration"
+      : "Enseignants";
 
-  const createHref =
-    view === "direction"
+  const createHref = isPrimarySchool
+    ? "/app/teachers/nouveau"
+    : view === "direction"
       ? "/app/teachers/nouveau?fonction=direction"
       : "/app/teachers/nouveau";
+
+  async function saveEdit() {
+    if (!editRow) return;
+    setEditSaving(true);
+    try {
+      await api.updateProfesseur(editRow.id, {
+        nom: editRow.nom,
+        prenom: editRow.prenom || null,
+        fonction: editRow.fonction,
+        phone: editRow.phone,
+        specialite: editRow.specialite || null,
+      });
+      setRows((cur) =>
+        cur.map((r) =>
+          r.id === editRow.id
+            ? {
+                ...r,
+                name: [editRow.nom, editRow.prenom].filter(Boolean).join(" "),
+                fonction: editRow.fonction,
+                phone: editRow.phone,
+              }
+            : r,
+        ),
+      );
+      setEditRow(null);
+      setNotice("Fonction et coordonnées mises à jour.");
+    } catch (err) {
+      setNotice(err.message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function openEdit(row) {
+    try {
+      const detail = await api.fetchPersonnelMember(row.id);
+      setEditRow({
+        id: detail.id,
+        nom: detail.nom,
+        prenom: detail.prenom || "",
+        fonction: detail.fonction || "Enseignant",
+        phone: detail.phone || "",
+        specialite: detail.specialite || "",
+      });
+    } catch (err) {
+      setNotice(err.message);
+    }
+  }
 
   async function handleDelete(row) {
     if (!window.confirm(`Supprimer "${row.name}" (${row.fonction}) ?`)) return;
@@ -129,19 +191,61 @@ export function OperationalTeachersPage() {
           },
         ]}
         rows={rows}
-        renderActions={(row) => deleteAction(() => handleDelete(row))}
+        renderActions={(row) => (
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" className="px-2" onClick={() => openEdit(row)}>
+              <Pencil size={16} />
+            </Button>
+            {deleteAction(() => handleDelete(row))}
+          </div>
+        )}
       />
+      <Modal
+        title="Modifier le personnel"
+        open={Boolean(editRow)}
+        onClose={() => setEditRow(null)}
+        footer={(
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setEditRow(null)}>Annuler</Button>
+            <Button onClick={saveEdit} disabled={editSaving}>
+              {editSaving ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </div>
+        )}
+      >
+        {editRow && (
+          <div className="grid gap-3 md:grid-cols-2">
+            <Select
+              className="md:col-span-2"
+              value={editRow.fonction}
+              onChange={(e) => setEditRow({ ...editRow, fonction: e.target.value })}
+            >
+              {staffFunctionsForKind(isPrimarySchool).map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </Select>
+            <Input value={editRow.nom} onChange={(e) => setEditRow({ ...editRow, nom: e.target.value })} placeholder="Nom" />
+            <Input value={editRow.prenom} onChange={(e) => setEditRow({ ...editRow, prenom: e.target.value })} placeholder="Prénom" />
+            <Input className="md:col-span-2" value={editRow.phone} onChange={(e) => setEditRow({ ...editRow, phone: e.target.value })} placeholder="Téléphone" />
+          </div>
+        )}
+      </Modal>
     </>
   );
 }
 
 export function PersonnelCreatePage() {
   const navigate = useNavigate();
+  const { isPrimarySchool } = useEstablishmentProfile();
   const [searchParams] = useSearchParams();
-  const defaultFonction =
-    searchParams.get("fonction") === "direction" ? "Censeur" : "Enseignant";
-  const listHref =
-    searchParams.get("fonction") === "direction"
+  const defaultFonction = isPrimarySchool
+    ? "Instituteur"
+    : searchParams.get("fonction") === "direction"
+      ? "Censeur"
+      : "Enseignant";
+  const listHref = isPrimarySchool
+    ? "/app/teachers"
+    : searchParams.get("fonction") === "direction"
       ? "/app/teachers?fonction=direction"
       : "/app/teachers";
   const { rows: subjectRows, error: subjectsError } = useLoad(
@@ -153,7 +257,8 @@ export function PersonnelCreatePage() {
     fonction: defaultFonction,
   });
   const [notice, setNotice] = useState("");
-  const isTeacher = form.fonction === "Enseignant";
+  const isTeacher = isTeacherFonction(form.fonction, isPrimarySchool);
+  const fonctionOptions = staffFunctionsForKind(isPrimarySchool);
 
   async function submit(event) {
     event.preventDefault();
@@ -162,6 +267,21 @@ export function PersonnelCreatePage() {
       return;
     }
     try {
+      if (isPrimarySchool) {
+        await api.createStaffMember({
+          nom: form.nom,
+          prenom: form.prenom,
+          sexe: form.sexe,
+          phone: form.phone,
+          phone2: form.phone2 || null,
+          email: form.email || null,
+          specialite: form.specialite || null,
+          fonction: form.fonction,
+          password: form.password,
+        });
+        navigate(listHref);
+        return;
+      }
       if (isTeacher) {
         const createdRaw = await api.createProfesseur({
           nom: form.nom,
@@ -237,8 +357,7 @@ export function PersonnelCreatePage() {
               value={form.fonction}
               onChange={(e) => setForm({ ...form, fonction: e.target.value })}
             >
-              <option value="Enseignant">Enseignant</option>
-              {STAFF_FUNCTIONS.map((f) => (
+              {fonctionOptions.map((f) => (
                 <option key={f} value={f}>
                   {f}
                 </option>

@@ -1,5 +1,5 @@
 import {
-  ArrowRightLeft, BarChart3, Bell, BookOpen, CalendarDays, ClipboardList,
+  ArrowRightLeft, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList,
   GraduationCap, LayoutDashboard, Megaphone, Receipt, School, Settings,
   UserCog, Users, WalletCards, Sparkles,
 } from 'lucide-react';
@@ -22,6 +22,7 @@ export const NAV_ICONS = {
   Sparkles,
   CalendarDays,
   WalletCards,
+  CheckCircle2,
 };
 
 function flat(items) {
@@ -41,6 +42,8 @@ function languageCenterAdminNav(ui) {
         { to: '/app/grades', label: ui.grades, icon: 'BarChart3' },
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
+        { to: '/app/progression/policies', label: 'Politiques de progression', icon: 'Settings' },
+        { to: '/app/progression/proposals', label: 'Validation décisions', icon: 'CheckCircle2' },
       ],
     },
     {
@@ -99,6 +102,8 @@ function primarySchoolAdminNav(ui) {
         { to: '/app/grades', label: ui.grades, icon: 'BarChart3' },
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
+        { to: '/app/progression/policies', label: 'Politiques de progression', icon: 'Settings' },
+        { to: '/app/progression/proposals', label: 'Validation décisions', icon: 'CheckCircle2' },
       ],
     },
     {
@@ -115,6 +120,14 @@ function primarySchoolAdminNav(ui) {
       items: [
         { to: '/app/team', label: 'Équipe & comptes', icon: 'UserCog' },
         { to: '/app/teachers', label: ui.teachers, icon: 'GraduationCap', match: { fonction: 'enseignant' } },
+      ],
+    },
+    {
+      group: 'Trésorerie',
+      icon: 'WalletCards',
+      items: [
+        { to: '/app/payments', label: 'Paiements Mobile Money', icon: 'WalletCards' },
+        { to: '/app/expenses', label: 'Retraits & dépenses', icon: 'WalletCards' },
       ],
     },
     {
@@ -155,6 +168,8 @@ function schoolAdminNav(ui) {
         { to: '/app/students', label: ui.studentsList, icon: 'Users' },
         { to: '/app/students/nouveau', label: ui.enrollment, icon: 'ClipboardList' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
+        { to: '/app/progression/policies', label: 'Politiques de progression', icon: 'Settings' },
+        { to: '/app/progression/proposals', label: 'Validation décisions', icon: 'CheckCircle2' },
       ],
     },
     {
