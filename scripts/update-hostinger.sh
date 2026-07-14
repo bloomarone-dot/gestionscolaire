@@ -47,7 +47,7 @@ echo "→ Rebuild et démarrage (tous les services)..."
 docker compose build --pull frontend api-gateway \
   auth-service tenant-service referentiel-service pedagogie-service \
   personnel-service eleves-service evaluations-service bulletins-service \
-  notifications-service tresorerie-service planning-service
+  notifications-service tresorerie-service planning-service progression-service
 docker compose up -d
 
 sleep 20
@@ -58,7 +58,9 @@ curl -sf http://127.0.0.1:8082/health && echo "  API gateway : OK" || echo "  AP
 WEB_PORT="${WEB_PORT:-5180}"
 curl -sfI "http://127.0.0.1:${WEB_PORT}/" | head -1 || echo "  Frontend : ERREUR"
 
-docker compose ps --status running | grep -E 'tresorerie|planning' && echo "  Nouveaux services : OK" || echo "  Vérifier tresorerie-service et planning-service"
+docker compose ps --status running | grep -E 'tresorerie|planning|progression' \
+  && echo "  Nouveaux services : OK" \
+  || echo "  Vérifier tresorerie / planning / progression"
 
 docker compose ps
 
@@ -66,3 +68,5 @@ echo
 echo "✓ Mise à jour terminée."
 echo "  Site : https://bloomaroneschool.bloomarone.com"
 echo "  Comptes : ./scripts/list-accounts.sh"
+# Si auth vient d'être restauré / DB vide :
+#   ./scripts/seed-superadmin.sh
