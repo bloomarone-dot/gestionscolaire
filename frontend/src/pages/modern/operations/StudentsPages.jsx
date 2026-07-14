@@ -516,7 +516,9 @@ export function EleveCreatePage() {
   const [psSection, setPsSection] = useState(PS_SUBSYSTEM_FR);
   const [psLevel, setPsLevel] = useState("");
   const [notice, setNotice] = useState("");
-  const cascade = useReferentielCascade();
+  const cascade = useReferentielCascade({
+    excludeCycleCodes: ["PRIMAIRE", "CECRL"],
+  });
   const [filteredClasses, setFilteredClasses] = useState([]);
 
   // Paiement à l'inscription (facultatif) + grille de frais de la classe visée.

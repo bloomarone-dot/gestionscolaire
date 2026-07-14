@@ -7,74 +7,157 @@ import { isValidAccessToken, readStoredAccessToken } from "../../../utils/authTo
 // Helpers partagés par les écrans d'opérations (classes, élèves, personnel,
 // matières, notes, bulletins). Extraits de l'ancien SchoolOperations.jsx.
 
+/** Collège / lycée : uniquement Premier cycle et Second cycle (MINESEC). */
+function cycleOptionLabel(cycle) {
+  const code = cycle?.code || "";
+  if (code === "PREMIER") {
+    return "Premier cycle (6ème → 3ème · Form 1–5)";
+  }
+  if (code === "SECOND") {
+    return "Second cycle (2nde → Terminale · Lower–Upper Sixth)";
+  }
+  if (code === "PRIMAIRE") return "École primaire";
+  if (code === "CECRL") return "Langues (CECRL)";
+  return cycle?.name_fr || cycle?.name || code;
+}
+
+function FieldBlock({ label, hint, children }) {
+  return (
+    <label className="flex flex-col gap-1.5 text-sm">
+      <span className="font-semibold text-slate-800">{label}</span>
+      {hint ? <span className="text-xs font-normal text-slate-500">{hint}</span> : null}
+      {children}
+    </label>
+  );
+}
+
 // §4.1 — sélecteurs en cascade (Sous-système → Type → Cycle → Niveau → Série).
 // Réutilisé pour la création de classe (§4) et l'inscription élève (§6).
 export function CascadeFields({ cascade }) {
-  const { subsystems, types, cycles, levels, series, value, select, hasSeries } =
-    cascade;
+  const {
+    subsystems,
+    types,
+    cycles,
+    levels,
+    series,
+    value,
+    select,
+    hasSeries,
+    seriesLoading,
+    loadError,
+    loading,
+  } = cascade;
+
   return (
-    <>
-      <Select
-        value={value.subsystem_code}
-        onChange={(e) => select("subsystem_code", e.target.value)}
+    <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
+      {loadError ? (
+        <p className="md:col-span-2 rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+          {loadError}
+        </p>
+      ) : null}
+      {loading ? (
+        <p className="md:col-span-2 text-sm text-slate-500">Chargement du référentiel MINESEC…</p>
+      ) : null}
+
+      <FieldBlock
+        label="1. Sous-système"
+        hint="Langue du système scolaire : Français (Francophone) ou Anglais (Anglophone)."
       >
-        <option value="">Sous-système…</option>
-        {subsystems.map((s) => (
-          <option key={s.code} value={s.code}>
-            {s.name}
-          </option>
-        ))}
-      </Select>
-      <Select
-        disabled={!value.subsystem_code}
-        value={value.type_code}
-        onChange={(e) => select("type_code", e.target.value)}
-      >
-        <option value="">Type d'enseignement…</option>
-        {types.map((t) => (
-          <option key={t.code} value={t.code}>
-            {t.name_fr}
-          </option>
-        ))}
-      </Select>
-      <Select
-        disabled={!value.type_code}
-        value={value.cycle_code}
-        onChange={(e) => select("cycle_code", e.target.value)}
-      >
-        <option value="">Cycle…</option>
-        {cycles.map((c) => (
-          <option key={c.code} value={c.code}>
-            {c.name_fr}
-          </option>
-        ))}
-      </Select>
-      <Select
-        disabled={!value.cycle_code}
-        value={value.level_code}
-        onChange={(e) => select("level_code", e.target.value)}
-      >
-        <option value="">Niveau…</option>
-        {levels.map((l) => (
-          <option key={l.code} value={l.code}>
-            {l.name}
-          </option>
-        ))}
-      </Select>
-      {hasSeries && (
         <Select
-          value={value.series_code}
-          onChange={(e) => select("series_code", e.target.value)}
+          value={value.subsystem_code}
+          onChange={(e) => select("subsystem_code", e.target.value)}
         >
-          <option value="">Série / Spécialité…</option>
-          {series.map((s) => (
+          <option value="">Choisir…</option>
+          {subsystems.map((s) => (
             <option key={s.code} value={s.code}>
-              {s.code} — {s.name_fr}
+              {s.name}
             </option>
           ))}
         </Select>
+      </FieldBlock>
+
+      <FieldBlock
+        label="2. Type d'enseignement"
+        hint="Général (lycée classique) ou Technique (filières professionnelles)."
+      >
+        <Select
+          disabled={!value.subsystem_code}
+          value={value.type_code}
+          onChange={(e) => select("type_code", e.target.value)}
+        >
+          <option value="">
+            {!value.subsystem_code ? "Choisissez d'abord le sous-système" : "Choisir…"}
+          </option>
+          {types.map((t) => (
+            <option key={t.code} value={t.code}>
+              {t.name_fr}
+            </option>
+          ))}
+        </Select>
+      </FieldBlock>
+
+      <FieldBlock
+        label="3. Cycle"
+        hint="Deux cycles seulement : Premier cycle ou Second cycle."
+      >
+        <Select
+          disabled={!value.type_code}
+          value={value.cycle_code}
+          onChange={(e) => select("cycle_code", e.target.value)}
+        >
+          <option value="">
+            {!value.type_code ? "Choisissez d'abord le type" : "Choisir…"}
+          </option>
+          {cycles.map((c) => (
+            <option key={c.code} value={c.code}>
+              {cycleOptionLabel(c)}
+            </option>
+          ))}
+        </Select>
+      </FieldBlock>
+
+      <FieldBlock
+        label="4. Niveau / classe"
+        hint="Exemple : 6ème, 3ème, 2nde, 1ère, Terminale…"
+      >
+        <Select
+          disabled={!value.cycle_code}
+          value={value.level_code}
+          onChange={(e) => select("level_code", e.target.value)}
+        >
+          <option value="">
+            {!value.cycle_code ? "Choisissez d'abord le cycle" : "Choisir…"}
+          </option>
+          {levels.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.name}
+            </option>
+          ))}
+        </Select>
+      </FieldBlock>
+
+      {(hasSeries || seriesLoading) && (
+        <FieldBlock
+          label="5. Série / spécialité"
+          hint="Obligatoire en 2nde, 1ère et Terminale (ex. C, D, A4). Pas besoin en 6ème–3ème."
+        >
+          <Select
+            disabled={seriesLoading || !hasSeries}
+            value={value.series_code}
+            onChange={(e) => select("series_code", e.target.value)}
+          >
+            <option value="">
+              {seriesLoading ? "Chargement des séries…" : "Choisir la série…"}
+            </option>
+            {series.map((s) => (
+              <option key={s.code} value={s.code}>
+                {s.code} — {s.name_fr}
+              </option>
+            ))}
+          </Select>
+        </FieldBlock>
       )}
-    </>
+    </div>
   );
 }
 

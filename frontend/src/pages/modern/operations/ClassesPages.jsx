@@ -242,10 +242,15 @@ export function ClasseCreatePage() {
   const [psForm, setPsForm] = useState(emptyPsForm);
   const [special, setSpecial] = useState(false);
   const [notice, setNotice] = useState("");
-  const cascade = useReferentielCascade();
+  const [saving, setSaving] = useState(false);
+  const cascade = useReferentielCascade({
+    // Collège / lycée : pas de cycle primaire ni CECRL dans cette fiche.
+    excludeCycleCodes: isPrimarySchool || isLanguageCenter ? null : ["PRIMAIRE", "CECRL"],
+  });
 
   async function submit(event) {
     event.preventDefault();
+    setNotice("");
     if (isLanguageCenter) {
       if (!lcForm.level_code) {
         setNotice("Choisissez le niveau CECRL (A1, A2, B1…).");
@@ -293,14 +298,28 @@ export function ClasseCreatePage() {
     }
     if (!special && !cascade.isComplete) {
       setNotice(
-        "Veuillez compléter la cascade (sous-système → … → niveau/série).",
+        cascade.missingStepMessage?.()
+          || "Complétez les listes dans l'ordre : sous-système → type → cycle → niveau → série.",
       );
       return;
     }
+    if (!special && !form.nom.trim()) {
+      setNotice("Indiquez un nom de classe visible (ex. « 6ème A » ou « Tle D1 »).");
+      return;
+    }
+    if (special && !form.niveau_libre.trim()) {
+      setNotice("Pour une classe spéciale, indiquez le niveau libre.");
+      return;
+    }
+    if (special && !form.nom.trim()) {
+      setNotice("Indiquez un nom de classe.");
+      return;
+    }
+    setSaving(true);
     try {
       const base = {
-        nom_personnalise: form.nom,
-        effectif_max: form.effectif_max,
+        nom_personnalise: form.nom.trim(),
+        effectif_max: Number(form.effectif_max) || 40,
         prof_principal_id: form.prof_principal_id
           ? Number(form.prof_principal_id)
           : null,
@@ -309,14 +328,16 @@ export function ClasseCreatePage() {
         ? {
             ...base,
             is_special: true,
-            niveau_libre: form.niveau_libre,
-            specialite_libre: form.specialite_libre,
+            niveau_libre: form.niveau_libre.trim(),
+            specialite_libre: form.specialite_libre.trim() || null,
           }
         : { ...base, is_special: false, ...cascade.value };
       await api.createClasse(payload);
       navigate("/app/classes");
     } catch (err) {
-      setNotice(err.message || "Creation de classe impossible.");
+      setNotice(err.message || "Création de classe impossible.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -333,7 +354,7 @@ export function ClasseCreatePage() {
       />
       <Notice message={notice} tone="rose" />
       <Card className="p-5">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <h2 className="font-bold">
             {isLanguageCenter ? "Informations du groupe" : "Informations de la classe"}
           </h2>
@@ -344,10 +365,37 @@ export function ClasseCreatePage() {
                 checked={special}
                 onChange={(e) => setSpecial(e.target.checked)}
               />
-              Classe spéciale (hors référentiel MINESEC)
+              Classe spéciale (hors MINESEC)
             </label>
           )}
         </div>
+        {!isLanguageCenter && !isPrimarySchool && !special && (
+          <div className="mb-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+            <p className="font-bold">Comment créer une classe (collège ou lycée) ?</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sky-900">
+              <li>
+                <strong>Sous-système</strong> = Francophone ou Anglophone.
+              </li>
+              <li>
+                <strong>Type</strong> = Général ou Technique.
+              </li>
+              <li>
+                <strong>Cycle</strong> = seulement deux choix : <em>Premier cycle</em> ou{" "}
+                <em>Second cycle</em> (valable collège comme lycée).
+              </li>
+              <li>
+                <strong>Niveau</strong> = la classe exacte (6ème, 3ème, 2nde, Terminale…).
+              </li>
+              <li>
+                <strong>Série</strong> = surtout au second cycle (C, D, A4…) ; souvent pas au premier cycle.
+              </li>
+            </ul>
+            <p className="mt-2 text-xs text-sky-800">
+              Remplissez les listes <strong>dans l&apos;ordre</strong>. Le bouton reste grisé tant que
+              tout n&apos;est pas choisi. Ensuite donnez un nom local (ex. « Tle D1 »).
+            </p>
+          </div>
+        )}
         <form
           id="class-form"
           className="grid gap-4 md:grid-cols-2"
@@ -394,12 +442,18 @@ export function ClasseCreatePage() {
           )}
           {!isLanguageCenter && !isPrimarySchool && (
             <>
-              <Input
-                required
-                placeholder="Nom personnalisé (ex. Tle D1)"
-                value={form.nom}
-                onChange={(e) => setForm({ ...form, nom: e.target.value })}
-              />
+              <label className="flex flex-col gap-1.5 text-sm md:col-span-2">
+                <span className="font-semibold text-slate-800">Nom affiché de la classe</span>
+                <span className="text-xs text-slate-500">
+                  C&apos;est le nom que voient les enseignants (ex. « 6ème A », « Tle D1 »).
+                </span>
+                <Input
+                  required
+                  placeholder="Ex. 6ème A ou Tle D1"
+                  value={form.nom}
+                  onChange={(e) => setForm({ ...form, nom: e.target.value })}
+                />
+              </label>
               <Input
                 type="number"
                 min="1"
@@ -424,8 +478,13 @@ export function ClasseCreatePage() {
           )}
           {special && !isLanguageCenter && (
             <p className="md:col-span-2 text-xs text-amber-600">
-              Classe hors référentiel : aucune matière n'est pré-remplie.
+              Classe hors référentiel : aucune matière n&apos;est pré-remplie.
               Étiquette « Spéciale » appliquée partout.
+            </p>
+          )}
+          {!special && !isLanguageCenter && !isPrimarySchool && !cascade.isComplete && (
+            <p className="md:col-span-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+              {cascade.missingStepMessage?.() || "Complétez les listes ci-dessus avant de créer."}
             </p>
           )}
           <div className="md:col-span-2 flex justify-end gap-2">
@@ -434,8 +493,24 @@ export function ClasseCreatePage() {
                 Annuler
               </Button>
             </Link>
-            <Button type="submit">
-              <Plus size={16} /> {isLanguageCenter ? "Créer le groupe" : "Créer la classe"}
+            <Button
+              type="submit"
+              disabled={
+                saving
+                || (
+                  !isLanguageCenter
+                  && !isPrimarySchool
+                  && !special
+                  && !cascade.isComplete
+                )
+              }
+            >
+              <Plus size={16} />{" "}
+              {saving
+                ? "Création…"
+                : isLanguageCenter
+                  ? "Créer le groupe"
+                  : "Créer la classe"}
             </Button>
           </div>
         </form>
