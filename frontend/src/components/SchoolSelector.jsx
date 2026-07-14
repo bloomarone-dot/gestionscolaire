@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Building2, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import * as api from '../api/api';
+import { establishmentKindLabel } from '../utils/establishmentKind';
 
 function pickDefaultSchool(schools) {
   if (!schools.length) return null;
@@ -88,7 +89,10 @@ export default function SchoolSelector({ compact = false }) {
                 }}
               >
                 <span className="block text-sm font-bold text-slate-900">{school.name}</span>
-                <span className="block text-xs text-slate-500">{school.city || school.code}</span>
+                <span className="block text-xs text-slate-500">
+                  {establishmentKindLabel(school.establishment_kind)}
+                  {school.city ? ` · ${school.city}` : (school.code ? ` · ${school.code}` : '')}
+                </span>
               </button>
             ))
           )}

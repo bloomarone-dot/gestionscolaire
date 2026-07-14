@@ -5,6 +5,7 @@ import {
   Settings, ShieldCheck, UserPlus, X,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
+import { APP_NAME } from '../../utils/brand';
 import { Avatar, Button } from '../ui';
 
 const nav = [
@@ -48,7 +49,7 @@ export default function SuperAdminLayout() {
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white"><ShieldCheck size={22} /></span>
             {!collapsed && (
               <div>
-                <p className="text-sm font-extrabold tracking-tight">EduGestion</p>
+                <p className="text-sm font-extrabold tracking-tight">{APP_NAME}</p>
                 <p className="text-xs text-slate-500">Console plateforme</p>
               </div>
             )}

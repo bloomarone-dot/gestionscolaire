@@ -5,6 +5,7 @@ import { useAuth } from "../context/useAuth";
 import { Button, Card, Input } from "../components/ui";
 import InstallDesktopButton from "../components/InstallAppPrompt";
 import { purgeInvalidAuthSession } from "../utils/authToken";
+import { APP_NAME, APP_TAGLINE_PLATFORM } from "../utils/brand";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -45,10 +46,12 @@ export default function LoginPage() {
             <GraduationCap size={28} />
           </span>
           <h1 className="mt-4 text-2xl font-extrabold text-slate-950">
-            EduGestion
+            {APP_NAME}
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            Connectez-vous a votre espace de gestion scolaire.
+            {APP_TAGLINE_PLATFORM}
+            <br />
+            Chaque établissement (primaire, lycée, centre de formation) a son propre espace.
           </p>
         </div>
 
@@ -118,7 +121,9 @@ export default function LoginPage() {
             </Button>
           </form>
           <p className="mt-4 text-center text-xs text-slate-400">
-            Admin établissement : 690000101 · Super-admin : 690000000
+            Super-admin : 690000000 · Admin établissement : 690000201
+            <br />
+            Mot de passe initial : ChangeMe2026!
           </p>
         </Card>
         <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">

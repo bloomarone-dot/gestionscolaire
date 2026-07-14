@@ -54,7 +54,7 @@ export default function InstallDesktopButton() {
       );
     } else if (ua.includes("chrome") && !ua.includes("edg")) {
       setHint(
-        "Dans Chrome : icône « Installer » (⊕) à droite de la barre d'adresse, ou menu ⋮ → « Installer EduGestion ».",
+        "Dans Chrome : icône « Installer » (⊕) à droite de la barre d'adresse, ou menu ⋮ → « Installer BloomSchool ».",
       );
     } else if (ua.includes("safari") && !ua.includes("chrome")) {
       setHint(

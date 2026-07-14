@@ -259,7 +259,7 @@ export default function SuperAdminConsole({ tab = 'dashboard' }) {
             <span className="rounded-xl bg-slate-100 p-3 text-slate-700 ring-1 ring-slate-200"><ShieldCheck size={20} /></span>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Input defaultValue="EduGestion" placeholder="Nom plateforme" />
+            <Input defaultValue="BloomSchool" placeholder="Nom plateforme" />
             <Select defaultValue="active"><option value="active">Inscriptions actives</option><option value="closed">Inscriptions fermees</option></Select>
             <Input defaultValue="Afrique/Douala" placeholder="Fuseau horaire" />
             <Input defaultValue="XAF" placeholder="Devise par defaut" />

@@ -1,8 +1,8 @@
 {
-  "name": "EduGestion — Gestion Scolaire",
-  "short_name": "EduGestion",
-  "description": "Élèves, notes et bulletins scolaires",
-  "start_url": "/app/login",
+  "name": "BloomSchool",
+  "short_name": "BloomSchool",
+  "description": "Gestion scolaire — primaire, collège/lycée, centres de formation",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",

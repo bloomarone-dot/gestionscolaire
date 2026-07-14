@@ -28,8 +28,8 @@ const SCHOOL_UI = {
   dashboardDesc: "Vue d'ensemble de l'établissement.",
   recentEnrollment: 'Dernières inscriptions',
   effectifs: 'Effectifs par classe',
-  appTagline: 'School SaaS',
-  loginTagline: 'Connectez-vous à votre espace de gestion scolaire.',
+  appTagline: 'Collège / Lycée',
+  loginTagline: 'Connectez-vous à votre établissement (collège ou lycée).',
 };
 
 const LANGUAGE_CENTER_UI = {
@@ -56,8 +56,8 @@ const LANGUAGE_CENTER_UI = {
   dashboardDesc: 'Vue d\'ensemble du centre de formation.',
   recentEnrollment: 'Dernières inscriptions',
   effectifs: 'Effectifs par groupe',
-  appTagline: 'Centre de langues',
-  loginTagline: 'Connectez-vous à votre espace de gestion du centre.',
+  appTagline: 'Centre de formation',
+  loginTagline: 'Connectez-vous à votre centre de formation en langues.',
 };
 
 const PRIMARY_SCHOOL_UI = {

@@ -26,7 +26,7 @@ export default function SuperAdminSettingsPage() {
               <div className="card-body p-0">
                 <table className="table mb-0">
                   <tbody>
-                    <tr><th>Application</th><td>{settings?.app_name || 'EduSaaS'}</td></tr>
+                    <tr><th>Application</th><td>{settings?.app_name || 'BloomSchool'}</td></tr>
                     <tr><th>Version</th><td>{settings?.version || '—'}</td></tr>
                     <tr><th>Mode base de données</th><td><code>{settings?.database_mode || 'services'}</code></td></tr>
                     <tr><th>Stratégie multi-tenant</th><td><code>{settings?.multi_tenant_strategy || 'tenant_id'}</code></td></tr>

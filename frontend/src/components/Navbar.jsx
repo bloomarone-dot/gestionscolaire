@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { APP_NAME } from '../utils/brand';
 import '../styles/navbar.css';
 
 export default function Navbar() {
@@ -11,7 +12,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="navbar-logo">
           <span className="logo-icon">📚</span>
-          <span className="logo-text">EduGestion</span>
+          <span className="logo-text">{APP_NAME}</span>
         </Link>
 
         {/* Nav Links */}

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { APP_NAME } from '../utils/brand';
 import '../styles/hero.css';
 
 export default function Hero() {
@@ -10,8 +11,8 @@ export default function Hero() {
             Gérez vos établissements scolaires <span className="highlight">simplement</span>
           </h1>
           <p className="hero-description">
-            EduGestion est la plateforme complète pour la gestion des établissements scolaires. 
-            Professeurs, administrateurs et super-administrateurs, tout le monde sur une seule plateforme.
+            {APP_NAME} est la plateforme complète pour la gestion des établissements scolaires.
+            Primaire, collège/lycée ou centre de formation : chaque structure garde son identité.
           </p>
           
           <div className="hero-features">

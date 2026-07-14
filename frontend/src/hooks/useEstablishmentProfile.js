@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as api from '../api/api';
+import { schoolDisplayName } from '../utils/brand';
 import {
   getEstablishmentUiLabels,
   isLanguageCenter,
@@ -22,11 +23,13 @@ export function useEstablishmentProfile() {
 
   const kind = profile?.establishment_kind || 'SCHOOL';
   const labels = getEstablishmentUiLabels(kind);
+  const schoolName = schoolDisplayName(profile);
 
   return {
     profile,
     loading,
     kind,
+    schoolName,
     isLanguageCenter: isLanguageCenter(kind),
     isPrimarySchool: isPrimarySchool(kind),
     labels,

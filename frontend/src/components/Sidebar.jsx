@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { APP_NAME } from '../utils/brand';
 
 const NAV_ITEMS = [
   { to: '/',        icon: '📊', label: 'Tableau de bord' },
@@ -21,8 +22,8 @@ export default function Sidebar() {
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">🎓</div>
         <div>
-          <div className="sidebar-logo-text">EduSaaS</div>
-          <div className="sidebar-logo-sub">Gestion Scolaire</div>
+          <div className="sidebar-logo-text">{APP_NAME}</div>
+          <div className="sidebar-logo-sub">Gestion scolaire</div>
         </div>
       </div>
 

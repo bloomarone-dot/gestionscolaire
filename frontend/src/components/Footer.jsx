@@ -44,7 +44,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-bottom">
-        <p>&copy; {currentYear} Bloomarone — EduSaaS. Tous droits réservés.</p>
+        <p>&copy; {currentYear} Bloomarone — BloomSchool. Tous droits réservés.</p>
       </div>
     </footer>
   );

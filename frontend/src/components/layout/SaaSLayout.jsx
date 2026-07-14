@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, ChevronDown, ChevronLeft, GraduationCap, Menu, Search, X, LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
 import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
+import { APP_NAME } from '../../utils/brand';
 import { buildAdminNav, flattenNav, NAV_ICONS } from '../../utils/navConfig';
+import BrandMark from '../BrandMark';
 import { Avatar, Button } from '../ui';
 
 export default function SaaSLayout() {
@@ -15,7 +17,7 @@ export default function SaaSLayout() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const { user, logout } = useAuth();
-  const { labels: ui, kind } = useEstablishmentProfile();
+  const { labels: ui, kind, schoolName } = useEstablishmentProfile();
   const nav = useMemo(() => buildAdminNav(ui, kind), [ui, kind]);
   const flatNav = useMemo(() => flattenNav(nav).map((item) => ({
     ...item,
@@ -24,6 +26,10 @@ export default function SaaSLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'Admin Ecole';
+
+  useEffect(() => {
+    document.title = schoolName ? `${schoolName} — ${APP_NAME}` : APP_NAME;
+  }, [schoolName]);
 
   const isItemActive = (item) => {
     if (location.pathname !== item.to.split('?')[0]) return false;
@@ -56,15 +62,7 @@ export default function SaaSLayout() {
 
       <aside className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200 bg-white transition-all duration-300 ${collapsed ? 'lg:w-20' : 'lg:w-72'} ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} w-72`}>
         <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white"><GraduationCap size={22} /></span>
-            {!collapsed && (
-              <div>
-                <p className="text-sm font-extrabold tracking-tight">EduGestion</p>
-                <p className="text-xs text-slate-500">{ui.appTagline}</p>
-              </div>
-            )}
-          </div>
+          <BrandMark schoolName={schoolName} kind={kind} collapsed={collapsed} />
           <button className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(false)}><X size={18} /></button>
         </div>
 
@@ -105,6 +103,12 @@ export default function SaaSLayout() {
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
             <button className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)}><Menu size={22} /></button>
+            {schoolName && (
+              <div className="min-w-0 flex-1 lg:hidden">
+                <p className="truncate text-sm font-extrabold text-slate-900">{schoolName}</p>
+                <p className="truncate text-xs text-slate-500">{ui.appTagline}</p>
+              </div>
+            )}
             <form className="hidden max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 md:flex" onSubmit={handleSearch}>
               <Search size={18} className="text-slate-400" />
               <input className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400" placeholder="Recherche globale: eleve, classe, paiement..." value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -126,7 +130,9 @@ export default function SaaSLayout() {
                   <Avatar name={name} />
                   <div className="hidden sm:block">
                     <p className="text-sm font-bold leading-none">{name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{user?.role || 'Administrateur'}</p>
+                    <p className="mt-1 max-w-[12rem] truncate text-xs text-slate-500">
+                      {schoolName || user?.role || 'Administrateur'}
+                    </p>
                   </div>
                   <ChevronDown size={16} className="hidden text-slate-400 sm:block" />
                 </button>

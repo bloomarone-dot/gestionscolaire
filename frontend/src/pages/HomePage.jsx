@@ -64,11 +64,11 @@ export default function HomePage() {
           <div className="section-container">
             <div className="about-content">
               <div className="about-text">
-                <h2>Pourquoi EduGestion ?</h2>
+                <h2>Pourquoi BloomSchool ?</h2>
                 <p>
-                  EduGestion simplifie la gestion administrative des établissements scolaires. 
-                  Notre plateforme a été conçue par des éducateurs pour des éducateurs, 
-                  avec une interface intuitive et des fonctionnalités puissantes.
+                  BloomSchool simplifie la gestion administrative des établissements scolaires.
+                  Notre plateforme a été conçue pour le primaire, le collège/lycée et les centres
+                  de formation, avec une interface intuitive et des fonctionnalités adaptées à chaque type.
                 </p>
                 <ul className="about-list">
                   <li>✓ Économisez du temps administratif</li>
