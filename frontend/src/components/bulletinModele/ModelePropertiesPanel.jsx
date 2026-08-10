@@ -1,14 +1,15 @@
 import { Copy, Trash2 } from 'lucide-react';
 import { Button, Input, Select, Textarea } from '../ui';
-import { COMPONENT_META } from '../../utils/bulletinTemplateCatalog';
+import { COMPONENT_META, clampFrameToPage } from '../../utils/bulletinTemplateCatalog';
 import GradesTableEditor from './GradesTableEditor';
 import VariableInserter from './VariableInserter';
 
 const LABEL = Object.fromEntries(COMPONENT_META.map((c) => [c.type, c.label]));
 
-function FrameFields({ frame, onChange, readOnly }) {
+function FrameFields({ frame, onChange, readOnly, definition }) {
   function set(key, value) {
-    onChange({ ...frame, [key]: Number(value) });
+    const next = { ...frame, [key]: Number(value) };
+    onChange(definition ? clampFrameToPage(next, definition) : next);
   }
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -285,6 +286,7 @@ export default function ModelePropertiesPanel({
           <div className="mb-1 text-xs font-semibold uppercase text-slate-500">Position / taille</div>
           <FrameFields
             frame={component.frame}
+            definition={definition}
             readOnly={readOnly}
             onChange={(frame) => onChangeComponent(component.id, { frame })}
           />

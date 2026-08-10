@@ -1,12 +1,8 @@
 import CanvasComponentPreview from './CanvasComponentPreview';
-import { pageSizeMm } from '../../utils/bulletinTemplateCatalog';
+import { pageSizeMm, clampFrameToPage } from '../../utils/bulletinTemplateCatalog';
 
 /** 1 mm affichage de base = 3.2 CSS px à zoom 100 % (A4 portrait ~672×950). */
 export const MM_TO_PX = 3.2;
-
-function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
 
 export default function ModeleCanvas({
   definition,
@@ -33,20 +29,24 @@ export default function ModeleCanvas({
     onSelect?.(component.id);
     const startX = e.clientX;
     const startY = e.clientY;
-    const frame = { ...component.frame };
+    // Snapshot : le zoom ne doit pas muter les mm de départ ; seuls les deltas pixels→mm comptent.
+    const frame = { ...(component.frame || {}) };
+    const dragScale = scale;
 
     function onMove(ev) {
-      const dxMm = (ev.clientX - startX) / scale;
-      const dyMm = (ev.clientY - startY) / scale;
+      const dxMm = (ev.clientX - startX) / dragScale;
+      const dyMm = (ev.clientY - startY) / dragScale;
       const next = { ...frame };
       if (mode === 'move') {
-        next.x_mm = Math.round((frame.x_mm + dxMm) * 10) / 10;
-        next.y_mm = Math.round((frame.y_mm + dyMm) * 10) / 10;
+        next.x_mm = frame.x_mm + dxMm;
+        next.y_mm = frame.y_mm + dyMm;
       } else if (mode === 'resize') {
-        next.width_mm = Math.round(clamp(frame.width_mm + dxMm, 5, 320) * 10) / 10;
-        next.height_mm = Math.round(clamp(frame.height_mm + dyMm, 3, 450) * 10) / 10;
+        next.width_mm = frame.width_mm + dxMm;
+        next.height_mm = frame.height_mm + dyMm;
       }
-      onChangeComponent?.(component.id, { frame: next });
+      onChangeComponent?.(component.id, {
+        frame: clampFrameToPage(next, definition),
+      });
     }
 
     function onUp() {
@@ -70,7 +70,6 @@ export default function ModeleCanvas({
           style={{ width: pageW, height: pageH }}
           data-testid="bulletin-canvas-page"
         >
-          {/* Zone utile invisible (pas de dashed wireframe) */}
           <div
             className="pointer-events-none absolute"
             style={{ left: usableLeft, top: usableTop, width: usableW, height: usableH }}
@@ -78,21 +77,23 @@ export default function ModeleCanvas({
           />
           {components.filter((c) => c.visible !== false).map((c) => {
             const selected = c.id === selectedId;
-            const left = usableLeft + (c.frame?.x_mm || 0) * scale;
-            const top = usableTop + (c.frame?.y_mm || 0) * scale;
-            const width = (c.frame?.width_mm || 10) * scale;
-            const height = (c.frame?.height_mm || 10) * scale;
+            const frame = clampFrameToPage(c.frame || {}, definition);
+            const left = usableLeft + frame.x_mm * scale;
+            const top = usableTop + frame.y_mm * scale;
+            const width = frame.width_mm * scale;
+            const height = frame.height_mm * scale;
             return (
               <div
                 key={c.id}
                 data-testid={`canvas-component-${c.type}`}
+                data-component-id={c.id}
                 role="button"
                 tabIndex={0}
                 onClick={(ev) => {
                   ev.stopPropagation();
                   onSelect?.(c.id);
                 }}
-                onPointerDown={(ev) => startDrag(ev, c, 'move')}
+                onPointerDown={(ev) => startDrag(ev, { ...c, frame }, 'move')}
                 className={`absolute overflow-hidden ${
                   selected
                     ? 'outline outline-2 outline-offset-0 outline-sky-500 ring-0'
@@ -113,7 +114,10 @@ export default function ModeleCanvas({
                   <div
                     data-testid="canvas-resize-handle"
                     className="absolute bottom-0 right-0 z-10 h-3 w-3 cursor-se-resize bg-sky-500"
-                    onPointerDown={(ev) => startDrag(ev, c, 'resize')}
+                    onPointerDown={(ev) => {
+                      ev.stopPropagation();
+                      startDrag(ev, { ...c, frame }, 'resize');
+                    }}
                   />
                 )}
               </div>

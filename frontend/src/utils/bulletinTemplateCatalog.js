@@ -226,6 +226,81 @@ export function pageSizeMm(definition) {
   return A4_MM[orientation];
 }
 
+function clampNumber(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+/** Zone imprimable (page − marges), en mm — origine des frames template. */
+export function usablePageMm(definition) {
+  const page = pageSizeMm(definition);
+  const margins = definition?.page?.margins || {};
+  const left = Number(margins.left) || 0;
+  const right = Number(margins.right) || 0;
+  const top = Number(margins.top) || 0;
+  const bottom = Number(margins.bottom) || 0;
+  return {
+    width_mm: Math.max(1, page.width_mm - left - right),
+    height_mm: Math.max(1, page.height_mm - top - bottom),
+  };
+}
+
+/**
+ * Contraint un frame dans la zone imprimable.
+ * Le schéma backend autorise x/y >= -5 ; l'éditeur force >= 0 pour rester imprimable.
+ */
+export function clampFrameToPage(frame, definition) {
+  const usable = usablePageMm(definition);
+  const minW = 5;
+  const minH = 3;
+  let width_mm = clampNumber(Number(frame?.width_mm) || minW, minW, usable.width_mm);
+  let height_mm = clampNumber(Number(frame?.height_mm) || minH, minH, usable.height_mm);
+  let x_mm = Number(frame?.x_mm);
+  let y_mm = Number(frame?.y_mm);
+  if (!Number.isFinite(x_mm)) x_mm = 0;
+  if (!Number.isFinite(y_mm)) y_mm = 0;
+  x_mm = clampNumber(x_mm, 0, Math.max(0, usable.width_mm - width_mm));
+  y_mm = clampNumber(y_mm, 0, Math.max(0, usable.height_mm - height_mm));
+  width_mm = clampNumber(width_mm, minW, Math.max(minW, usable.width_mm - x_mm));
+  height_mm = clampNumber(height_mm, minH, Math.max(minH, usable.height_mm - y_mm));
+  return {
+    x_mm: Math.round(x_mm * 10) / 10,
+    y_mm: Math.round(y_mm * 10) / 10,
+    width_mm: Math.round(width_mm * 10) / 10,
+    height_mm: Math.round(height_mm * 10) / 10,
+  };
+}
+
+/** Normalise tous les frames avant save / preview / version. */
+export function normalizeDefinitionFrames(definition) {
+  if (!definition || typeof definition !== 'object') return definition;
+  return {
+    ...definition,
+    components: (definition.components || []).map((c) => ({
+      ...c,
+      frame: clampFrameToPage(c.frame || {}, definition),
+    })),
+  };
+}
+
+/** Message utilisateur pour erreurs API modèles / validation frame. */
+export function formatBulletinModeleError(raw, fallback = 'Opération impossible') {
+  const text = String(raw || '');
+  if (!text) return fallback;
+  if (/frame\.(x_mm|y_mm)/i.test(text) || /greater than or equal to -5/i.test(text)) {
+    return 'Un élément du bulletin est hors de la zone imprimable. Corrigez sa position avant d’enregistrer.';
+  }
+  if (/BulletinTemplateV1|validation error/i.test(text)) {
+    return 'Le modèle contient une définition invalide. Vérifiez la position et la taille des éléments.';
+  }
+  if (/publié|published|archivez/i.test(text)) {
+    return text;
+  }
+  if (/système|system|lecture seule/i.test(text)) {
+    return text;
+  }
+  return text.length > 220 ? `${text.slice(0, 200)}…` : text;
+}
+
 /** Validation légère côté éditeur (le backend reste l'autorité). */
 export function validateDefinitionClient(definition) {
   const errors = [];
@@ -233,19 +308,29 @@ export function validateDefinitionClient(definition) {
     return ['Définition manquante'];
   }
   if (definition.schema_version !== 1) errors.push('schema_version doit être 1');
-  const page = pageSizeMm(definition);
-  const margins = definition.page?.margins || {};
-  const usableW = page.width_mm - (margins.left || 0) - (margins.right || 0);
-  const usableH = page.height_mm - (margins.top || 0) - (margins.bottom || 0);
+  const usable = usablePageMm(definition);
   const ids = new Set();
   for (const c of definition.components || []) {
     if (!c.id) errors.push('Composant sans id');
     if (ids.has(c.id)) errors.push(`Id dupliqué : ${c.id}`);
     ids.add(c.id);
     const f = c.frame || {};
-    if (!(f.width_mm > 0) || !(f.height_mm > 0)) errors.push(`${c.id || c.type} : taille invalide`);
-    if (f.x_mm + f.width_mm > usableW + 5) errors.push(`${c.id || c.type} : dépasse la largeur de page`);
-    if (f.y_mm + f.height_mm > usableH + 5) errors.push(`${c.id || c.type} : dépasse la hauteur de page`);
+    const label = c.id || c.type || 'élément';
+    if (!(f.width_mm > 0) || !(f.height_mm > 0)) {
+      errors.push(`${label} : taille invalide`);
+    }
+    if (typeof f.x_mm === 'number' && f.x_mm < -5) {
+      errors.push(`${label} : hors de la zone imprimable (trop à gauche)`);
+    }
+    if (typeof f.y_mm === 'number' && f.y_mm < -5) {
+      errors.push(`${label} : hors de la zone imprimable (trop haut)`);
+    }
+    if (typeof f.x_mm === 'number' && f.x_mm + (f.width_mm || 0) > usable.width_mm + 5) {
+      errors.push(`${label} : dépasse la largeur de page`);
+    }
+    if (typeof f.y_mm === 'number' && f.y_mm + (f.height_mm || 0) > usable.height_mm + 5) {
+      errors.push(`${label} : dépasse la hauteur de page`);
+    }
     if (c.type === 'grades_table') {
       const cols = c.props?.columns || [];
       if (!cols.length) errors.push('Tableau des notes : aucune colonne');

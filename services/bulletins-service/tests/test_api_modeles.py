@@ -517,3 +517,47 @@ def test_update_draft_version_on_published(client_factory):
     )
     assert r.status_code == 200
     assert r.json()["definition"]["name"] == "edited"
+
+
+def test_update_rejects_invalid_frame_x_mm(client_factory):
+    client, _ = client_factory()
+    m = _create(client)
+    bad = {
+        "schema_version": 1,
+        "name": "bad",
+        "components": [{
+            "id": "c1",
+            "type": "text",
+            "frame": {"x_mm": -26.4, "y_mm": 0, "width_mm": 40, "height_mm": 10},
+            "z_index": 1,
+            "visible": True,
+            "props": {
+                "content": "x",
+                "style": {
+                    "font_family": "Helvetica", "font_size_pt": 10, "bold": False,
+                    "italic": False, "color": "#000000", "align": "left",
+                },
+            },
+        }],
+    }
+    r = client.put(f"/bulletins/modeles/{m['id']}", json={"definition": bad})
+    assert r.status_code == 422
+
+
+def test_delete_draft_does_not_require_definition_validation(client_factory):
+    """DELETE ne revalide pas le template — un DRAFT reste supprimable."""
+    client, _ = client_factory()
+    m = _create(client)
+    # Même si on imagine une définition corrompue en mémoire, DELETE n'envoie pas de body.
+    r = client.delete(f"/bulletins/modeles/{m['id']}")
+    assert r.status_code == 204
+    assert client.get(f"/bulletins/modeles/{m['id']}").status_code == 404
+
+
+def test_delete_published_refused(client_factory):
+    client, _ = client_factory()
+    m = _create(client)
+    assert client.post(f"/bulletins/modeles/{m['id']}/publish").status_code == 200
+    r = client.delete(f"/bulletins/modeles/{m['id']}")
+    assert r.status_code == 409
+    assert "archive" in r.json()["detail"].lower() or "publi" in r.json()["detail"].lower()

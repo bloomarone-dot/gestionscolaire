@@ -13,7 +13,10 @@ import {
   canManageModeles,
   createComponent,
   emptyTemplateV1,
+  formatBulletinModeleError,
   newComponentId,
+  normalizeDefinitionFrames,
+  clampFrameToPage,
   statusTone,
   validateDefinitionClient,
 } from '../../../utils/bulletinTemplateCatalog';
@@ -79,10 +82,21 @@ export function BulletinModeleEditorPage() {
   }
 
   function patchComponent(id, partial) {
+    const nextPartial = { ...partial };
+    if (partial.frame) {
+      nextPartial.frame = clampFrameToPage(partial.frame, definition);
+    }
     updateDefinition({
       ...definition,
       components: definition.components.map((c) => (
-        c.id === id ? { ...c, ...partial, props: partial.props ? partial.props : c.props, frame: partial.frame ? partial.frame : c.frame } : c
+        c.id === id
+          ? {
+            ...c,
+            ...nextPartial,
+            props: nextPartial.props ? nextPartial.props : c.props,
+            frame: nextPartial.frame ? nextPartial.frame : c.frame,
+          }
+          : c
       )),
     });
   }
@@ -105,11 +119,11 @@ export function BulletinModeleEditorPage() {
     const copy = {
       ...structuredClone(source),
       id: newComponentId(source.type),
-      frame: {
+      frame: clampFrameToPage({
         ...source.frame,
         x_mm: (source.frame?.x_mm || 0) + 5,
         y_mm: (source.frame?.y_mm || 0) + 5,
-      },
+      }, definition),
     };
     updateDefinition({ ...definition, components: [...definition.components, copy] });
     setSelectedId(copy.id);
@@ -125,12 +139,12 @@ export function BulletinModeleEditorPage() {
     if (selectedId === id) setSelectedId(null);
   }
 
-  async function ensureEditableDraft() {
-    if (modele.status !== 'PUBLISHED') return editingVersionId;
+  async function ensureEditableDraft(defOverride = null) {
+    const payload = normalizeDefinitionFrames(defOverride || definition);
     // Version publiée immuable → créer une version brouillon d'édition.
     const version = await api.createBulletinModeleVersion(
       modele.id,
-      definition,
+      payload,
       "Brouillon d'édition depuis l'éditeur",
     );
     setEditingVersionId(version.id);
@@ -140,7 +154,9 @@ export function BulletinModeleEditorPage() {
 
   async function handleSave() {
     if (readOnly) return null;
-    const clientErrors = validateDefinitionClient(definition);
+    const normalized = normalizeDefinitionFrames(definition);
+    setDefinition(normalized);
+    const clientErrors = validateDefinitionClient(normalized);
     if (clientErrors.length) {
       setError(clientErrors.join(' · '));
       return null;
@@ -151,35 +167,34 @@ export function BulletinModeleEditorPage() {
     try {
       let versionId = editingVersionId;
       if (modele.status === 'PUBLISHED') {
-        // Si on édite encore la version courante publiée, checkout d'abord.
         if (!versionId || versionId === modele.current_version?.id) {
-          versionId = await ensureEditableDraft();
+          versionId = await ensureEditableDraft(normalized);
         }
         await api.updateBulletinModeleVersion(modele.id, versionId, {
-          ...definition,
-          name: definition.name || modele.name,
+          ...normalized,
+          name: normalized.name || modele.name,
         });
-        if (definition.name && definition.name !== modele.name) {
-          await api.updateBulletinModele(modele.id, { name: definition.name });
+        if (normalized.name && normalized.name !== modele.name) {
+          await api.updateBulletinModele(modele.id, { name: normalized.name });
         }
       } else {
         const updated = await api.updateBulletinModele(modele.id, {
-          name: definition.name || modele.name,
+          name: normalized.name || modele.name,
           definition: {
-            ...definition,
-            name: definition.name || modele.name,
+            ...normalized,
+            name: normalized.name || modele.name,
           },
         });
         setModele(updated);
         versionId = updated.current_version?.id || versionId;
         setEditingVersionId(versionId);
-        setDefinition(structuredClone(updated.current_version?.definition || definition));
+        setDefinition(structuredClone(updated.current_version?.definition || normalized));
       }
       setDirty(false);
       setNotice('Enregistré.');
       return versionId;
     } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
+      setError(formatBulletinModeleError(err.message, 'Enregistrement impossible'));
       return null;
     } finally {
       setSaving(false);
@@ -203,7 +218,7 @@ export function BulletinModeleEditorPage() {
       setNotice('Modèle publié.');
       setDirty(false);
     } catch (err) {
-      setError(err.message || 'Publication impossible');
+      setError(formatBulletinModeleError(err.message, 'Publication impossible'));
     } finally {
       setSaving(false);
     }
@@ -217,11 +232,13 @@ export function BulletinModeleEditorPage() {
     }
     setSaving(true);
     try {
-      await api.createBulletinModeleVersion(modele.id, definition, 'Nouvelle version');
+      const normalized = normalizeDefinitionFrames(definition);
+      setDefinition(normalized);
+      await api.createBulletinModeleVersion(modele.id, normalized, 'Nouvelle version');
       await load();
       setNotice('Nouvelle version DRAFT créée.');
     } catch (err) {
-      setError(err.message || 'Création de version impossible');
+      setError(formatBulletinModeleError(err.message, 'Création de version impossible'));
     } finally {
       setSaving(false);
     }
@@ -237,7 +254,7 @@ export function BulletinModeleEditorPage() {
       if (dirty && !readOnly) {
         versionId = await handleSave();
         if (!versionId) {
-          throw new Error(error || 'Enregistrez le modèle avant l’aperçu.');
+          throw new Error('Enregistrez le modèle avant l’aperçu (corrigez d’abord les éléments hors zone).');
         }
       }
       const eleveId = Number(previewEleveId);
@@ -253,7 +270,7 @@ export function BulletinModeleEditorPage() {
       });
       setPreview(result);
     } catch (err) {
-      setPreviewError(err.message || 'Aperçu impossible');
+      setPreviewError(formatBulletinModeleError(err.message, 'Aperçu impossible'));
     } finally {
       setPreviewLoading(false);
     }

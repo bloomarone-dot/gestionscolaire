@@ -98,12 +98,30 @@ function getHeaders(auth = true, json = true) {
 
 function formatApiError(detail) {
   if (Array.isArray(detail)) {
-    return detail.map((item) => item.msg || String(item)).join(', ');
+    const joined = detail.map((item) => {
+      if (typeof item === 'object' && item !== null) {
+        const loc = Array.isArray(item.loc) ? item.loc.join('.') : '';
+        const msg = item.msg || String(item);
+        if (/frame\.(x_mm|y_mm)/i.test(loc) || /greater than or equal to -5/i.test(msg)) {
+          return 'Un élément du bulletin est hors de la zone imprimable. Corrigez sa position avant d’enregistrer.';
+        }
+        return msg;
+      }
+      return String(item);
+    }).join(', ');
+    return joined;
   }
   if (typeof detail === 'object' && detail !== null) {
     return detail.message || JSON.stringify(detail);
   }
-  return detail || 'Erreur serveur';
+  const text = detail || 'Erreur serveur';
+  if (/frame\.(x_mm|y_mm)/i.test(text) || /greater than or equal to -5/i.test(text)) {
+    return 'Un élément du bulletin est hors de la zone imprimable. Corrigez sa position avant d’enregistrer.';
+  }
+  if (/BulletinTemplateV1|validation error/i.test(text)) {
+    return 'Le modèle contient une définition invalide. Vérifiez la position et la taille des éléments.';
+  }
+  return text;
 }
 
 function clearAuthSession() {

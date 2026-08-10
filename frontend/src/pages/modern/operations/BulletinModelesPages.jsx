@@ -7,6 +7,7 @@ import { Badge, Button, Card, DataTable, Input, Modal, PageHeader } from '../../
 import {
   canManageModeles,
   emptyTemplateV1,
+  formatBulletinModeleError,
   statusTone,
 } from '../../../utils/bulletinTemplateCatalog';
 
@@ -218,7 +219,10 @@ export function BulletinModelesPage() {
       setNotice('Modèle supprimé.');
       await load();
     } catch (err) {
-      setError(err.message || 'Suppression impossible');
+      setError(formatBulletinModeleError(
+        err.message,
+        'Impossible de supprimer ce modèle. Vérifiez son statut (seul un brouillon non publié peut être supprimé) ou ses droits.',
+      ));
     }
   }
 

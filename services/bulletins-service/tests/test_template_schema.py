@@ -125,3 +125,38 @@ def test_duplicate_component_ids_rejected():
     ]
     with pytest.raises(TemplateValidationError):
         validate_template_definition(data)
+
+
+def test_frame_x_mm_minus_5_accepted():
+    data = empty_template_v1()
+    data["components"] = [{
+        "id": "edge",
+        "type": "spacer",
+        "frame": {"x_mm": -5, "y_mm": -5, "width_mm": 10, "height_mm": 10},
+        "props": {},
+    }]
+    validate_template_definition(data)
+
+
+def test_frame_x_mm_below_minus_5_rejected():
+    data = empty_template_v1()
+    data["components"] = [{
+        "id": "bad",
+        "type": "spacer",
+        "frame": {"x_mm": -26.4, "y_mm": 0, "width_mm": 10, "height_mm": 10},
+        "props": {},
+    }]
+    with pytest.raises(TemplateValidationError) as exc:
+        validate_template_definition(data)
+    assert "x_mm" in str(exc.value).lower() or "-26.4" in str(exc.value) or "greater" in str(exc.value).lower()
+
+
+def test_cameroon_secondary_starter_frames_valid():
+    from app.engine.starter_templates import CAMEROON_SECONDARY_STANDARD_V1
+
+    tpl = validate_template_definition(CAMEROON_SECONDARY_STANDARD_V1)
+    for c in tpl.components:
+        assert c.frame.x_mm >= -5
+        assert c.frame.y_mm >= -5
+        assert c.frame.width_mm > 0
+        assert c.frame.height_mm > 0

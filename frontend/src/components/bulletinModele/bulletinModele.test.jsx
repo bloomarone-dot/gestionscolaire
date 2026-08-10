@@ -79,6 +79,26 @@ describe('ModeleCanvas', () => {
     );
     expect(def.components[0].frame.width_mm).toBe(c.frame.width_mm);
   });
+
+  it('drag hors page clamp x_mm >= 0', () => {
+    const def = emptyTemplateV1();
+    const c = createComponent('text', null, {
+      frame: { x_mm: 5, y_mm: 5, width_mm: 40, height_mm: 10 },
+    });
+    def.components = [c];
+    const onChange = vi.fn();
+    render(
+      <ModeleCanvas definition={def} selectedId={c.id} onSelect={vi.fn()} onChangeComponent={onChange} zoom={1} />,
+    );
+    const el = screen.getByTestId('canvas-component-text');
+    fireEvent.pointerDown(el, { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: -200, clientY: 100 });
+    fireEvent.pointerUp(window);
+    expect(onChange).toHaveBeenCalled();
+    const last = onChange.mock.calls.at(-1)[1];
+    expect(last.frame.x_mm).toBeGreaterThanOrEqual(0);
+    expect(last.frame.x_mm).toBeLessThan(5);
+  });
 });
 
 describe('GradesTableEditor', () => {

@@ -40,7 +40,14 @@ def validate_definition(definition: dict[str, Any]) -> dict[str, Any]:
     try:
         return validate_template_definition(definition or {}).model_dump(mode="json")
     except TemplateValidationError as exc:
-        raise ModeleError(str(exc), status_code=422) from exc
+        msg = str(exc)
+        if "frame" in msg and ("x_mm" in msg or "y_mm" in msg or "-5" in msg):
+            raise ModeleError(
+                "Un élément du bulletin est hors de la zone imprimable "
+                "(coordonnées invalides). Corrigez sa position avant d'enregistrer.",
+                status_code=422,
+            ) from exc
+        raise ModeleError(msg, status_code=422) from exc
 
 
 def _visible_filter(tenant_id: int):

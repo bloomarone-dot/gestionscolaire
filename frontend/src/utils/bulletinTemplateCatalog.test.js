@@ -7,6 +7,10 @@ import {
   validateDefinitionClient,
   COMPONENT_META,
   PALETTE_CATEGORY_ORDER,
+  clampFrameToPage,
+  normalizeDefinitionFrames,
+  usablePageMm,
+  formatBulletinModeleError,
 } from './bulletinTemplateCatalog';
 
 describe('bulletinTemplateCatalog', () => {
@@ -63,5 +67,42 @@ describe('bulletinTemplateCatalog', () => {
     expect(cats.has('layout')).toBe(true);
     expect(COMPONENT_META.find((c) => c.type === 'grades_table')?.category).toBe('structure');
     expect(COMPONENT_META.find((c) => c.type === 'text')?.category).toBe('content');
+  });
+
+  it('clampFrameToPage empêche x_mm négatif hors schéma', () => {
+    const t = emptyTemplateV1();
+    const clamped = clampFrameToPage({ x_mm: -26.4, y_mm: 10, width_mm: 30, height_mm: 20 }, t);
+    expect(clamped.x_mm).toBe(0);
+    expect(clamped.y_mm).toBe(10);
+    expect(clamped.width_mm).toBe(30);
+  });
+
+  it('normalizeDefinitionFrames corrige tous les composants', () => {
+    const t = emptyTemplateV1();
+    t.components = [
+      createComponent('text', null, { frame: { x_mm: -26.4, y_mm: -10, width_mm: 40, height_mm: 10 } }),
+      createComponent('school_logo', null, { frame: { x_mm: 500, y_mm: 10, width_mm: 30, height_mm: 30 } }),
+    ];
+    const n = normalizeDefinitionFrames(t);
+    expect(n.components[0].frame.x_mm).toBeGreaterThanOrEqual(0);
+    expect(n.components[0].frame.y_mm).toBeGreaterThanOrEqual(0);
+    expect(n.components[1].frame.x_mm + n.components[1].frame.width_mm)
+      .toBeLessThanOrEqual(usablePageMm(t).width_mm + 0.1);
+    expect(validateDefinitionClient(n)).toEqual([]);
+  });
+
+  it('validateDefinitionClient détecte x_mm < -5', () => {
+    const t = emptyTemplateV1();
+    t.components = [createComponent('text', null, { frame: { x_mm: -26.4, y_mm: 0, width_mm: 20, height_mm: 10 } })];
+    const errors = validateDefinitionClient(t);
+    expect(errors.some((e) => e.includes('hors de la zone'))).toBe(true);
+  });
+
+  it('formatBulletinModeleError humanise les erreurs Pydantic frame', () => {
+    const msg = formatBulletinModeleError(
+      '1 validation error for BulletinTemplateV1\ncomponents.3.frame.x_mm\n  Input should be greater than or equal to -5 [type=greater_than_equal, input_value=-26.4]',
+    );
+    expect(msg).toMatch(/zone imprimable/i);
+    expect(msg).not.toMatch(/BulletinTemplateV1/);
   });
 });
