@@ -19,8 +19,10 @@ from app.layout_analyzer import analyze_bulletin_template
 from app.pdf import render_bulletin_pdf
 from app import clients
 from app import models as _bulletin_models  # noqa: F401 — enregistre les tables ORM
+from app.api_modeles import router as modeles_router
 
 app = FastAPI(title="bulletins-service — SaaS Scolaire", version="0.1.0")
+app.include_router(modeles_router)
 
 _publisher: EventPublisher | None = None
 
