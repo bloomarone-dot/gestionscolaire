@@ -154,3 +154,18 @@ def build_eleve_bulletin(
         "header": cls["header"], "moyenne_classe": cls["moyenne_classe"],
         "effectif": cls["effectif"], "lang": cls["lang"], "bulletin": bulletin,
     }
+
+
+def build_eleve_data_context(
+    ctx: TenantContext, eleve_id: int, trimestre: int,
+    type_evaluation: Optional[str], scope: str = "trimestre",
+):
+    """Bridge v2 : même agrégation legacy → BulletinDataContext (sans changer le JSON API).
+
+    N'est branché sur aucune route. Opt-in pour preview/PDF v2 futurs.
+    Réutilise ``build_eleve_bulletin`` (mêmes appels réseau, zéro recalcul).
+    """
+    from app.engine.context_builder import BulletinDataContextBuilder
+
+    payload = build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation, scope)
+    return BulletinDataContextBuilder.from_legacy_eleve_result(payload)
