@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
 import * as api from '../../api/api';
 import { useAuth } from '../../context/useAuth';
@@ -286,6 +287,7 @@ function FeesScheduleCard() {
 
 export function SettingsPage() {
   const { user, selectedSchool } = useAuth();
+  const navigate = useNavigate();
   const [school, setSchool] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [appreciationScales, setAppreciationScales] = useState(DEFAULT_APPRECIATION_SCALES);
@@ -293,10 +295,9 @@ export function SettingsPage() {
   const [themeFrancophone, setThemeFrancophone] = useState({ ...DEFAULT_BULLETIN_THEME });
   const [themeAnglophone, setThemeAnglophone] = useState({ ...DEFAULT_BULLETIN_THEME });
   const [themeSection, setThemeSection] = useState('francophone');
+  // Conservés pour ne pas écraser le profil legacy déjà en base à l'enregistrement.
   const [layoutProfile, setLayoutProfile] = useState(null);
   const [bulletinReferenceUrl, setBulletinReferenceUrl] = useState('');
-  const [layoutSummary, setLayoutSummary] = useState('');
-  const [analyzingTemplate, setAnalyzingTemplate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -329,9 +330,6 @@ export function SettingsPage() {
         setThemeAnglophone(normalizeBulletinTheme(s.bulletin_theme?.anglophone || baseTheme));
         setLayoutProfile(s.bulletin_layout_profile || null);
         setBulletinReferenceUrl(s.bulletin_reference_url || '');
-        setLayoutSummary(s.bulletin_layout_profile?.source_filename
-          ? `Modèle enregistré : ${s.bulletin_layout_profile.source_filename}`
-          : '');
         setProfile({
           subsystems: s.subsystems || [],
           teaching_types: s.teaching_types || [],
@@ -348,34 +346,6 @@ export function SettingsPage() {
   }, [user?.role, selectedSchool?.id]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-
-  async function handleTemplateUpload(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setAnalyzingTemplate(true);
-    setError('');
-    setNotice('');
-    try {
-      const result = await api.analyzeBulletinTemplate(file);
-      const profile = result.layout_profile || {};
-      setLayoutProfile(profile);
-      setLayoutSummary(result.summary || 'Modèle analysé.');
-      if (result.theme_suggestions && Object.keys(result.theme_suggestions).length) {
-        setThemeFrancophone((current) => ({ ...current, ...result.theme_suggestions }));
-        setThemeAnglophone((current) => ({ ...current, ...result.theme_suggestions }));
-        setNotice('Couleurs détectées appliquées au thème — enregistrez pour confirmer.');
-      }
-      if (file.type.startsWith('image/')) {
-        const dataUrl = await compressImageFile(file);
-        setBulletinReferenceUrl(dataUrl);
-      }
-    } catch (err) {
-      setError(err.message || 'Analyse du modèle impossible.');
-    } finally {
-      setAnalyzingTemplate(false);
-      event.target.value = '';
-    }
-  }
 
   async function handleLogoUpload(event) {
     const file = event.target.files?.[0];
@@ -500,45 +470,22 @@ export function SettingsPage() {
           </div>
         </Card>
 
-        <Card className="p-5">
-          <h2 className="mb-1 text-lg font-bold text-slate-900">Modèle de bulletin (import)</h2>
-          <p className="mb-4 text-sm text-slate-500">
-            Téléversez un bulletin PDF ou une image de référence de votre établissement.
-            Le système détecte automatiquement la présentation (en-tête bilingue ou francophone,
-            groupes de matières, couleurs…) et adapte les bulletins générés.
-          </p>
-          <div className="flex flex-wrap items-start gap-4">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              <Upload size={16} />
-              {analyzingTemplate ? 'Analyse en cours…' : 'Importer un bulletin modèle'}
-              <input
-                type="file"
-                accept="application/pdf,image/*"
-                className="hidden"
-                disabled={analyzingTemplate}
-                onChange={handleTemplateUpload}
-              />
-            </label>
-            {bulletinReferenceUrl && (
-              <img
-                src={bulletinReferenceUrl}
-                alt="Bulletin modèle"
-                className="h-28 w-auto rounded border border-slate-200 bg-white p-1"
-              />
-            )}
-          </div>
-          {layoutSummary && (
-            <p className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900">{layoutSummary}</p>
-          )}
-          {layoutProfile && (
-            <ul className="mt-2 list-inside list-disc text-xs text-slate-500">
-              <li>En-tête : {layoutProfile.header_style || '—'}</li>
-              <li>Groupes matières : {layoutProfile.show_subject_groups ? 'oui' : 'non'}</li>
-              <li>Série : {layoutProfile.show_series ? 'oui' : 'non'}</li>
-              <li>Confiance : {Math.round((layoutProfile.confidence || 0) * 100)} %</li>
-            </ul>
-          )}
-        </Card>
+        <div data-testid="school-settings-bulletin-modeles">
+          <Card className="p-5">
+            <h2 className="mb-1 text-lg font-bold text-slate-900">Modèle de bulletin</h2>
+            <p className="mb-4 text-sm text-slate-500">
+              Créez et personnalisez le bulletin de votre établissement avec notre éditeur visuel.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              data-testid="manage-bulletin-modeles"
+              onClick={() => navigate('/app/bulletins/modeles')}
+            >
+              Gérer mes modèles de bulletin
+            </Button>
+          </Card>
+        </div>
 
         <Card className="p-5">
           <h2 className="mb-1 text-lg font-bold text-slate-900">Apparence du bulletin par section</h2>
