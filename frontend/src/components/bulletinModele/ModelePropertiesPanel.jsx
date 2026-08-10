@@ -90,6 +90,63 @@ function AppearanceEditor({ definition, onChangeDefinition, readOnly }) {
   );
 }
 
+const HEADER_TEXT_FIELDS = [
+  { id: 'header_fr_republic', label: 'FR — République' },
+  { id: 'header_fr_motto', label: 'FR — Devise nationale' },
+  { id: 'header_fr_ministry', label: 'FR — Ministère' },
+  { id: 'header_fr_deleg_r', label: 'FR — Délégation régionale' },
+  { id: 'header_fr_deleg_d', label: 'FR — Délégation départementale' },
+  { id: 'header_fr_contact', label: 'FR — Adresse / téléphone' },
+  { id: 'header_fr_school', label: 'FR — Nom établissement' },
+  { id: 'header_en_republic', label: 'EN — Republic' },
+  { id: 'header_en_motto', label: 'EN — Motto' },
+  { id: 'header_en_ministry', label: 'EN — Ministry' },
+  { id: 'header_en_deleg_r', label: 'EN — Regional delegation' },
+  { id: 'header_en_deleg_d', label: 'EN — Divisional delegation' },
+  { id: 'header_en_contact', label: 'EN — City / motto' },
+  { id: 'header_en_school', label: 'EN — School name' },
+];
+
+function InstitutionHeaderEditor({ definition, onChangeDefinition, readOnly }) {
+  const components = definition?.components || [];
+  const present = HEADER_TEXT_FIELDS.filter((f) => components.some((c) => c.id === f.id));
+  if (!present.length) return null;
+
+  function setContent(id, value) {
+    onChangeDefinition({
+      ...definition,
+      components: components.map((c) => (
+        c.id === id ? { ...c, props: { ...(c.props || {}), content: value } } : c
+      )),
+    });
+  }
+
+  return (
+    <div className="space-y-2 border-t border-slate-200 pt-3" data-testid="institution-header-editor">
+      <div className="text-xs font-semibold uppercase text-slate-500">En-tête établissement</div>
+      <p className="text-[11px] text-slate-500">
+        Textes FR / EN et variables école. Le logo se configure via le composant Logo.
+      </p>
+      <div className="max-h-48 space-y-2 overflow-y-auto">
+        {present.map((field) => {
+          const comp = components.find((c) => c.id === field.id);
+          return (
+            <label key={field.id} className="block text-[11px] text-slate-600">
+              {field.label}
+              <Input
+                className="mt-0.5 h-7 text-xs"
+                disabled={readOnly}
+                value={comp?.props?.content || ''}
+                onChange={(e) => setContent(field.id, e.target.value)}
+              />
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function DataBindingEditor({ definition, onChangeDefinition, readOnly }) {
   const db = definition.data_binding || {};
   const groups = db.groups || [];
@@ -192,6 +249,7 @@ export default function ModelePropertiesPanel({
         <div className="space-y-3 p-3 text-sm text-slate-500">
           Sélectionnez un composant sur le canvas.
           <AppearanceEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
+          <InstitutionHeaderEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
           <DataBindingEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
         </div>
       </aside>
@@ -334,6 +392,7 @@ export default function ModelePropertiesPanel({
         )}
 
         <AppearanceEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
+        <InstitutionHeaderEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
         <DataBindingEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
       </div>
     </aside>

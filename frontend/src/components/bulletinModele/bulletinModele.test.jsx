@@ -46,6 +46,26 @@ describe('ModeleCanvas', () => {
     expect(onSelect).toHaveBeenCalledWith(def.components[0].id);
   });
 
+  it('affiche le contenu document et non le label technique', () => {
+    const def = emptyTemplateV1();
+    def.components = [
+      createComponent('text', null, {
+        id: 'title_bar',
+        frame: { x_mm: 0, y_mm: 0, width_mm: 100, height_mm: 10 },
+      }),
+    ];
+    def.components[0].props = {
+      content: 'BULLETIN — {{term.label}}',
+      style: { font_family: 'Helvetica', font_size_pt: 11, bold: true, italic: false, color: '#000000', align: 'center' },
+    };
+    render(
+      <ModeleCanvas definition={def} selectedId={null} onSelect={vi.fn()} onChangeComponent={vi.fn()} zoom={1} />,
+    );
+    expect(screen.getByText(/BULLETIN/)).toBeInTheDocument();
+    expect(screen.getByText(/1er Trimestre/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Texte$/)).not.toBeInTheDocument();
+  });
+
   it('le zoom ne change pas les mm du template', () => {
     const def = emptyTemplateV1();
     const c = createComponent('text');

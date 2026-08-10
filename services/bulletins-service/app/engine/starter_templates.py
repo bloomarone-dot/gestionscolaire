@@ -174,91 +174,129 @@ def _text_style(*, size: float = 8, bold: bool = False, align: str = "left", ita
     }
 
 
-def _bilingual_header_components(language_mode: LanguageMode, *, width_mm: float = 190) -> list[dict[str, Any]]:
-    """En-tête neutre : infos GAUCHE | logo CENTRE | infos DROITE (composants existants).
+def _text_comp(
+    cid: str,
+    *,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    content: str,
+    size: float = 7,
+    bold: bool = False,
+    align: str = "center",
+    italic: bool = False,
+    z: int = 1,
+) -> dict[str, Any]:
+    return {
+        "id": cid,
+        "type": "text",
+        "frame": {"x_mm": x, "y_mm": y, "width_mm": w, "height_mm": h},
+        "z_index": z,
+        "visible": True,
+        "props": {"content": content, "style": _text_style(size=size, bold=bold, align=align, italic=italic)},
+    }
 
-    Les libellés institutionnels sont des placeholders éditables (pas d'école réelle).
-    Logo centré via ``school_logo`` ({{school.logo}} au rendu).
-    """
+
+def _bilingual_header_components(language_mode: LanguageMode, *, width_mm: float = 190) -> list[dict[str, Any]]:
+    """En-tête maquette : FRANÇAIS | LOGO CENTRÉ | ENGLISH — placeholders éditables."""
     show_fr = language_mode in ("fr", "bilingual")
     show_en = language_mode in ("en", "bilingual")
     mid = width_mm / 2
-    logo_w = 28.0
-    side_w = (width_mm - logo_w - 4) / 2
+    logo_w = 30.0
+    logo_h = 30.0
+    gap = 3.0
+    side_w = (width_mm - logo_w - gap * 2) / 2
     comps: list[dict[str, Any]] = []
 
+    # Cadre en-tête (bordure sobre)
+    comps.append({
+        "id": "header_frame",
+        "type": "shape",
+        "frame": {"x_mm": 0, "y_mm": 0, "width_mm": width_mm, "height_mm": 36},
+        "z_index": 0,
+        "visible": True,
+        "props": {
+            "shape": "rectangle",
+            "stroke_color": "#000000",
+            "stroke_width_pt": 0.6,
+            "fill_color": None,
+        },
+    })
+
     if show_fr:
+        fr_x = 1.5
         fr_lines = [
-            ("header_fr_republic", "RÉPUBLIQUE DU CAMEROUN", 0, True),
-            ("header_fr_motto", "Paix — Travail — Patrie", 5, False),
-            ("header_fr_ministry", "MINISTÈRE DE L'ÉDUCATION (à configurer)", 10, False),
-            ("header_fr_deleg_r", "{{school.delegation_regional}}", 15, False),
-            ("header_fr_deleg_d", "{{school.delegation_departementale}}", 20, False),
-            ("header_fr_contact", "{{school.address}}  {{school.phone}}", 25, False),
+            ("header_fr_republic", "RÉPUBLIQUE DU CAMEROUN", 1.5, True, 7),
+            ("header_fr_motto", "Paix — Travail — Patrie", 6.5, False, 6.5),
+            ("header_fr_ministry", "MINISTÈRE DE L'ENSEIGNEMENT SECONDAIRE", 11.0, True, 6),
+            ("header_fr_deleg_r", "{{school.delegation_regional}}", 16.0, False, 6),
+            ("header_fr_deleg_d", "{{school.delegation_departementale}}", 20.5, False, 6),
+            ("header_fr_contact", "{{school.address}} · {{school.phone}}", 25.5, False, 6),
+            ("header_fr_school", "{{school.name}}", 30.0, True, 6.5),
         ]
-        for cid, content, y, bold in fr_lines:
-            comps.append({
-                "id": cid,
-                "type": "text",
-                "frame": {"x_mm": 0, "y_mm": y, "width_mm": side_w, "height_mm": 5},
-                "z_index": 1,
-                "visible": True,
-                "props": {"content": content, "style": _text_style(size=7, bold=bold, align="center")},
-            })
+        for cid, content, y, bold, size in fr_lines:
+            comps.append(_text_comp(
+                cid, x=fr_x, y=y, w=side_w - 1, h=4.5, content=content,
+                size=size, bold=bold, align="center",
+            ))
 
     comps.append({
         "id": "header_logo",
         "type": "school_logo",
-        "frame": {"x_mm": mid - logo_w / 2, "y_mm": 2, "width_mm": logo_w, "height_mm": 28},
+        "frame": {"x_mm": mid - logo_w / 2, "y_mm": 3, "width_mm": logo_w, "height_mm": logo_h},
         "z_index": 2,
         "visible": True,
         "props": {"fit": "contain"},
     })
 
     if show_en:
-        en_x = width_mm - side_w
+        en_x = mid + logo_w / 2 + gap
         en_lines = [
-            ("header_en_republic", "REPUBLIC OF CAMEROON", 0, True),
-            ("header_en_motto", "Peace — Work — Fatherland", 5, False),
-            ("header_en_ministry", "MINISTRY OF EDUCATION (configure)", 10, False),
-            ("header_en_deleg_r", "{{school.delegation_regional}}", 15, False),
-            ("header_en_deleg_d", "{{school.delegation_departementale}}", 20, False),
-            ("header_en_contact", "{{school.city}}  {{school.motto}}", 25, False),
+            ("header_en_republic", "REPUBLIC OF CAMEROON", 1.5, True, 7),
+            ("header_en_motto", "Peace — Work — Fatherland", 6.5, False, 6.5),
+            ("header_en_ministry", "MINISTRY OF SECONDARY EDUCATION", 11.0, True, 6),
+            ("header_en_deleg_r", "{{school.delegation_regional}}", 16.0, False, 6),
+            ("header_en_deleg_d", "{{school.delegation_departementale}}", 20.5, False, 6),
+            ("header_en_contact", "{{school.city}} · {{school.motto}}", 25.5, False, 6),
+            ("header_en_school", "{{school.name}}", 30.0, True, 6.5),
         ]
-        for cid, content, y, bold in en_lines:
-            comps.append({
-                "id": cid,
-                "type": "text",
-                "frame": {"x_mm": en_x, "y_mm": y, "width_mm": side_w, "height_mm": 5},
-                "z_index": 1,
-                "visible": True,
-                "props": {"content": content, "style": _text_style(size=7, bold=bold, align="center")},
-            })
+        for cid, content, y, bold, size in en_lines:
+            comps.append(_text_comp(
+                cid, x=en_x, y=y, w=side_w - 1, h=4.5, content=content,
+                size=size, bold=bold, align="center",
+            ))
 
-    comps.append({
-        "id": "header_school",
-        "type": "institution_header",
-        "frame": {"x_mm": 0, "y_mm": 30, "width_mm": width_mm, "height_mm": 12},
-        "z_index": 3,
-        "visible": True,
-        "props": {
-            "show_ministry": False,
-            "show_logo": False,
-            "show_motto": True,
-            "show_delegations": False,
-            "title": "{{school.name}}",
-            "subtitle": "{{school.motto}}",
-        },
-    })
     return comps
 
 
 def build_secondary_starter(language_mode: LanguageMode = "bilingual") -> dict[str, Any]:
-    """Bulletin secondaire camerounais — neutre, A4 portrait, groupes from_classe_matiere."""
+    """Bulletin secondaire camerounais — maquette A4 neutre, groups from_classe_matiere."""
     L = _L(language_mode)
     theme_header = "#F5F5F5"
     border = "#000000"
-    header = _bilingual_header_components(language_mode, width_mm=190)
+    W = 190.0
+    header = _bilingual_header_components(language_mode, width_mm=W)
+
+    if language_mode == "en":
+        student_meta = (
+            "Class: {{class.name}}   Series: {{class.series_code}}   "
+            "Size: {{class.size}}   Term: {{term.label}}   Year: {{academic_year.name}}"
+        )
+        obs_title = "OBSERVATION"
+    elif language_mode == "bilingual":
+        student_meta = (
+            "Classe / Class: {{class.name}}   Série / Series: {{class.series_code}}   "
+            "Effectif / Size: {{class.size}}   {{term.label}}   {{academic_year.name}}"
+        )
+        obs_title = "OBSERVATION"
+    else:
+        student_meta = (
+            "Classe : {{class.name}}   Série : {{class.series_code}}   "
+            "Effectif : {{class.size}}   Trimestre : {{term.label}}   Année : {{academic_year.name}}"
+        )
+        obs_title = "OBSERVATION"
+
     definition = {
         "schema_version": 1,
         "name": "Bulletin secondaire camerounais (standard)",
@@ -287,50 +325,55 @@ def build_secondary_starter(language_mode: LanguageMode = "bilingual") -> dict[s
         },
         "components": [
             *header,
+            # Titre
+            _text_comp(
+                "title_bar",
+                x=0, y=39, w=W, h=7,
+                content=L["bulletin_title"],
+                size=13, bold=True, align="center", z=2,
+            ),
+            _text_comp(
+                "title_period",
+                x=0, y=46, w=W, h=5,
+                content="{{term.label}}  —  {{academic_year.name}}",
+                size=9, bold=False, align="center", z=2,
+            ),
+            # Ligne séparatrice
             {
-                "id": "title_bar",
-                "type": "text",
-                "frame": {"x_mm": 0, "y_mm": 44, "width_mm": 190, "height_mm": 8},
-                "z_index": 2,
+                "id": "sep_title",
+                "type": "shape",
+                "frame": {"x_mm": 0, "y_mm": 52, "width_mm": W, "height_mm": 1.2},
+                "z_index": 1,
                 "visible": True,
-                "props": {
-                    "content": L["bulletin_title"] + " — {{term.label}} — {{academic_year.name}}",
-                    "style": _text_style(size=11, bold=True, align="center"),
-                },
+                "props": {"shape": "line", "stroke_color": "#000000", "stroke_width_pt": 0.8, "fill_color": None},
             },
+            # Bloc élève
             {
                 "id": "student",
                 "type": "student_block",
-                "frame": {"x_mm": 0, "y_mm": 53, "width_mm": 190, "height_mm": 22},
+                "frame": {"x_mm": 0, "y_mm": 55, "width_mm": W, "height_mm": 20},
                 "z_index": 3,
                 "visible": True,
                 "props": {
                     "fields": [
-                        "last_name", "first_name", "matricule", "class", "gender",
-                        "repeat_status",
+                        "last_name", "first_name", "class", "gender",
+                        "matricule", "repeat_status",
                     ],
                     "show_labels": True,
                     "columns": 3,
                 },
             },
-            {
-                "id": "student_meta",
-                "type": "text",
-                "frame": {"x_mm": 0, "y_mm": 75, "width_mm": 190, "height_mm": 8},
-                "z_index": 3,
-                "visible": True,
-                "props": {
-                    "content": (
-                        "{{class.name}} · {{class.series_code}} · "
-                        "{{class.size}} · {{term.label}} · {{academic_year.name}}"
-                    ),
-                    "style": _text_style(size=8),
-                },
-            },
+            _text_comp(
+                "student_meta",
+                x=0, y=76, w=W, h=6,
+                content=student_meta,
+                size=8, bold=False, align="left", z=3,
+            ),
+            # Tableau des notes
             {
                 "id": "grades",
                 "type": "grades_table",
-                "frame": {"x_mm": 0, "y_mm": 85, "width_mm": 190, "height_mm": 110},
+                "frame": {"x_mm": 0, "y_mm": 84, "width_mm": W, "height_mm": 105},
                 "z_index": 4,
                 "visible": True,
                 "props": {
@@ -360,28 +403,30 @@ def build_secondary_starter(language_mode: LanguageMode = "bilingual") -> dict[s
                     "repeat_header_on_page_break": True,
                     "border_color": border,
                     "header_background": theme_header,
-                    "font_size_pt": 8.0,
-                    "row_height_mm": 6.0,
+                    "font_size_pt": 7.5,
+                    "row_height_mm": 5.5,
                 },
             },
+            # Résumé
             {
                 "id": "summary",
                 "type": "summary_block",
-                "frame": {"x_mm": 0, "y_mm": 198, "width_mm": 190, "height_mm": 26},
+                "frame": {"x_mm": 0, "y_mm": 192, "width_mm": W, "height_mm": 22},
                 "z_index": 5,
                 "visible": True,
                 "props": {
                     "fields": [
                         "total_points", "total_coefficients", "general_average",
-                        "class_average", "rank", "class_size", "decision", "observation",
+                        "class_average", "rank", "class_size", "decision",
                     ],
                     "show_labels": True,
                 },
             },
+            # Absences
             {
                 "id": "attendance",
                 "type": "attendance_block",
-                "frame": {"x_mm": 0, "y_mm": 226, "width_mm": 190, "height_mm": 12},
+                "frame": {"x_mm": 0, "y_mm": 216, "width_mm": W, "height_mm": 10},
                 "z_index": 5,
                 "visible": True,
                 "props": {
@@ -389,13 +434,40 @@ def build_secondary_starter(language_mode: LanguageMode = "bilingual") -> dict[s
                     "show_sanctions": True,
                     "stub_label_absences": "—",
                     "stub_label_sanctions": "—",
-                    "note": "Assiduité / sanctions : données branchées si disponibles.",
+                    "note": "Assiduité / sanctions si disponibles.",
                 },
             },
+            # Observation
+            {
+                "id": "obs_frame",
+                "type": "shape",
+                "frame": {"x_mm": 0, "y_mm": 228, "width_mm": W, "height_mm": 16},
+                "z_index": 4,
+                "visible": True,
+                "props": {
+                    "shape": "rectangle",
+                    "stroke_color": "#000000",
+                    "stroke_width_pt": 0.5,
+                    "fill_color": None,
+                },
+            },
+            _text_comp(
+                "obs_title",
+                x=2, y=229, w=W - 4, h=4,
+                content=obs_title,
+                size=8, bold=True, align="left", z=5,
+            ),
+            _text_comp(
+                "obs_body",
+                x=2, y=234, w=W - 4, h=8,
+                content="{{summary.observation}}",
+                size=8, bold=False, align="left", z=5,
+            ),
+            # Signatures
             {
                 "id": "signatures",
                 "type": "signatures_row",
-                "frame": {"x_mm": 0, "y_mm": 242, "width_mm": 190, "height_mm": 28},
+                "frame": {"x_mm": 0, "y_mm": 248, "width_mm": W, "height_mm": 26},
                 "z_index": 6,
                 "visible": True,
                 "props": {
@@ -408,11 +480,15 @@ def build_secondary_starter(language_mode: LanguageMode = "bilingual") -> dict[s
                 },
             },
         ],
-        "meta": _neutral_meta(
-            starter_id="cameroon_secondary_standard",
-            kind=KIND_SECONDARY,
-            language_mode=language_mode,
-        ),
+        "meta": {
+            **_neutral_meta(
+                starter_id="cameroon_secondary_standard",
+                kind=KIND_SECONDARY,
+                language_mode=language_mode,
+            ),
+            "header_fr_ministry": "MINISTÈRE DE L'ENSEIGNEMENT SECONDAIRE",
+            "header_en_ministry": "MINISTRY OF SECONDARY EDUCATION",
+        },
     }
     return validate_template_definition(definition).model_dump(mode="json")
 

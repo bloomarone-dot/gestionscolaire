@@ -1,6 +1,5 @@
-import { COMPONENT_META, pageSizeMm } from '../../utils/bulletinTemplateCatalog';
-
-const LABEL = Object.fromEntries(COMPONENT_META.map((c) => [c.type, c.label]));
+import CanvasComponentPreview from './CanvasComponentPreview';
+import { pageSizeMm } from '../../utils/bulletinTemplateCatalog';
 
 /** 1 mm affichage de base = 3.2 CSS px à zoom 100 % (A4 portrait ~672×950). */
 export const MM_TO_PX = 3.2;
@@ -64,16 +63,18 @@ export default function ModeleCanvas({
   );
 
   return (
-    <div className="flex h-full flex-col bg-slate-200/70">
+    <div className="flex h-full flex-col bg-neutral-300/80">
       <div className="flex-1 overflow-auto p-6" onClick={() => onSelect?.(null)}>
         <div
-          className="relative mx-auto bg-white shadow-xl"
+          className="relative mx-auto bg-white shadow-2xl"
           style={{ width: pageW, height: pageH }}
           data-testid="bulletin-canvas-page"
         >
+          {/* Zone utile invisible (pas de dashed wireframe) */}
           <div
-            className="absolute border border-dashed border-slate-300"
+            className="pointer-events-none absolute"
             style={{ left: usableLeft, top: usableTop, width: usableW, height: usableH }}
+            aria-hidden
           />
           {components.filter((c) => c.visible !== false).map((c) => {
             const selected = c.id === selectedId;
@@ -92,28 +93,26 @@ export default function ModeleCanvas({
                   onSelect?.(c.id);
                 }}
                 onPointerDown={(ev) => startDrag(ev, c, 'move')}
-                className={`absolute overflow-hidden rounded-sm border text-[10px] leading-tight ${
-                  selected ? 'border-blue-500 ring-2 ring-blue-300' : 'border-slate-400/70'
+                className={`absolute overflow-hidden ${
+                  selected
+                    ? 'outline outline-2 outline-offset-0 outline-sky-500 ring-0'
+                    : 'outline outline-1 outline-transparent hover:outline-neutral-300'
                 } ${readOnly ? 'cursor-default' : 'cursor-move'}`}
                 style={{
                   left,
                   top,
                   width,
                   height,
-                  background: c.type === 'grades_table' ? '#f8fafc' : '#ffffffcc',
+                  background: 'transparent',
                   zIndex: (c.z_index || 0) + 1,
                 }}
+                title={selected ? `${c.type} · ${c.id}` : undefined}
               >
-                <div className="truncate bg-slate-100/90 px-1 py-0.5 font-medium text-slate-600">
-                  {LABEL[c.type] || c.type}
-                </div>
-                <div className="px-1 text-slate-500">
-                  {c.type === 'text' ? String(c.props?.content || '').slice(0, 40) : c.id}
-                </div>
+                <CanvasComponentPreview component={c} definition={definition} />
                 {selected && !readOnly && (
                   <div
                     data-testid="canvas-resize-handle"
-                    className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize bg-blue-500"
+                    className="absolute bottom-0 right-0 z-10 h-3 w-3 cursor-se-resize bg-sky-500"
                     onPointerDown={(ev) => startDrag(ev, c, 'resize')}
                   />
                 )}
