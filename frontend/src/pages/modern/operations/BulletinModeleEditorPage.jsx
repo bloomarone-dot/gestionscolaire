@@ -4,6 +4,7 @@ import { ArrowLeft, Eye, Save, Upload } from 'lucide-react';
 import * as api from '../../../api/api';
 import { useAuth } from '../../../context/useAuth';
 import { Badge, Button, Input, Select } from '../../../components/ui';
+import ModeleAssignationsPanel from '../../../components/bulletinModele/ModeleAssignationsPanel';
 import ModeleCanvas from '../../../components/bulletinModele/ModeleCanvas';
 import ModelePalette from '../../../components/bulletinModele/ModelePalette';
 import ModelePreviewModal from '../../../components/bulletinModele/ModelePreviewModal';
@@ -39,6 +40,7 @@ export function BulletinModeleEditorPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
   const [previewEleveId, setPreviewEleveId] = useState('');
+  const [showAssignations, setShowAssignations] = useState(false);
 
   const readOnly = !canEditRole || !!modele?.is_system || modele?.status === 'ARCHIVED';
   const selected = useMemo(
@@ -313,6 +315,15 @@ export function BulletinModeleEditorPage() {
           <Button variant="secondary" onClick={handlePreview}>
             <Eye className="h-4 w-4" /> Aperçu
           </Button>
+          {!modele.is_system && (
+            <Button
+              variant="secondary"
+              onClick={() => setShowAssignations((v) => !v)}
+              aria-pressed={showAssignations}
+            >
+              Assignation
+            </Button>
+          )}
           {!readOnly && (
             <>
               <Button variant="secondary" disabled={saving} onClick={handleNewVersion}>
@@ -372,6 +383,16 @@ export function BulletinModeleEditorPage() {
           onDelete={deleteComponent}
         />
       </div>
+
+      {showAssignations && (
+        <div className="max-h-[40%] overflow-y-auto border-t border-slate-200 px-4 py-2">
+          <ModeleAssignationsPanel
+            modeleId={modele.id}
+            canEdit={canEditRole && !modele.is_system && modele.status !== 'ARCHIVED'}
+            modeleStatus={modele.status}
+          />
+        </div>
+      )}
 
       <ModelePreviewModal
         open={previewOpen}

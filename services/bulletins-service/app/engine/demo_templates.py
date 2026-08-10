@@ -1,7 +1,15 @@
-"""Exemple de définition proche d'un bulletin secondaire camerounais (démo).
+"""Exemples de définitions bulletin V1 (fixtures / templates système).
 
-Ce n'est PAS un format codé en dur dans le moteur — uniquement une fixture de test /
-template système futur.
+- ``CAMEROON_SECONDARY_DEMO_V1`` : secondaire camerounais (notes, coef, rang).
+- ``CAMEROON_PRIMARY_DEMO_V1`` : primaire *adapté* avec les composants existants
+  (textes d'observations / compétences en libellés).
+
+Limitations primaire (étape 9) — PAS de second moteur :
+- pas de composant ``competences_grid`` / niveaux d'acquisition dédiés dans le registry ;
+- pas de binding DataContext primaire spécifique (compétences) ;
+- le même Template + DataContext + Renderer V2 est utilisé ;
+- un établissement primaire peut déjà composer un bulletin via text / student_block /
+  summary / signatures ; les grilles compétences arriveront dans une étape ultérieure.
 """
 
 CAMEROON_SECONDARY_DEMO_V1 = {
@@ -158,5 +166,129 @@ CAMEROON_SECONDARY_DEMO_V1 = {
         "demo": True,
         "locale": "fr-CM",
         "reference": "bulletin_camerounais_secondaire",
+    },
+}
+
+
+# Bulletin primaire : même moteur V2, composants existants uniquement.
+# Pas de grille compétences native — textes / observations en attendant.
+CAMEROON_PRIMARY_DEMO_V1 = {
+    "schema_version": 1,
+    "name": "Bulletin primaire camerounais (démo)",
+    "page": {
+        "size": "A4",
+        "orientation": "portrait",
+        "margins": {"top": 12, "right": 12, "bottom": 12, "left": 12},
+    },
+    "data_binding": {
+        "period_mode": "trimestre",
+        "sequence_columns": [],
+        "groups_mode": "legacy_infer",
+        "groups": [],
+        "include_ungrouped": True,
+        "complementary_section": False,
+    },
+    "components": [
+        {
+            "id": "header",
+            "type": "institution_header",
+            "frame": {"x_mm": 0, "y_mm": 0, "width_mm": 186, "height_mm": 28},
+            "z_index": 1,
+            "visible": True,
+            "props": {
+                "show_ministry": True,
+                "show_logo": True,
+                "show_motto": True,
+                "show_delegations": False,
+                "title": "{{school.name}}",
+                "subtitle": "Bulletin scolaire — Primaire",
+            },
+        },
+        {
+            "id": "student",
+            "type": "student_block",
+            "frame": {"x_mm": 0, "y_mm": 30, "width_mm": 186, "height_mm": 24},
+            "z_index": 2,
+            "visible": True,
+            "props": {
+                "fields": ["full_name", "matricule", "class", "gender", "date_of_birth"],
+                "show_labels": True,
+                "columns": 2,
+            },
+        },
+        {
+            "id": "competences_title",
+            "type": "text",
+            "frame": {"x_mm": 0, "y_mm": 58, "width_mm": 186, "height_mm": 8},
+            "z_index": 3,
+            "visible": True,
+            "props": {
+                "content": "Compétences et niveaux d'acquisition (libellés — grille native à venir)",
+                "style": {
+                    "font_family": "Helvetica",
+                    "font_size_pt": 11,
+                    "bold": True,
+                    "italic": False,
+                    "color": "#000000",
+                    "align": "left",
+                },
+            },
+        },
+        {
+            "id": "competences_note",
+            "type": "text",
+            "frame": {"x_mm": 0, "y_mm": 68, "width_mm": 186, "height_mm": 40},
+            "z_index": 3,
+            "visible": True,
+            "props": {
+                "content": (
+                    "Observations : {{summary.observation}}\n"
+                    "Période : {{term.label}}\n"
+                    "Année : {{academic_year.name}}\n"
+                    "(Les grilles compétences / niveaux d'acquisition ne sont pas encore "
+                    "des composants registry — même moteur Template+DataContext+Renderer.)"
+                ),
+                "style": {
+                    "font_family": "Helvetica",
+                    "font_size_pt": 9,
+                    "bold": False,
+                    "italic": False,
+                    "color": "#222222",
+                    "align": "left",
+                },
+            },
+        },
+        {
+            "id": "summary",
+            "type": "summary_block",
+            "frame": {"x_mm": 0, "y_mm": 115, "width_mm": 186, "height_mm": 28},
+            "z_index": 4,
+            "visible": True,
+            "props": {
+                "fields": ["general_average", "decision", "observation"],
+                "show_labels": True,
+            },
+        },
+        {
+            "id": "signatures",
+            "type": "signatures_row",
+            "frame": {"x_mm": 0, "y_mm": 150, "width_mm": 186, "height_mm": 28},
+            "z_index": 5,
+            "visible": True,
+            "props": {
+                "slots": [
+                    {"slot": "parent", "label": "Parent / Tuteur"},
+                    {"slot": "teacher", "label": "Instituteur(trice)"},
+                    {"slot": "principal", "label": "Directeur(trice)"},
+                ],
+            },
+        },
+    ],
+    "meta": {
+        "demo": True,
+        "locale": "fr-CM",
+        "reference": "bulletin_camerounais_primaire",
+        "establishment_kind": "PRIMARY_SCHOOL",
+        "limitations": "no_competences_grid;no_acquisition_levels;uses_existing_registry_only",
     },
 }

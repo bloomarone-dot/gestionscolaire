@@ -474,6 +474,37 @@ export async function exportBulletinPdfV2(body) {
   URL.revokeObjectURL(url);
 }
 
+export async function fetchBulletinModeleAssignations(modeleId) {
+  return apiRequest(`/bulletins/modeles/${modeleId}/assignations`);
+}
+
+export async function createBulletinModeleAssignation(modeleId, body) {
+  return apiRequest(`/bulletins/modeles/${modeleId}/assignations`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function updateBulletinModeleAssignation(modeleId, assignationId, body) {
+  return apiRequest(`/bulletins/modeles/${modeleId}/assignations/${assignationId}`, {
+    method: 'PUT',
+    body,
+  });
+}
+
+export async function deleteBulletinModeleAssignation(modeleId, assignationId) {
+  const res = await apiFetch(`/bulletins/modeles/${modeleId}/assignations/${assignationId}`, {
+    method: 'DELETE',
+    headers: getHeaders(true, false),
+  });
+  if (res.status === 204) return null;
+  return handleResponse(res);
+}
+
+export async function resolveBulletinModele(body) {
+  return apiRequest('/bulletins/v2/resolve', { method: 'POST', body });
+}
+
 export async function exportClasseBulletinsCsv(classeId, trimestre = 1) {
   void classeId;
   void trimestre;
