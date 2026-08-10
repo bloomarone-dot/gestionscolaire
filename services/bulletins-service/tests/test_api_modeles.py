@@ -433,3 +433,35 @@ def test_legacy_routes_still_registered():
     assert "/bulletins/modeles" in paths
     assert "/bulletins/v2/preview" in paths
     assert "/bulletins/v2/pdf" in paths
+    assert "/bulletins/v2/catalog" in paths
+
+
+def test_catalog_v2(client_factory):
+    client, _ = client_factory()
+    r = client.get("/bulletins/v2/catalog")
+    assert r.status_code == 200
+    data = r.json()
+    assert "grades_table" in {c["type"] for c in data["components"]}
+    assert "student.full_name" in data["variables"]
+
+
+def test_update_draft_version_on_published(client_factory):
+    client, _ = client_factory()
+    m = _create(client)
+    client.post(f"/bulletins/modeles/{m['id']}/publish")
+    current = client.get(f"/bulletins/modeles/{m['id']}").json()["current_version"]
+    assert client.put(
+        f"/bulletins/modeles/{m['id']}/versions/{current['id']}",
+        json={"definition": MIN_DEF},
+    ).status_code == 409
+    v2 = client.post(f"/bulletins/modeles/{m['id']}/versions", json={"definition": MIN_DEF}).json()
+    r = client.put(
+        f"/bulletins/modeles/{m['id']}/versions/{v2['id']}",
+        json={"definition": {
+            "schema_version": 1,
+            "name": "edited",
+            "components": [],
+        }},
+    )
+    assert r.status_code == 200
+    assert r.json()["definition"]["name"] == "edited"

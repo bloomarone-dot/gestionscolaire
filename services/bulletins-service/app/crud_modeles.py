@@ -259,10 +259,38 @@ def create_version(
         created_at=_now(),
     )
     db.add(version)
-    # Si encore DRAFT sans publication, la nouvelle version devient courante
+    # Si encore DRAFT sans publication, la nouvelle version devient courante.
+    # Si PUBLISHED : la nouvelle version reste hors production jusqu'à publish explicite
+    # (la version publiée courante reste immuable et opérationnelle).
     if modele.status == STATUS_DRAFT:
         db.flush()
         modele.current_version_id = version.id
+    modele.updated_at = _now()
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+def update_version_definition(
+    db: Session,
+    tenant_id: int,
+    modele_id: int,
+    version_id: int,
+    definition: dict,
+) -> BulletinModeleVersion:
+    """Met à jour la définition d'une version non publiée (brouillon d'édition)."""
+    modele = get_modele_for_write(db, tenant_id, modele_id)
+    if modele.status == STATUS_ARCHIVED:
+        raise ModeleError("Modèle archivé — non modifiable", status_code=409)
+    version = get_version(db, tenant_id, modele_id, version_id)
+    if modele.status == STATUS_PUBLISHED and version.id == modele.current_version_id:
+        raise ModeleError(
+            "Version publiée immuable — créez une nouvelle version DRAFT.",
+            status_code=409,
+        )
+    validated = validate_definition(definition)
+    version.definition = validated
+    version.schema_version = int(validated.get("schema_version") or 1)
     modele.updated_at = _now()
     db.commit()
     db.refresh(version)

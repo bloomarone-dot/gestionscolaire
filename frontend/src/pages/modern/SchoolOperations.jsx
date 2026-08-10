@@ -13,6 +13,8 @@ export {
 export { OperationalSubjectsPage } from "./operations/SubjectsPages";
 export { OperationalGradesPage } from "./operations/GradesPages";
 export { OperationalBulletinsPage } from "./operations/BulletinsPages";
+export { BulletinModelesPage } from "./operations/BulletinModelesPages";
+export { BulletinModeleEditorPage } from "./operations/BulletinModeleEditorPage";
 export {
   ProfessorDashboardPage,
   ProfessorClassesPage,

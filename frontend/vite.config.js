@@ -20,5 +20,10 @@ export default defineConfig(({ mode }) => {
         proxied.map((p) => [p, { target: gateway, changeOrigin: true }]),
       ),
     },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: ['./src/test/setup.js'],
+    },
   }
 })

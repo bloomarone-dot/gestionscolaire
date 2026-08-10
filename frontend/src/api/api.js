@@ -390,6 +390,90 @@ export async function exportEleveBulletinPdf(eleveId, trimestre = 1, template = 
   return downloadFileResponse(res, filename);
 }
 
+// ── Modèles de bulletin V2 (éditeur) ──────────────────────
+export async function fetchBulletinModeles() {
+  return apiRequest('/bulletins/modeles');
+}
+
+export async function fetchBulletinModele(id) {
+  return apiRequest(`/bulletins/modeles/${id}`);
+}
+
+export async function createBulletinModele(body) {
+  return apiRequest('/bulletins/modeles', { method: 'POST', body });
+}
+
+export async function updateBulletinModele(id, body) {
+  return apiRequest(`/bulletins/modeles/${id}`, { method: 'PUT', body });
+}
+
+export async function deleteBulletinModele(id) {
+  const res = await apiFetch(`/bulletins/modeles/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(true, false),
+  });
+  if (res.status === 204) return null;
+  return handleResponse(res);
+}
+
+export async function duplicateBulletinModele(id) {
+  return apiRequest(`/bulletins/modeles/${id}/duplicate`, { method: 'POST' });
+}
+
+export async function publishBulletinModele(id, versionId = null) {
+  const q = versionId != null ? `?version_id=${versionId}` : '';
+  return apiRequest(`/bulletins/modeles/${id}/publish${q}`, { method: 'POST' });
+}
+
+export async function archiveBulletinModele(id) {
+  return apiRequest(`/bulletins/modeles/${id}/archive`, { method: 'POST' });
+}
+
+export async function createBulletinModeleVersion(id, definition, notes = null) {
+  return apiRequest(`/bulletins/modeles/${id}/versions`, {
+    method: 'POST',
+    body: { definition, notes },
+  });
+}
+
+export async function updateBulletinModeleVersion(id, versionId, definition, notes = null) {
+  return apiRequest(`/bulletins/modeles/${id}/versions/${versionId}`, {
+    method: 'PUT',
+    body: { definition, notes },
+  });
+}
+
+export async function fetchBulletinModeleVersions(id) {
+  return apiRequest(`/bulletins/modeles/${id}/versions`);
+}
+
+export async function fetchBulletinTemplateCatalog() {
+  return apiRequest('/bulletins/v2/catalog');
+}
+
+export async function previewBulletinV2(body) {
+  return apiRequest('/bulletins/v2/preview', { method: 'POST', body });
+}
+
+export async function exportBulletinPdfV2(body) {
+  const res = await fetch('/bulletins/v2/pdf', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Erreur PDF V2 (${res.status})`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bulletin_v2_${body.eleve_id || 'preview'}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function exportClasseBulletinsCsv(classeId, trimestre = 1) {
   void classeId;
   void trimestre;

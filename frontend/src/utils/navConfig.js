@@ -41,6 +41,7 @@ function languageCenterAdminNav(ui) {
         { to: '/app/subjects', label: ui.subjects, icon: 'BookOpen' },
         { to: '/app/grades', label: ui.grades, icon: 'BarChart3' },
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
+        { to: '/app/bulletins/modeles', label: 'Modèles de bulletin', icon: 'Receipt' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
         { to: '/app/progression/policies', label: 'Politiques de progression', icon: 'Settings' },
         { to: '/app/progression/proposals', label: 'Validation décisions', icon: 'CheckCircle2' },
@@ -101,6 +102,7 @@ function primarySchoolAdminNav(ui) {
         { to: '/app/subjects', label: ui.subjects, icon: 'BookOpen' },
         { to: '/app/grades', label: ui.grades, icon: 'BarChart3' },
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
+        { to: '/app/bulletins/modeles', label: 'Modèles de bulletin', icon: 'Receipt' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
         { to: '/app/progression/policies', label: 'Politiques de progression', icon: 'Settings' },
         { to: '/app/progression/proposals', label: 'Validation décisions', icon: 'CheckCircle2' },
@@ -178,6 +180,7 @@ function schoolAdminNav(ui) {
       items: [
         { to: '/app/grades', label: ui.grades, icon: 'BarChart3' },
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
+        { to: '/app/bulletins/modeles', label: 'Modèles de bulletin', icon: 'Receipt' },
       ],
     },
     {

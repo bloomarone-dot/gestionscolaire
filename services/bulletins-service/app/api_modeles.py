@@ -228,6 +228,22 @@ def api_get_version(
         raise _http(exc) from exc
 
 
+@router.put("/bulletins/modeles/{modele_id}/versions/{version_id}", response_model=VersionOut)
+def api_update_version(
+    modele_id: int,
+    version_id: int,
+    payload: VersionCreateIn,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_modele_manager),
+):
+    try:
+        return crud.update_version_definition(
+            db, ctx.tenant_id, modele_id, version_id, payload.definition,
+        )
+    except crud.ModeleError as exc:
+        raise _http(exc) from exc
+
+
 # ── Assignations ───────────────────────────────────────────────────────────
 
 @router.get("/bulletins/modeles/{modele_id}/assignations", response_model=list[AssignationOut])
@@ -284,6 +300,48 @@ def api_delete_assignation(
     except crud.ModeleError as exc:
         raise _http(exc) from exc
     return Response(status_code=204)
+
+
+@router.get("/bulletins/v2/catalog")
+def api_catalog_v2(
+    ctx: TenantContext = Depends(require_modele_manager),
+):
+    """Catalogue éditeur : composants registry + variables whitelist (source backend)."""
+    from app.engine.registry import get_registry
+    from app.engine.variables import ALLOWED_ROW_BIND_PREFIXES, list_catalog
+
+    _ = ctx
+    registry = get_registry()
+    components = []
+    for definition in registry.list():
+        try:
+            defaults = definition.props_model.model_construct().model_dump(mode="json")
+        except Exception:
+            defaults = {}
+        components.append({
+            "type": definition.type,
+            "category": definition.category,
+            "description": definition.description,
+            "required_context_roots": sorted(definition.required_context_roots),
+            "default_props": defaults,
+        })
+    return {
+        "schema_version": 1,
+        "page_sizes": ["A4"],
+        "orientations": ["portrait", "landscape"],
+        "components": components,
+        "variables": list_catalog(),
+        "row_bind_prefixes": list(ALLOWED_ROW_BIND_PREFIXES),
+        "categories": [
+            {"id": "design", "label": "Design"},
+            {"id": "school", "label": "Établissement"},
+            {"id": "student", "label": "Élève"},
+            {"id": "academic", "label": "Scolaire"},
+            {"id": "summary", "label": "Résumé"},
+            {"id": "signature", "label": "Signatures"},
+            {"id": "other", "label": "Autres"},
+        ],
+    }
 
 
 @router.post("/bulletins/v2/resolve", response_model=ModeleOut)

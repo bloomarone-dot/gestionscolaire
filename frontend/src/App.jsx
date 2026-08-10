@@ -25,6 +25,8 @@ import ReferentielPage from './pages/modern/ReferentielPage';
 import NotificationsPage from './pages/modern/NotificationsPage';
 import AnnouncementsPage from './pages/modern/AnnouncementsPage';
 import {
+  BulletinModeleEditorPage,
+  BulletinModelesPage,
   ClasseCreatePage,
   EleveCreatePage,
   OperationalBulletinsPage,
@@ -151,6 +153,8 @@ function AppRoutes() {
         <Route path="attendance" element={<AttendancePage />} />
         <Route path="grades" element={<OperationalGradesPage />} />
         <Route path="bulletins" element={<OperationalBulletinsPage />} />
+        <Route path="bulletins/modeles" element={<BulletinModelesPage />} />
+        <Route path="bulletins/modeles/:modeleId" element={<BulletinModeleEditorPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
         <Route path="progression/policies" element={<ProgressionPoliciesPage />} />
         <Route path="progression/proposals" element={<ProgressionProposalsPage />} />
