@@ -561,3 +561,79 @@ def test_delete_published_refused(client_factory):
     r = client.delete(f"/bulletins/modeles/{m['id']}")
     assert r.status_code == 409
     assert "archive" in r.json()["detail"].lower() or "publi" in r.json()["detail"].lower()
+
+
+def test_get_modele_recovers_when_published_at_missing():
+    """Régression VPS : colonne published_at absente → GET 500 sans migration."""
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+    from common import db as common_db
+    from app.main import app
+    from app.api_modeles import get_db, require_modele_manager, require_grades_staff
+    from common.tenant import TenantContext
+    from datetime import datetime
+    import json
+
+    prev_engine = getattr(common_db, "_engine", None)
+    prev_session = getattr(common_db, "_SessionLocal", None)
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        future=True,
+    )
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE bulletin_modeles (
+                  id INTEGER PRIMARY KEY, tenant_id INTEGER, name VARCHAR(160) NOT NULL,
+                  description TEXT, status VARCHAR(20) NOT NULL,
+                  is_default BOOLEAN NOT NULL DEFAULT 0, is_system BOOLEAN NOT NULL DEFAULT 0,
+                  establishment_kind VARCHAR(30), current_version_id INTEGER,
+                  created_by INTEGER, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE bulletin_modele_versions (
+                  id INTEGER PRIMARY KEY, modele_id INTEGER NOT NULL, tenant_id INTEGER,
+                  version_number INTEGER NOT NULL, schema_version INTEGER NOT NULL,
+                  definition JSON NOT NULL, notes TEXT, created_by INTEGER,
+                  created_at DATETIME NOT NULL
+                )
+            """))
+            now = datetime.utcnow().isoformat()
+            conn.execute(text(
+                "INSERT INTO bulletin_modeles "
+                "(id, tenant_id, name, status, is_default, is_system, current_version_id, created_at, updated_at) "
+                "VALUES (2, 1, 'M', 'DRAFT', 0, 0, 1, :c, :u)"
+            ), {"c": now, "u": now})
+            conn.execute(text(
+                "INSERT INTO bulletin_modele_versions "
+                "(id, modele_id, tenant_id, version_number, schema_version, definition, created_at) "
+                "VALUES (1, 2, 1, 1, 1, :d, :c)"
+            ), {"d": json.dumps({"schema_version": 1, "name": "t", "components": []}), "c": now})
+
+        Session = sessionmaker(bind=engine, future=True, autoflush=False)
+        common_db._engine = engine
+        common_db._SessionLocal = Session
+        session = Session()
+        ctx = TenantContext(user_id=1, role="admin", tenant_id=1)
+
+        def _db():
+            yield session
+
+        app.dependency_overrides[get_db] = _db
+        app.dependency_overrides[require_modele_manager] = lambda: ctx
+        app.dependency_overrides[require_grades_staff] = lambda: ctx
+        client = TestClient(app, raise_server_exceptions=False)
+
+        r0 = client.get("/bulletins/modeles/2")
+        assert r0.status_code == 200, r0.text
+        assert r0.json()["id"] == 2
+        assert r0.json()["current_version"]["id"] == 1
+    finally:
+        app.dependency_overrides.clear()
+        common_db._engine = prev_engine
+        common_db._SessionLocal = prev_session

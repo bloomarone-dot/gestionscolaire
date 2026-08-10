@@ -772,29 +772,45 @@ def get_definition_for_render(
     return validate_definition(dict(version.definition or {}))
 
 
-def ensure_bulletin_schema(engine) -> None:
-    """Ajoute colonnes / index manquants (create_all ne migre pas les tables existantes)."""
+def _has_published_at_column(conn, dialect: str) -> bool:
     from sqlalchemy import text
 
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(bulletin_modele_versions)")).fetchall()}
+        return "published_at" in cols
+    row = conn.execute(text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_schema = current_schema() "
+        "AND table_name = 'bulletin_modele_versions' "
+        "AND column_name = 'published_at'"
+    )).scalar()
+    return bool(row)
+
+
+def ensure_bulletin_schema(engine) -> None:
+    """Ajoute colonnes / index manquants (create_all ne migre pas les tables existantes)."""
+    import logging
+    from sqlalchemy import text
+
+    log = logging.getLogger("bulletins.schema")
     with engine.begin() as conn:
         dialect = engine.dialect.name
-        # published_at sur versions
+        # published_at sur versions — critique : sans cette colonne, GET /modeles/{id} → 500
         try:
-            if dialect == "sqlite":
-                cols = {
-                    r[1] for r in conn.execute(text("PRAGMA table_info(bulletin_modele_versions)")).fetchall()
-                }
-                if "published_at" not in cols:
+            if not _has_published_at_column(conn, dialect):
+                if dialect == "sqlite":
                     conn.execute(text(
                         "ALTER TABLE bulletin_modele_versions ADD COLUMN published_at DATETIME"
                     ))
-            else:
-                conn.execute(text(
-                    "ALTER TABLE bulletin_modele_versions "
-                    "ADD COLUMN IF NOT EXISTS published_at TIMESTAMP NULL"
-                ))
-        except Exception:
-            pass
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE bulletin_modele_versions "
+                        "ADD COLUMN published_at TIMESTAMP NULL"
+                    ))
+                log.warning("Migration: colonne published_at ajoutée (%s)", dialect)
+        except Exception as exc:
+            log.exception("ensure_bulletin_schema published_at failed: %s", exc)
+            raise
         # Unicité d'un seul default actif par tenant (PostgreSQL + SQLite partial index)
         try:
             if dialect == "sqlite":
@@ -809,8 +825,30 @@ def ensure_bulletin_schema(engine) -> None:
                     "ON bulletin_modeles (tenant_id) "
                     "WHERE is_default = true AND tenant_id IS NOT NULL"
                 ))
+        except Exception as exc:
+            log.warning("ensure_bulletin_schema default index: %s", exc)
+
+
+def ensure_bulletin_schema_once(engine=None) -> None:
+    """Assure published_at (appel safe / idempotent)."""
+    from sqlalchemy import text
+
+    eng = engine
+    if eng is None:
+        try:
+            from common.db import get_engine
+            eng = get_engine()
+        except RuntimeError:
+            # Tests unitaires sans init_engine — le fixture gère le schéma.
+            return
+    dialect = eng.dialect.name
+    with eng.connect() as conn:
+        try:
+            if _has_published_at_column(conn, dialect):
+                return
         except Exception:
             pass
+    ensure_bulletin_schema(eng)
 
 
 def sanitize_zip_entry_name(eleve_id, matricule: Optional[str] = None) -> str:

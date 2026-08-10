@@ -77,7 +77,13 @@ def _detail(db: Session, modele) -> ModeleDetailOut:
 
     current = None
     if modele.current_version_id:
-        v = db.get(BulletinModeleVersion, modele.current_version_id)
+        try:
+            v = db.get(BulletinModeleVersion, modele.current_version_id)
+        except Exception:
+            # Schéma obsolète (ex. published_at manquant) → migrer puis réessayer.
+            crud.ensure_bulletin_schema_once(db.get_bind())
+            db.rollback()
+            v = db.get(BulletinModeleVersion, modele.current_version_id)
         if v:
             current = VersionOut.model_validate(v)
     base = ModeleOut.model_validate(modele)
@@ -91,6 +97,7 @@ def api_list_modeles(
     db: Session = Depends(get_db),
     ctx: TenantContext = Depends(require_modele_manager),
 ):
+    crud.ensure_bulletin_schema_once(db.get_bind())
     crud.ensure_system_demo_template(db)
     return crud.list_modeles(db, ctx.tenant_id)
 
@@ -101,6 +108,7 @@ def api_create_modele(
     db: Session = Depends(get_db),
     ctx: TenantContext = Depends(require_modele_manager),
 ):
+    crud.ensure_bulletin_schema_once(db.get_bind())
     try:
         modele = crud.create_modele(db, ctx.tenant_id, ctx.user_id, payload)
     except crud.ModeleError as exc:
@@ -114,6 +122,7 @@ def api_get_modele(
     db: Session = Depends(get_db),
     ctx: TenantContext = Depends(require_modele_manager),
 ):
+    crud.ensure_bulletin_schema_once(db.get_bind())
     try:
         modele = crud.get_modele_for_read(db, ctx.tenant_id, modele_id)
     except crud.ModeleError as exc:
