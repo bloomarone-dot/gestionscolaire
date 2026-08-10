@@ -10,6 +10,9 @@ export const A4_MM = {
 };
 
 export const CATEGORY_LABELS = {
+  structure: 'Structure',
+  content: 'Contenu',
+  layout: 'Mise en page',
   design: 'Design',
   school: 'Établissement',
   student: 'Élève',
@@ -19,21 +22,24 @@ export const CATEGORY_LABELS = {
   other: 'Autres',
 };
 
+/** Ordre d'affichage palette (groupes produit). */
+export const PALETTE_CATEGORY_ORDER = ['structure', 'content', 'layout'];
+
 export const COMPONENT_META = [
-  { type: 'text', category: 'design', label: 'Texte', description: 'Texte libre avec variables' },
-  { type: 'image', category: 'design', label: 'Image', description: 'Image / logo / photo' },
-  { type: 'shape', category: 'design', label: 'Forme', description: 'Ligne ou rectangle' },
-  { type: 'spacer', category: 'design', label: 'Espace', description: 'Espace réservé' },
-  { type: 'institution_header', category: 'school', label: 'En-tête établissement', description: 'En-tête officiel' },
-  { type: 'school_logo', category: 'school', label: 'Logo', description: "Logo de l'établissement" },
-  { type: 'student_block', category: 'student', label: 'Informations élève', description: 'Bloc identité' },
-  { type: 'student_photo', category: 'student', label: 'Photo élève', description: 'Photo' },
-  { type: 'grades_table', category: 'academic', label: 'Tableau des notes', description: 'Notes configurables' },
-  { type: 'summary_block', category: 'summary', label: 'Résultats', description: 'Moyenne / rang / décision' },
-  { type: 'attendance_block', category: 'summary', label: 'Absences', description: 'Assiduité' },
-  { type: 'signatures_row', category: 'signature', label: 'Signatures', description: 'Ligne de signatures' },
-  { type: 'qr_code', category: 'other', label: 'QR Code', description: 'QR matricule' },
-  { type: 'page_number', category: 'other', label: 'Numéro de page', description: 'Pagination' },
+  { type: 'institution_header', category: 'structure', label: 'En-tête établissement', description: 'En-tête officiel' },
+  { type: 'student_block', category: 'structure', label: 'Informations élève', description: 'Bloc identité' },
+  { type: 'grades_table', category: 'structure', label: 'Tableau des notes', description: 'Notes configurables' },
+  { type: 'summary_block', category: 'structure', label: 'Résumé', description: 'Moyenne / rang / décision' },
+  { type: 'attendance_block', category: 'structure', label: 'Absences', description: 'Assiduité' },
+  { type: 'signatures_row', category: 'structure', label: 'Signatures', description: 'Ligne de signatures' },
+  { type: 'school_logo', category: 'structure', label: 'Logo', description: "Logo de l'établissement" },
+  { type: 'student_photo', category: 'structure', label: 'Photo élève', description: 'Photo' },
+  { type: 'text', category: 'content', label: 'Texte', description: 'Texte libre avec variables' },
+  { type: 'image', category: 'content', label: 'Image', description: 'Image / logo / photo' },
+  { type: 'qr_code', category: 'content', label: 'QR Code', description: 'QR matricule' },
+  { type: 'shape', category: 'layout', label: 'Forme', description: 'Ligne ou rectangle' },
+  { type: 'spacer', category: 'layout', label: 'Espacement', description: 'Espace réservé' },
+  { type: 'page_number', category: 'layout', label: 'Numéro de page', description: 'Pagination' },
 ];
 
 export const VARIABLE_CATALOG = [

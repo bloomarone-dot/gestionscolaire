@@ -1,6 +1,8 @@
 """Tests API modèles de bulletin V2 — multi-tenant, RBAC, versionnement."""
 from __future__ import annotations
 
+import copy
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -443,6 +445,56 @@ def test_catalog_v2(client_factory):
     data = r.json()
     assert "grades_table" in {c["type"] for c in data["components"]}
     assert "student.full_name" in data["variables"]
+    assert "starters" in data
+    assert any(s["id"] == "blank_v1" for s in data["starters"])
+    sec = next(s for s in data["starters"] if s["id"] == "cameroon_secondary_standard")
+    assert "definitions" in sec
+    assert "bilingual" in sec["definitions"]
+    assert sec["definitions"]["bilingual"]["schema_version"] == 1
+
+
+def test_create_draft_from_starter_immutable(client_factory):
+    from app.engine.starter_templates import get_starter_definition
+
+    client, _ = client_factory()
+    starter = get_starter_definition("cameroon_secondary_standard", "fr")
+    r = client.post("/bulletins/modeles", json={
+        "name": "Tenant A secondaire",
+        "definition": starter,
+        "description": "from starter",
+    })
+    assert r.status_code == 201, r.text
+    detail = r.json()
+    assert detail["status"] == "DRAFT"
+    assert detail["is_system"] is False
+    assert detail["current_version"]["definition"]["meta"]["starter_id"] == "cameroon_secondary_standard"
+    mutated = copy.deepcopy(detail["current_version"]["definition"])
+    mutated["name"] = "CHANGED BY TENANT"
+    vid = detail["current_version"]["id"]
+    assert client.put(
+        f"/bulletins/modeles/{detail['id']}/versions/{vid}",
+        json={"definition": mutated},
+    ).status_code == 200
+    system = get_starter_definition("cameroon_secondary_standard", "fr")
+    assert system["name"] != "CHANGED BY TENANT"
+
+
+def test_starter_two_modeles_independent(client_factory):
+    from app.engine.starter_templates import get_starter_definition
+
+    client, _ = client_factory()
+    starter = get_starter_definition("cameroon_primary_standard", "en")
+    a = client.post("/bulletins/modeles", json={"name": "A", "definition": starter}).json()
+    b = client.post("/bulletins/modeles", json={"name": "B", "definition": starter}).json()
+    assert a["id"] != b["id"]
+    def_a = copy.deepcopy(a["current_version"]["definition"])
+    def_a["name"] = "ONLY_A"
+    client.put(
+        f"/bulletins/modeles/{a['id']}/versions/{a['current_version']['id']}",
+        json={"definition": def_a},
+    )
+    b_reload = client.get(f"/bulletins/modeles/{b['id']}").json()
+    assert b_reload["current_version"]["definition"]["name"] != "ONLY_A"
 
 
 def test_update_draft_version_on_published(client_factory):

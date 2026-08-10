@@ -325,6 +325,8 @@ def api_catalog_v2(
             "required_context_roots": sorted(definition.required_context_roots),
             "default_props": defaults,
         })
+    from app.engine.starter_templates import list_starters_for_catalog
+
     return {
         "schema_version": 1,
         "page_sizes": ["A4"],
@@ -333,6 +335,9 @@ def api_catalog_v2(
         "variables": list_catalog(),
         "row_bind_prefixes": list(ALLOWED_ROW_BIND_PREFIXES),
         "categories": [
+            {"id": "structure", "label": "Structure"},
+            {"id": "content", "label": "Contenu"},
+            {"id": "layout", "label": "Mise en page"},
             {"id": "design", "label": "Design"},
             {"id": "school", "label": "Établissement"},
             {"id": "student", "label": "Élève"},
@@ -341,6 +346,8 @@ def api_catalog_v2(
             {"id": "signature", "label": "Signatures"},
             {"id": "other", "label": "Autres"},
         ],
+        # Starters système (immuables) — définitions pour deep copy à la création.
+        "starters": list_starters_for_catalog(include_definitions=True),
     }
 
 

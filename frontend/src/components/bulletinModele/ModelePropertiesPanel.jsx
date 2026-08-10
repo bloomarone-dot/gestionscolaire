@@ -29,6 +29,67 @@ function FrameFields({ frame, onChange, readOnly }) {
   );
 }
 
+const THEME_DEFAULTS = {
+  theme_primary: '#000000',
+  theme_secondary: '#333333',
+  theme_table_header: '#F5F5F5',
+  theme_group: '#FAFAFA',
+  theme_title: '#000000',
+  theme_summary: '#F5F5F5',
+  theme_border: '#000000',
+};
+
+const THEME_FIELDS = [
+  { key: 'theme_primary', label: 'Couleur principale' },
+  { key: 'theme_secondary', label: 'Couleur secondaire' },
+  { key: 'theme_table_header', label: 'Couleur du tableau' },
+  { key: 'theme_group', label: 'Couleur des groupes' },
+  { key: 'theme_title', label: 'Couleur des titres' },
+  { key: 'theme_summary', label: 'Couleur du résumé' },
+  { key: 'theme_border', label: 'Couleur des bordures' },
+];
+
+function AppearanceEditor({ definition, onChangeDefinition, readOnly }) {
+  const meta = definition?.meta || {};
+
+  function setTheme(key, value) {
+    const nextMeta = { ...meta, [key]: value };
+    let components = definition.components || [];
+    // Propager bordure / fond tableau aux grades_table existants (optionnel, non bloquant).
+    if (key === 'theme_border' || key === 'theme_table_header') {
+      components = components.map((c) => {
+        if (c.type !== 'grades_table') return c;
+        const props = { ...(c.props || {}) };
+        if (key === 'theme_border') props.border_color = value;
+        if (key === 'theme_table_header') props.header_background = value;
+        return { ...c, props };
+      });
+    }
+    onChangeDefinition({ ...definition, meta: nextMeta, components });
+  }
+
+  return (
+    <div className="space-y-2 border-t border-slate-200 pt-3" data-testid="appearance-editor">
+      <div className="text-xs font-semibold uppercase text-slate-500">Apparence</div>
+      <p className="text-[11px] text-slate-500">Neutre par défaut — personnalisez les couleurs du modèle.</p>
+      <div className="space-y-2">
+        {THEME_FIELDS.map((field) => (
+          <label key={field.key} className="flex items-center justify-between gap-2 text-xs text-slate-600">
+            <span>{field.label}</span>
+            <Input
+              type="color"
+              className="h-8 w-14 p-0.5"
+              disabled={readOnly}
+              value={meta[field.key] || THEME_DEFAULTS[field.key]}
+              onChange={(e) => setTheme(field.key, e.target.value)}
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DataBindingEditor({ definition, onChangeDefinition, readOnly }) {
   const db = definition.data_binding || {};
   const groups = db.groups || [];
@@ -128,8 +189,9 @@ export default function ModelePropertiesPanel({
         <div className="border-b border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
           Propriétés
         </div>
-        <div className="p-3 text-sm text-slate-500">
+        <div className="space-y-3 p-3 text-sm text-slate-500">
           Sélectionnez un composant sur le canvas.
+          <AppearanceEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
           <DataBindingEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
         </div>
       </aside>
@@ -271,6 +333,7 @@ export default function ModelePropertiesPanel({
           </div>
         )}
 
+        <AppearanceEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
         <DataBindingEditor definition={definition} onChangeDefinition={onChangeDefinition} readOnly={readOnly} />
       </div>
     </aside>

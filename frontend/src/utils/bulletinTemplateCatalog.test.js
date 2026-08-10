@@ -5,6 +5,8 @@ import {
   emptyTemplateV1,
   pageSizeMm,
   validateDefinitionClient,
+  COMPONENT_META,
+  PALETTE_CATEGORY_ORDER,
 } from './bulletinTemplateCatalog';
 
 describe('bulletinTemplateCatalog', () => {
@@ -51,5 +53,15 @@ describe('bulletinTemplateCatalog', () => {
     t.data_binding.groups_mode = 'from_template';
     t.data_binding.groups = [];
     expect(validateDefinitionClient(t).some((e) => e.includes('from_template'))).toBe(true);
+  });
+
+  it('organise la palette Structure / Contenu / Mise en page', () => {
+    expect(PALETTE_CATEGORY_ORDER).toEqual(['structure', 'content', 'layout']);
+    const cats = new Set(COMPONENT_META.map((c) => c.category));
+    expect(cats.has('structure')).toBe(true);
+    expect(cats.has('content')).toBe(true);
+    expect(cats.has('layout')).toBe(true);
+    expect(COMPONENT_META.find((c) => c.type === 'grades_table')?.category).toBe('structure');
+    expect(COMPONENT_META.find((c) => c.type === 'text')?.category).toBe('content');
   });
 });
