@@ -34,7 +34,10 @@ def _startup() -> None:
     _publisher = EventPublisher(settings.rabbitmq_url, settings.events_exchange)
     # Tables moteur v2 (BulletinModele*) — create_all idempotent, comme les autres services.
     init_engine(settings.database_url)
-    Base.metadata.create_all(bind=get_engine())
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
+    from app import crud_modeles as crud
+    crud.ensure_bulletin_schema(engine)
 
 
 def require_grades_staff(ctx: TenantContext = Depends(require_tenant)) -> TenantContext:

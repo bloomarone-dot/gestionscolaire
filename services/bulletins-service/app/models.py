@@ -71,6 +71,8 @@ class BulletinModeleVersion(Base):
     # Définition = BulletinTemplateV1 sérialisé (validé avant insert)
     definition = Column(JSON, nullable=False)
     notes = Column(Text, nullable=True)
+    # Renseigné à la publication → la version devient immuable (y compris historiques).
+    published_at = Column(DateTime, nullable=True)
     created_by = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

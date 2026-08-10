@@ -86,10 +86,10 @@ def list_modeles(db: Session, tenant_id: int) -> list[BulletinModele]:
 
 
 def _clear_other_defaults(db: Session, tenant_id: int, keep_id: Optional[int] = None) -> None:
-    """Désactive les autres defaults du tenant sous verrou de ligne (best-effort).
+    """Désactive les autres defaults du tenant sous verrou de ligne.
 
-    Pas de contrainte UNIQUE partielle (évite migration globale). Sur PostgreSQL,
-    ``FOR UPDATE`` sérialise les writers concurrentes du même tenant.
+    Index unique partiel ``uq_bulletin_modele_tenant_default`` (ensure_bulletin_schema)
+    empêche deux defaults actifs même en course. ``FOR UPDATE`` sérialise les writers.
     """
     q = (
         select(BulletinModele)
@@ -102,6 +102,7 @@ def _clear_other_defaults(db: Session, tenant_id: int, keep_id: Optional[int] = 
     try:
         rows = list(db.scalars(q).all())
     except Exception:
+        # SQLite / dialetes sans FOR UPDATE supporté : fallback + unique index
         rows = list(
             db.scalars(
                 select(BulletinModele).where(
@@ -342,6 +343,11 @@ def update_version_definition(
     if modele.status == STATUS_ARCHIVED:
         raise ModeleError("Modèle archivé — non modifiable", status_code=409)
     version = get_version(db, tenant_id, modele_id, version_id)
+    if version.published_at is not None:
+        raise ModeleError(
+            "Version publiée immuable — créez une nouvelle version DRAFT.",
+            status_code=409,
+        )
     if modele.status == STATUS_PUBLISHED and version.id == modele.current_version_id:
         raise ModeleError(
             "Version publiée immuable — créez une nouvelle version DRAFT.",
@@ -379,10 +385,15 @@ def publish_modele(
         )
     if not version:
         raise ModeleError("Aucune version à publier", status_code=404)
+    if version.modele_id != modele.id:
+        raise ModeleError("Version introuvable", status_code=404)
+    if modele.tenant_id is not None and version.tenant_id is not None and version.tenant_id != modele.tenant_id:
+        raise ModeleError("Version introuvable", status_code=404)
 
     # Valider à nouveau avant publication
     validate_definition(version.definition)
 
+    version.published_at = _now()
     modele.current_version_id = version.id
     modele.status = STATUS_PUBLISHED
     modele.updated_at = _now()
@@ -718,6 +729,7 @@ def ensure_system_demo_template(db: Session) -> BulletinModele:
         schema_version=1,
         definition=definition,
         notes="Système",
+        published_at=_now(),
         created_by=None,
         created_at=_now(),
     )
@@ -742,6 +754,66 @@ def get_definition_for_render(
         if not modele.current_version_id:
             raise ModeleError("Aucune version courante", status_code=404)
         version = db.get(BulletinModeleVersion, modele.current_version_id)
-        if not version:
+        if not version or version.modele_id != modele.id:
+            raise ModeleError("Version courante introuvable", status_code=404)
+        if (
+            modele.tenant_id is not None
+            and version.tenant_id is not None
+            and version.tenant_id != modele.tenant_id
+        ):
             raise ModeleError("Version courante introuvable", status_code=404)
     return validate_definition(dict(version.definition or {}))
+
+
+def ensure_bulletin_schema(engine) -> None:
+    """Ajoute colonnes / index manquants (create_all ne migre pas les tables existantes)."""
+    from sqlalchemy import text
+
+    with engine.begin() as conn:
+        dialect = engine.dialect.name
+        # published_at sur versions
+        try:
+            if dialect == "sqlite":
+                cols = {
+                    r[1] for r in conn.execute(text("PRAGMA table_info(bulletin_modele_versions)")).fetchall()
+                }
+                if "published_at" not in cols:
+                    conn.execute(text(
+                        "ALTER TABLE bulletin_modele_versions ADD COLUMN published_at DATETIME"
+                    ))
+            else:
+                conn.execute(text(
+                    "ALTER TABLE bulletin_modele_versions "
+                    "ADD COLUMN IF NOT EXISTS published_at TIMESTAMP NULL"
+                ))
+        except Exception:
+            pass
+        # Unicité d'un seul default actif par tenant (PostgreSQL + SQLite partial index)
+        try:
+            if dialect == "sqlite":
+                conn.execute(text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_bulletin_modele_tenant_default "
+                    "ON bulletin_modeles (tenant_id) "
+                    "WHERE is_default = 1 AND tenant_id IS NOT NULL"
+                ))
+            else:
+                conn.execute(text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_bulletin_modele_tenant_default "
+                    "ON bulletin_modeles (tenant_id) "
+                    "WHERE is_default = true AND tenant_id IS NOT NULL"
+                ))
+        except Exception:
+            pass
+
+
+def sanitize_zip_entry_name(eleve_id, matricule: Optional[str] = None) -> str:
+    """Nom d'entrée ZIP sûr (anti path traversal), lisible et déterministe."""
+    import re
+    raw = str(matricule or "").strip() or str(eleve_id)
+    # Remplacer séparateurs / traversal
+    cleaned = raw.replace("\\", "_").replace("/", "_").replace("..", "_")
+    cleaned = re.sub(r"[^\w\-.\u00C0-\u024F]+", "_", cleaned, flags=re.UNICODE)
+    cleaned = cleaned.strip("._") or str(eleve_id)
+    if len(cleaned) > 64:
+        cleaned = cleaned[:64]
+    return f"bulletin_{eleve_id}_{cleaned}.pdf"

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import io
 from typing import Any, Optional
-from urllib.request import urlopen
 
 from reportlab.lib.colors import HexColor, black, white
 from reportlab.lib.utils import ImageReader
@@ -169,16 +168,13 @@ class ReportLabAdapter:
             c.rect(x, y, w, h, stroke=1, fill=0)
             return
         try:
-            if isinstance(url, str) and url.startswith("data:"):
-                # data URL non géré ici (évite complexité) — cadre vide
+            from app.engine.safe_image import load_image_for_pdf
+            data = load_image_for_pdf(url)
+            if not data:
+                c.setStrokeColor(black)
                 c.rect(x, y, w, h, stroke=1, fill=0)
                 return
-            if isinstance(url, str) and url.startswith(("http://", "https://")):
-                with urlopen(url, timeout=2) as resp:  # noqa: S310 — URLs école contrôlées
-                    data = resp.read()
-                img = ImageReader(io.BytesIO(data))
-            else:
-                img = ImageReader(url)
+            img = ImageReader(io.BytesIO(data))
             c.drawImage(img, x, y, width=w, height=h, preserveAspectRatio=True, mask="auto")
         except Exception:
             c.setStrokeColor(black)

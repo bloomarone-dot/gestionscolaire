@@ -19,6 +19,7 @@ from common.db import get_engine
 from app import service
 from app.config import settings
 from app.pdf import render_bulletin_pdf
+from app.crud_modeles import sanitize_zip_entry_name
 
 logger = logging.getLogger("bulletins.pdf_dispatch")
 
@@ -211,7 +212,7 @@ def render_classe_pdf_zip(
                 pdf = generate(definition, data_ctx)
             else:
                 pdf = render_bulletin_pdf(payload)
-            name = f"bulletin_{eid}_{b.get('matricule') or eid}.pdf"
+            name = sanitize_zip_entry_name(eid, b.get("matricule"))
             zf.writestr(name, pdf)
 
     meta = {
