@@ -495,11 +495,12 @@ def _footer(b, data, header, L, lang, n_seq: int, th) -> Table:
         L["annual_average"] if header.get("scope") == "annual" else L["term_average"]
     )
     if compact:
+        # Spans must sum to n_cols: 1 + (coef_idx-1) + 1 + (n_cols-coef_idx-1) = n_cols
         add_row([
             (_p(term_lbl, bold=True), 1),
             (_p(_fmt(moy), bold=True, align=TA_CENTER), coef_idx - 1),
             (_p(appr, bold=True, align=TA_CENTER), 1),
-            (_p("", ), n_cols - coef_idx),
+            (_p("", ), n_cols - coef_idx - 1),
         ])
     else:
         add_row([

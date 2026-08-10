@@ -137,6 +137,8 @@ services:
     environment:
       <<: *common_env
       DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/bulletins_db
+      # false (défaut) = PDF legacy ; true = resolve + moteur V2. Rollback immédiat.
+      USE_BULLETIN_ENGINE_V2: ${USE_BULLETIN_ENGINE_V2:-false}
     depends_on: *depends_postgres
     restart: unless-stopped
 

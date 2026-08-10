@@ -3,7 +3,8 @@
 Service d'agrégation : les données viennent des autres services (REST interne) et
 sont calculées à la volée. Persistance des *modèles* configurables (moteur v2) dans
 ``bulletins_db`` — opt-in via ``USE_BULLETIN_ENGINE_V2`` ; le PDF legacy reste
-inchangé et les routes ``/bulletins/eleve|classe`` ne changent pas de contrat.
+inchangé et les routes ``/bulletins/eleve|classe`` ne changent pas de contrat
+tant que le flag est False.
 """
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
@@ -16,10 +17,10 @@ from common.tenant import TenantContext, require_tenant
 from app import service
 from app.config import settings
 from app.layout_analyzer import analyze_bulletin_template
-from app.pdf import render_bulletin_pdf
 from app import clients
 from app import models as _bulletin_models  # noqa: F401 — enregistre les tables ORM
 from app.api_modeles import router as modeles_router
+from app.pdf_dispatch import render_classe_pdf_zip, render_eleve_pdf
 
 app = FastAPI(title="bulletins-service — SaaS Scolaire", version="0.1.0")
 app.include_router(modeles_router)
@@ -44,7 +45,11 @@ def require_grades_staff(ctx: TenantContext = Depends(require_tenant)) -> Tenant
 
 @app.get("/health", tags=["infra"])
 def health() -> dict:
-    return {"status": "ok", "service": "bulletins-service"}
+    return {
+        "status": "ok",
+        "service": "bulletins-service",
+        "use_bulletin_engine_v2": bool(settings.use_bulletin_engine_v2),
+    }
 
 
 def _ensure_bulletin(data: dict) -> dict:
@@ -85,6 +90,34 @@ def class_bulletins(
     return service.build_class_bulletins(ctx, classe_id, trimestre, type_evaluation, scope)
 
 
+@app.get("/bulletins/classe/{classe_id}/pdf", tags=["bulletins"])
+def class_bulletins_pdf(
+    classe_id: int,
+    trimestre: int = 1,
+    type_evaluation: str | None = None,
+    scope: str = "trimestre",
+    ctx: TenantContext = Depends(require_grades_staff),
+):
+    """ZIP de PDF pour la classe. Flag FALSE → legacy ; TRUE → V2 (données classe chargées 1 fois)."""
+    try:
+        zip_bytes, engine, meta = render_classe_pdf_zip(
+            ctx, classe_id, trimestre, type_evaluation, scope,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Génération classe impossible") from exc
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="bulletins_classe_{classe_id}.zip"',
+            "X-Bulletin-Engine": engine,
+            "X-Bulletin-Count": str(meta.get("eleve_count") or 0),
+        },
+    )
+
+
 @app.get("/bulletins/eleve/{eleve_id}", tags=["bulletins"])
 def eleve_bulletin(
     eleve_id: int,
@@ -106,13 +139,23 @@ def eleve_bulletin_pdf(
     scope: str = "trimestre",
     ctx: TenantContext = Depends(require_grades_staff),
 ):
-    data = _ensure_bulletin(
-        service.build_eleve_bulletin(ctx, eleve_id, trimestre, type_evaluation, scope),
-    )
-    pdf = render_bulletin_pdf(data)
+    """PDF élève. ``USE_BULLETIN_ENGINE_V2=false`` → legacy ; ``true`` → resolve+V2."""
+    try:
+        pdf, engine, _meta = render_eleve_pdf(
+            ctx, eleve_id, trimestre, type_evaluation, scope,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except Exception as exc:
+        # Ne pas fuiter l'existence cross-tenant / erreurs internes
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Bulletin introuvable") from exc
     return Response(
-        content=pdf, media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="bulletin_{eleve_id}.pdf"'},
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="bulletin_{eleve_id}.pdf"',
+            "X-Bulletin-Engine": engine,
+        },
     )
 
 

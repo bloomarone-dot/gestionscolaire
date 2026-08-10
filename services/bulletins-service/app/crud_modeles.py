@@ -86,14 +86,73 @@ def list_modeles(db: Session, tenant_id: int) -> list[BulletinModele]:
 
 
 def _clear_other_defaults(db: Session, tenant_id: int, keep_id: Optional[int] = None) -> None:
-    q = select(BulletinModele).where(
-        BulletinModele.tenant_id == tenant_id,
-        BulletinModele.is_default.is_(True),
+    """Désactive les autres defaults du tenant sous verrou de ligne (best-effort).
+
+    Pas de contrainte UNIQUE partielle (évite migration globale). Sur PostgreSQL,
+    ``FOR UPDATE`` sérialise les writers concurrentes du même tenant.
+    """
+    q = (
+        select(BulletinModele)
+        .where(
+            BulletinModele.tenant_id == tenant_id,
+            BulletinModele.is_default.is_(True),
+        )
+        .with_for_update()
     )
-    for row in db.scalars(q).all():
+    try:
+        rows = list(db.scalars(q).all())
+    except Exception:
+        rows = list(
+            db.scalars(
+                select(BulletinModele).where(
+                    BulletinModele.tenant_id == tenant_id,
+                    BulletinModele.is_default.is_(True),
+                )
+            ).all()
+        )
+    for row in rows:
         if keep_id is not None and row.id == keep_id:
             continue
         row.is_default = False
+    db.flush()
+
+
+_VALID_PERIODES = frozenset({"1", "2", "3", "annual"})
+
+
+def _validate_assignation_payload(data: dict[str, Any]) -> None:
+    """Validation locale (sans appels inter-services systématiques).
+
+    Vérifié ici : période ∈ {1,2,3,annual}, classe_id > 0, longueur codes/année.
+    Non vérifié sans appel externe (évite N+1 / coût) :
+    - la classe appartient réellement au tenant ;
+    - l'année scolaire existe côté pédagogie/tenant ;
+    - cohérence niveau/cycle/série avec la classe réelle.
+    Ces contrôles restent à la charge des services source lors de la génération
+    (clients.get_classe / get_eleve filtrés par tenant).
+    """
+    periode = data.get("periode")
+    if periode is not None and str(periode) not in _VALID_PERIODES:
+        raise ModeleError(
+            "Période invalide (attendu : 1, 2, 3 ou annual).",
+            status_code=400,
+        )
+    annee = data.get("annee_scolaire")
+    if annee is not None and annee != "":
+        if len(str(annee)) > 20 or not str(annee).strip():
+            raise ModeleError("Année scolaire invalide.", status_code=400)
+    if data.get("classe_id") is not None:
+        try:
+            cid = int(data["classe_id"])
+            if cid <= 0:
+                raise ValueError
+            data["classe_id"] = cid
+        except (TypeError, ValueError) as exc:
+            raise ModeleError("classe_id invalide.", status_code=400) from exc
+    for code_key in ("level_code", "cycle_code", "series_code"):
+        val = data.get(code_key)
+        if val is not None and val != "" and len(str(val)) > 30:
+            raise ModeleError(f"{code_key} trop long.", status_code=400)
 
 
 def create_modele(
@@ -459,6 +518,7 @@ def create_assignation(
             "Indiquez au moins un critère (classe, niveau, cycle, année ou période).",
             status_code=400,
         )
+    _validate_assignation_payload(data)
     _assert_no_assignment_conflict(db, tenant_id, _assignment_fingerprint(data))
     row = BulletinModeleAssignation(
         tenant_id=tenant_id,
@@ -493,6 +553,7 @@ def update_assignation(
         "series_code": data.get("series_code", row.series_code),
         "periode": data.get("periode", row.periode),
     }
+    _validate_assignation_payload(merged)
     if data.get("is_active", row.is_active):
         _assert_no_assignment_conflict(
             db, tenant_id, _assignment_fingerprint(merged), exclude_id=row.id,

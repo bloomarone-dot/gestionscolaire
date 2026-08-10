@@ -10,8 +10,9 @@ class Settings(BaseServiceSettings):
     evaluations_service_url: str = "http://evaluations-service:8000"
     tenant_service_url: str = "http://tenant-service:8000"
     personnel_service_url: str = "http://personnel-service:8000"
-    # Moteur de templates configurables (étapes 2+) — désactivé par défaut.
-    # Ne change pas /bulletins/eleve|classe|pdf tant que False.
+    # Moteur de templates configurables — désactivé par défaut (legacy).
+    # True → resolve template + DataContext + PDF V2 sur /bulletins/eleve|classe/.../pdf.
+    # False → render_bulletin_pdf legacy inchangé. Rollback : USE_BULLETIN_ENGINE_V2=false.
     use_bulletin_engine_v2: bool = False
 
 
