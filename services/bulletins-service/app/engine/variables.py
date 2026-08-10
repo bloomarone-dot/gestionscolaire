@@ -45,6 +45,11 @@ ALLOWED_VARIABLE_PATHS: frozenset[str] = frozenset({
     "term.name",
     "term.number",
     "term.scope",
+    "term.label",
+    "period.name",
+    "period.number",
+    "period.scope",
+    "period.label",
     # summary
     "summary.general_average",
     "summary.class_average",
