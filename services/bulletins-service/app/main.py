@@ -1,12 +1,14 @@
 """bulletins-service — calculs (moyennes/rangs), bulletin FR/EN, export PDF (§11).
 
 Service d'agrégation : les données viennent des autres services (REST interne) et
-sont calculées à la volée. Aucune table propre pour l'instant (persistance possible
-en Phase 5 si l'archivage des bulletins est requis).
+sont calculées à la volée. Persistance des *modèles* configurables (moteur v2) dans
+``bulletins_db`` — opt-in via ``USE_BULLETIN_ENGINE_V2`` ; le PDF legacy reste
+inchangé et les routes ``/bulletins/eleve|classe`` ne changent pas de contrat.
 """
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 
+from common.db import Base, get_engine, init_engine
 from common.events import EventNames, EventPublisher
 from common.roles import GRADES_STAFF
 from common.tenant import TenantContext, require_tenant
@@ -16,6 +18,7 @@ from app.config import settings
 from app.layout_analyzer import analyze_bulletin_template
 from app.pdf import render_bulletin_pdf
 from app import clients
+from app import models as _bulletin_models  # noqa: F401 — enregistre les tables ORM
 
 app = FastAPI(title="bulletins-service — SaaS Scolaire", version="0.1.0")
 
@@ -26,6 +29,9 @@ _publisher: EventPublisher | None = None
 def _startup() -> None:
     global _publisher
     _publisher = EventPublisher(settings.rabbitmq_url, settings.events_exchange)
+    # Tables moteur v2 (BulletinModele*) — create_all idempotent, comme les autres services.
+    init_engine(settings.database_url)
+    Base.metadata.create_all(bind=get_engine())
 
 
 def require_grades_staff(ctx: TenantContext = Depends(require_tenant)) -> TenantContext:
