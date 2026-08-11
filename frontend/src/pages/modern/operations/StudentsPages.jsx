@@ -334,7 +334,7 @@ export function OperationalStudentsPage() {
               row.classe_id ? (
                 <Link
                   to={`/app/classes?highlight=${row.classe_id}`}
-                  className="font-semibold text-blue-600 hover:underline"
+                  className="font-semibold text-[#101F3C] hover:underline"
                 >
                   {row.className}
                 </Link>
@@ -403,7 +403,7 @@ export function OperationalStudentsPage() {
               ) : (
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-400">Photo</div>
               )}
-              <label className="cursor-pointer text-sm font-semibold text-blue-600">
+              <label className="cursor-pointer text-sm font-semibold text-[#101F3C]">
                 Changer la photo
                 <input type="file" accept="image/*" className="hidden" onChange={handleFichePhoto} />
               </label>
@@ -788,7 +788,7 @@ export function EleveCreatePage() {
             {form.photo_url ? (
               <img src={form.photo_url} alt="" className="h-14 w-14 rounded-full object-cover" />
             ) : null}
-            <span className="font-semibold text-blue-600 cursor-pointer">
+            <span className="font-semibold text-[#101F3C] cursor-pointer">
               Photo de l'élève
               <input type="file" accept="image/*" className="hidden" onChange={handleCreatePhoto} />
             </span>

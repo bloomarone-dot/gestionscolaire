@@ -38,7 +38,7 @@ function CheckGroup({ options, selected, onToggle }) {
         return (
           <button type="button" key={value} onClick={() => onToggle(value)}
             className={`rounded-md border border-solid px-3 py-1.5 text-sm transition ${
-              on ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
+              on ? 'border-[#101F3C] bg-[#101F3C] text-white' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
             {label}
           </button>
         );
@@ -131,7 +131,7 @@ export default function SuperAdminSchoolFormPage() {
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <button onClick={() => navigate('/superadmin/schools')}
-              className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900">
+              className="rounded-md bg-[#101F3C] px-4 py-2 text-sm font-medium text-white hover:bg-[#0B1730]">
               Retour à la liste
             </button>
             <button onClick={() => { setCreatedInfo(null); setForm((f) => ({ ...f, name: '', city: '', admin_phone: '', admin_password: '', admin_first_name: '', admin_last_name: '' })); }}
@@ -240,7 +240,7 @@ export default function SuperAdminSchoolFormPage() {
 
       <div className="flex flex-wrap items-center gap-2">
         <button type="submit" disabled={loading}
-          className="rounded-md bg-slate-800 px-5 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-60">
+          className="rounded-md bg-[#101F3C] px-5 py-2 text-sm font-medium text-white hover:bg-[#0B1730] disabled:opacity-60">
           {loading ? 'Enregistrement…' : isEdit ? 'Enregistrer' : "Créer l'établissement"}
         </button>
         <button type="button" onClick={() => navigate('/superadmin/schools')}

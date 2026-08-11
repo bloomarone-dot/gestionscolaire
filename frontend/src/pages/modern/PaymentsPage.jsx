@@ -119,7 +119,7 @@ export default function PaymentsPage() {
             onClick={() => { setTab(key); setNotice(''); setError(''); }}
             className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-semibold transition ${
               tab === key
-                ? 'border-indigo-600 text-indigo-700'
+                ? 'border-[#101F3C] text-[#101F3C]'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -323,9 +323,10 @@ function PaiementTab({ ui, eleves, classesById, establishmentName, onFlash, onFa
 
         {resume && (
           <div className="mt-4 space-y-4">
-            <div className="overflow-hidden rounded-lg border border-slate-200">
+            {/* Desktop / tablette : tableau */}
+            <div className="hidden overflow-hidden rounded-xl border border-slate-200 md:block">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <thead className="bg-[#101F3C]/[0.03] text-left text-xs uppercase text-slate-500">
                   <tr>
                     <th className="px-3 py-2">Poste</th>
                     <th className="px-3 py-2 text-right">Montant dû</th>
@@ -345,7 +346,7 @@ function PaiementTab({ ui, eleves, classesById, establishmentName, onFlash, onFa
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-slate-50">
+                <tfoot className="bg-[#101F3C]/[0.03]">
                   <tr className="border-t border-slate-200 font-bold text-slate-800">
                     <td className="px-3 py-2">Total</td>
                     <td className="px-3 py-2 text-right">{formatXaf(resume.total_due)}</td>
@@ -356,6 +357,43 @@ function PaiementTab({ ui, eleves, classesById, establishmentName, onFlash, onFa
                   </tr>
                 </tfoot>
               </table>
+            </div>
+
+            {/* Mobile : cartes empilées par poste + total mis en avant */}
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 md:hidden">
+              {resume.buckets.map((b) => (
+                <div key={b.fee_type} className="p-3">
+                  <p className="font-semibold text-slate-800">{b.label}</p>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div>
+                      <dt className="uppercase tracking-wide text-slate-400">Dû</dt>
+                      <dd className="mt-0.5 text-sm text-slate-700">{formatXaf(b.due)}</dd>
+                    </div>
+                    <div>
+                      <dt className="uppercase tracking-wide text-slate-400">Versé</dt>
+                      <dd className="mt-0.5 text-sm text-emerald-700">{formatXaf(b.paid)}</dd>
+                    </div>
+                    <div>
+                      <dt className="uppercase tracking-wide text-slate-400">Reste</dt>
+                      <dd className={`mt-0.5 text-sm font-semibold ${Number(b.reste) > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                        {formatXaf(b.reste)}
+                      </dd>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="bg-[#101F3C]/[0.04] p-3">
+                <div className="flex items-center justify-between font-bold text-slate-800">
+                  <span>Total</span>
+                  <span>{formatXaf(resume.total_due)}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-sm">
+                  <span className="text-emerald-700">Versé {formatXaf(resume.total_paid)}</span>
+                  <span className={Number(resume.reste) > 0 ? 'text-rose-600' : 'text-emerald-700'}>
+                    Reste {formatXaf(resume.reste)}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

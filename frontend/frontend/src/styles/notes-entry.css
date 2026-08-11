@@ -1,0 +1,193 @@
+/* ======================================================
+   Notes Entry Styles
+   ====================================================== */
+
+.notes-entry-container {
+  width: 100%;
+}
+
+.periode-locked-banner {
+  align-items: flex-start;
+}
+
+.periode-locked-banner strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.periode-locked-banner p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.row-locked {
+  opacity: 0.75;
+}
+
+.notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.notes-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.notes-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.notes-period-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.notes-period-badge {
+  display: inline-flex;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--primary-50);
+  border: 1px solid var(--primary-200);
+  color: var(--primary-700);
+}
+
+.notes-period-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.moyenne-calc-cell {
+  font-weight: 600;
+}
+
+.moyenne-calc-value {
+  color: var(--accent-400);
+}
+
+.btn-calc {
+  font-size: 0.9rem;
+}
+
+.notes-header h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.matiere-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.matiere-selector label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.matiere-selector select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.notes-table {
+  overflow-x: auto;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.notes-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.notes-table thead {
+  background: var(--bg-700);
+}
+
+.notes-table th {
+  padding: 1rem;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.notes-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.note-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  width: 80px;
+  text-align: center;
+}
+
+.note-input:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  background: rgba(99, 102, 241, 0.15);
+}
+
+@media (max-width: 1024px) {
+  .notes-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .notes-table table {
+    font-size: 0.85rem;
+  }
+
+  .notes-table th,
+  .notes-table td {
+    padding: 0.5rem;
+  }
+
+  .note-input {
+    width: 60px;
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+}

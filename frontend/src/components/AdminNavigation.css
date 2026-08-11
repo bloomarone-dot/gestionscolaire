@@ -1,0 +1,190 @@
+:root {
+  --navy: #101f3c;
+  --gold: #e8c579;
+  --gold-soft: #f3d68a;
+  --border: rgba(255, 255, 255, 0.08);
+}
+
+/* Ce composant part du principe qu'il est monté sur un fond sombre (navy),
+   comme le reste de la sidebar de l'app. Si le conteneur parent est clair,
+   dis-le-moi et j'adapte la palette de texte. */
+
+.sidebar-nav-menu {
+  font-size: 0.87rem;
+}
+
+.sidebar-nav-menu .nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* ---------- En-têtes de section (repliables) ---------- */
+.nav-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 16px 10px 6px;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7aa0;
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+
+.nav-header:hover {
+  color: #a6b2cf;
+}
+
+.nav-header-chevron {
+  font-size: 0.65rem;
+  transition: transform 0.22s ease;
+}
+
+.nav-header-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+/* ---------- Repli animé (grid-rows 0fr -> 1fr, pas de mesure JS) ---------- */
+.nav-group-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.nav-group-collapse.is-open {
+  grid-template-rows: 1fr;
+}
+
+.nav-group-items {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---------- Items ---------- */
+.nav-item {
+  list-style: none;
+}
+
+.nav-link {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #c3ccdf;
+  font-size: 0.87rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.nav-link:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  transform: translateX(2px);
+}
+
+.nav-link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.nav-link-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-link-active-bar {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  border-radius: 3px;
+  background: var(--gold);
+  transition: height 0.2s ease;
+}
+
+.nav-link.active {
+  background: linear-gradient(90deg, rgba(232, 197, 121, 0.16), rgba(232, 197, 121, 0.04));
+  color: #fff;
+}
+
+.nav-link.active .nav-link-icon {
+  color: var(--gold-soft);
+}
+
+.nav-link.active .nav-link-active-bar {
+  height: 60%;
+}
+
+.nav-link:disabled {
+  color: #5b6684;
+  cursor: not-allowed;
+}
+
+.nav-link:disabled:hover {
+  background: transparent;
+  transform: none;
+}
+
+/* ---------- Badges ---------- */
+.nav-badge {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+
+.nav-badge-info {
+  background: rgba(63, 131, 248, 0.18);
+  color: #9dc0ff;
+}
+
+.nav-badge-soon {
+  background: rgba(232, 197, 121, 0.12);
+  color: var(--gold-soft);
+  border: 1px solid rgba(232, 197, 121, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-header-chevron,
+  .nav-group-collapse,
+  .nav-link,
+  .nav-link-active-bar {
+    transition: none !important;
+  }
+}

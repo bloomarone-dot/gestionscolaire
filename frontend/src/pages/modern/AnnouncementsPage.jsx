@@ -10,7 +10,7 @@ const AUDIENCE_OPTS = [['personnel', 'Personnel'], ['parents', 'Parents / Tuteur
 function Chip({ on, label, onClick }) {
   return (
     <button type="button" onClick={onClick}
-      className={`rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition ${on ? 'bg-blue-50 text-blue-700 ring-blue-200' : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'}`}>
+      className={`rounded-xl px-3 py-2 text-sm font-semibold ring-1 transition ${on ? 'bg-[#101F3C]/[0.06] text-[#101F3C] ring-[#101F3C]/20' : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'}`}>
       {label}
     </button>
   );

@@ -1,0 +1,13 @@
+/* Classes & Matières List Styles */
+
+.classes-list,
+.matieres-list {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .classes-grid,
+  .matieres-grid {
+    grid-template-columns: 1fr;
+  }
+}

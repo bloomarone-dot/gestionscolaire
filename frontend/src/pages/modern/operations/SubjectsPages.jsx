@@ -202,34 +202,127 @@ export function OperationalSubjectsPage() {
             Aucune matiere pour cette classe.
           </p>
         ) : (
-          <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left">Matiere</th>
-                  <th className="px-4 py-3 text-center">Coef.</th>
-                  <th className="px-4 py-3 text-center">Groupe</th>
-                  <th className="px-4 py-3 text-center">Activee</th>
-                  <th className="px-4 py-3 text-left">Enseignant assigne</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {matieres.map((m) => (
-                  <tr key={m.id} className={m.activated ? "" : "opacity-50"}>
-                    <td className="px-4 py-2 font-semibold">
+          <>
+            {/* Desktop / tablette : tableau */}
+            <div className="mt-5 hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-[#101F3C]/[0.03]">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Matiere</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">Coef.</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">Groupe</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">Activee</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Enseignant assigne</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {matieres.map((m) => (
+                    <tr key={m.id} className={m.activated ? "" : "opacity-50"}>
+                      <td className="px-4 py-2 font-semibold">
+                        {m.nom}
+                        {m.is_obligatoire && (
+                          <span
+                            className="ml-1 text-rose-500"
+                            title="Matiere obligatoire"
+                          >
+                            *
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        <Select
+                          className="mx-auto w-24 text-center"
+                          value={String(m.coefficient ?? 1)}
+                          onChange={(e) => {
+                            const value = Number(e.target.value);
+                            changeCoefficient(m, value);
+                            saveCoefficient({ ...m, coefficient: value });
+                          }}
+                        >
+                          {COEF_OPTIONS.map((coef) => (
+                            <option key={coef} value={coef}>
+                              {coef}
+                            </option>
+                          ))}
+                        </Select>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <Select
+                          className="mx-auto w-28 text-center"
+                          value={m.groupe ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setMatieres((ms) =>
+                              ms.map((x) =>
+                                x.id === m.id
+                                  ? {
+                                      ...x,
+                                      groupe: value === "" ? null : Number(value),
+                                    }
+                                  : x,
+                              ),
+                            );
+                          }}
+                          onBlur={() => saveGroupe(m)}
+                        >
+                          <option value="">—</option>
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                        </Select>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={!!m.activated}
+                          onChange={() => toggleActivated(m)}
+                          className="h-4 w-4 cursor-pointer accent-[#101F3C]"
+                        />
+                      </td>
+                      <td className="px-4 py-2 w-64">
+                        <Select
+                          value={String(m.enseignant_id ?? "")}
+                          onChange={(e) => assignTeacher(m, e.target.value)}
+                        >
+                          <option value="">Non assigne</option>
+                          {teacherRows.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile : une carte par matiere, champs empiles pour rester lisibles */}
+            <div className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200 md:hidden">
+              {matieres.map((m) => (
+                <div key={m.id} className={`p-3 ${m.activated ? "" : "opacity-50"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-slate-800">
                       {m.nom}
                       {m.is_obligatoire && (
-                        <span
-                          className="ml-1 text-rose-500"
-                          title="Matiere obligatoire"
-                        >
-                          *
-                        </span>
+                        <span className="ml-1 text-rose-500" title="Matiere obligatoire">*</span>
                       )}
-                    </td>
-                    <td className="px-4 py-2">
+                    </p>
+                    <label className="flex shrink-0 items-center gap-1.5 text-xs text-slate-500">
+                      Activee
+                      <input
+                        type="checkbox"
+                        checked={!!m.activated}
+                        onChange={() => toggleActivated(m)}
+                        className="h-4 w-4 cursor-pointer accent-[#101F3C]"
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <dt className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Coef.</dt>
                       <Select
-                        className="mx-auto w-24 text-center"
                         value={String(m.coefficient ?? 1)}
                         onChange={(e) => {
                           const value = Number(e.target.value);
@@ -243,20 +336,17 @@ export function OperationalSubjectsPage() {
                           </option>
                         ))}
                       </Select>
-                    </td>
-                    <td className="px-4 py-2 text-center">
+                    </div>
+                    <div>
+                      <dt className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Groupe</dt>
                       <Select
-                        className="mx-auto w-28 text-center"
                         value={m.groupe ?? ""}
                         onChange={(e) => {
                           const value = e.target.value;
                           setMatieres((ms) =>
                             ms.map((x) =>
                               x.id === m.id
-                                ? {
-                                    ...x,
-                                    groupe: value === "" ? null : Number(value),
-                                  }
+                                ? { ...x, groupe: value === "" ? null : Number(value) }
                                 : x,
                             ),
                           );
@@ -268,33 +358,26 @@ export function OperationalSubjectsPage() {
                         <option value="2">2</option>
                         <option value="3">3</option>
                       </Select>
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <input
-                        type="checkbox"
-                        checked={!!m.activated}
-                        onChange={() => toggleActivated(m)}
-                        className="h-4 w-4 cursor-pointer accent-blue-600"
-                      />
-                    </td>
-                    <td className="px-4 py-2 w-64">
-                      <Select
-                        value={String(m.enseignant_id ?? "")}
-                        onChange={(e) => assignTeacher(m, e.target.value)}
-                      >
-                        <option value="">Non assigne</option>
-                        {teacherRows.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </Select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <dt className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Enseignant assigne</dt>
+                    <Select
+                      value={String(m.enseignant_id ?? "")}
+                      onChange={(e) => assignTeacher(m, e.target.value)}
+                    >
+                      <option value="">Non assigne</option>
+                      {teacherRows.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </Card>
 

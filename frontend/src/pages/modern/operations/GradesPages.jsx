@@ -477,15 +477,16 @@ export function GradesWorkspace({ professor = false }) {
                 {subjectName ? ` — ${subjectName}` : ""}
                 {isLanguageCenter ? ` — ${lcSeanceLabel(seanceNum)}, session ${trimestre}` : ""}
               </p>
-              <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+              {/* Desktop / tablette : tableau de saisie */}
+              <div className="mt-3 hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50">
+                  <thead className="bg-[#101F3C]/[0.03]">
                     <tr>
-                      <th className="px-4 py-3 text-left">{noteUi.matricule}</th>
-                      <th className="px-4 py-3 text-left">{noteUi.fullName}</th>
-                      <th className="px-4 py-3 text-left">{noteUi.mark}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">{noteUi.matricule}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">{noteUi.fullName}</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">{noteUi.mark}</th>
                       {!isLanguageCenter && (
-                        <th className="px-4 py-3 text-right">Bulletin</th>
+                        <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-slate-500">Bulletin</th>
                       )}
                     </tr>
                   </thead>
@@ -546,6 +547,60 @@ export function GradesWorkspace({ professor = false }) {
                     );})}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile : une carte de saisie par eleve, plus facile a remplir au doigt */}
+              <div className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 md:hidden">
+                {students.map((student) => {
+                  const mark = values[student.id];
+                  const appr = mark !== undefined && mark !== ""
+                    ? getAppreciationForSection(mark, "francophone")
+                    : null;
+                  return (
+                    <div key={student.id} className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-800">{student.name}</p>
+                          <p className="text-xs text-slate-400">{student.matricule}</p>
+                        </div>
+                        {!isLanguageCenter && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="shrink-0 px-2"
+                            title="Apercu / PDF du bulletin"
+                            onClick={() =>
+                              api
+                                .exportEleveBulletinPdf(student.id, Number(trimestre))
+                                .catch((err) => setNotice(err.message))
+                            }
+                          >
+                            <Download size={16} />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="20"
+                          step="0.25"
+                          placeholder={noteUi.mark}
+                          value={values[student.id] ?? ""}
+                          onChange={(e) =>
+                            setValues((v) => ({
+                              ...v,
+                              [student.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        {isLanguageCenter && appr?.label && mark !== "" && (
+                          <p className="mt-1 text-xs text-slate-500">{appr.label}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-5 flex items-center justify-end gap-3">
                 {entryOpen === false && (
