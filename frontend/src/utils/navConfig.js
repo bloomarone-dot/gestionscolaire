@@ -29,7 +29,7 @@ function flat(items) {
   return items.flatMap((entry) => (entry.items ? entry.items : [entry]));
 }
 
-/** Menu admin — centre de langues (4 blocs métier). */
+/** Menu admin — centre de langues */
 function languageCenterAdminNav(ui) {
   return [
     { to: '/app/dashboard', label: 'Tableau de bord', icon: 'LayoutDashboard' },
@@ -61,7 +61,6 @@ function languageCenterAdminNav(ui) {
       icon: 'UserCog',
       items: [
         { to: '/app/team', label: 'Secrétaires & comptes', icon: 'UserCog' },
-        { to: '/app/teachers', label: ui.teachers, icon: 'GraduationCap', match: { fonction: 'enseignant' } },
       ],
     },
     {
@@ -90,7 +89,7 @@ function languageCenterAdminNav(ui) {
   ];
 }
 
-/** Menu admin — école primaire. */
+/** Menu admin — école primaire */
 function primarySchoolAdminNav(ui) {
   return [
     { to: '/app/dashboard', label: 'Tableau de bord', icon: 'LayoutDashboard' },
@@ -121,7 +120,6 @@ function primarySchoolAdminNav(ui) {
       icon: 'UserCog',
       items: [
         { to: '/app/team', label: 'Équipe & comptes', icon: 'UserCog' },
-        { to: '/app/teachers', label: ui.teachers, icon: 'GraduationCap', match: { fonction: 'enseignant' } },
       ],
     },
     {
@@ -142,7 +140,7 @@ function primarySchoolAdminNav(ui) {
   ];
 }
 
-/** Menu admin — école MINESEC (structure existante enrichie). */
+/** Menu admin — école MINESEC */
 function schoolAdminNav(ui) {
   return [
     { to: '/app/dashboard', label: 'Tableau de bord', icon: 'LayoutDashboard' },
@@ -159,8 +157,6 @@ function schoolAdminNav(ui) {
       icon: 'UserCog',
       items: [
         { to: '/app/team', label: 'Équipe & comptes', icon: 'UserCog' },
-        { to: '/app/teachers', label: ui.teachers, icon: 'GraduationCap', match: { fonction: 'enseignant' } },
-        { to: '/app/teachers', label: 'Direction / Administration', icon: 'UserCog', match: { fonction: 'direction' } },
       ],
     },
     {
