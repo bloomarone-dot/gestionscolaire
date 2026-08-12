@@ -12,7 +12,7 @@ from common.tenant import TenantContext, require_tenant
 from app import crud
 from app.config import settings
 from app.models import STATUS_PAYE
-from app.pdf import render_recu_pdf
+from app.pdf import render_pension_recu_pdf, render_recu_pdf
 from app.schemas import (
     FeeScheduleIn,
     FeeScheduleOut,
@@ -224,6 +224,26 @@ def pension_payer(
 ):
     """Enregistre un versement — affectation automatique et calcul du reste."""
     return crud.record_pension_payment(db, ctx.tenant_id, payload, recorded_by=ctx.user_id)
+
+
+@app.get("/tresorerie/pension/recus/{receipt_number}/pdf", tags=["tresorerie"])
+def pension_recu_pdf(
+    receipt_number: str,
+    establishment_name: str = "Établissement",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_treasury_staff),
+):
+    """Génère le PDF du reçu de scolarité (inscription + tranches)."""
+    rows = crud.get_pension_receipt_rows(db, ctx.tenant_id, receipt_number)
+    if not rows:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Reçu introuvable")
+    pdf = render_pension_recu_pdf(rows, establishment_name=establishment_name)
+    filename = f"{rows[0].receipt_number or 'recu_scolarite'}.pdf"
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get(

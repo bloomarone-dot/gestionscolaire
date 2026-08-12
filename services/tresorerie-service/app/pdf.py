@@ -11,7 +11,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from app.models import Paiement
+from app.models import FEE_LABELS, Paiement, PensionPaiement
 
 
 def _fmt_amount(amount) -> str:
@@ -68,6 +68,74 @@ def render_recu_pdf(paiement: Paiement, establishment_name: str = "Établissemen
         ("TOPPADDING", (0, 0), (-1, -1), 6),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
-    story.extend([table, Spacer(1, 1.2 * cm), Paragraph("Document généré par EduGestion — à conserver comme preuve de paiement.", center)])
+    story.extend([table, Spacer(1, 1.2 * cm), Paragraph("Document généré par BloomSchool — à conserver comme preuve de paiement.", center)])
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def render_pension_recu_pdf(
+    rows: list[PensionPaiement],
+    establishment_name: str = "Établissement",
+) -> bytes:
+    """Reçu d'un versement de scolarité (inscription + tranches)."""
+    if not rows:
+        raise ValueError("Aucun versement pour ce reçu")
+    first = rows[0]
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("title", parent=styles["Heading1"], alignment=TA_CENTER, textColor=colors.HexColor("#101F3C"))
+    body = styles["Normal"]
+    center = ParagraphStyle("center", parent=body, alignment=TA_CENTER)
+
+    paid_at = first.created_at or datetime.utcnow()
+    total = sum(float(r.amount or 0) for r in rows)
+    story = [
+        Paragraph(establishment_name, title_style),
+        Spacer(1, 0.4 * cm),
+        Paragraph("REÇU DE SCOLARITÉ", title_style),
+        Spacer(1, 0.6 * cm),
+    ]
+    header_rows = [
+        ["N° reçu", first.receipt_number or "—"],
+        ["Date", paid_at.strftime("%d/%m/%Y %H:%M")],
+        ["Apprenant", first.eleve_nom or f"Apprenant #{first.eleve_id}"],
+        ["Matricule", first.matricule or "—"],
+        ["Mode de paiement", (first.payment_method or "—").replace("_", " ")],
+    ]
+    table = Table(header_rows, colWidths=[5.5 * cm, 11 * cm])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eef2ff")),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e2e8f0")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.extend([table, Spacer(1, 0.6 * cm)])
+
+    alloc_rows = [["Poste", "Montant"]]
+    for row in rows:
+        alloc_rows.append([FEE_LABELS.get(row.fee_type, row.fee_type), _fmt_amount(row.amount)])
+    alloc_rows.append(["Total", _fmt_amount(total)])
+    alloc = Table(alloc_rows, colWidths=[10 * cm, 6.5 * cm])
+    alloc.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#101F3C")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e2e8f0")),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.extend([alloc, Spacer(1, 1.2 * cm), Paragraph("Document généré par BloomSchool — à conserver comme preuve de paiement.", center)])
     doc.build(story)
     return buffer.getvalue()

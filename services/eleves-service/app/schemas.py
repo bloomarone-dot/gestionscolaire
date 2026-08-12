@@ -58,6 +58,11 @@ class EleveUpdate(BaseModel):
     etat_sante: Optional[str] = None
     classe_id: Optional[int] = None
     statut: Optional[str] = None
+    subsystem_code: Optional[str] = None
+    type_code: Optional[str] = None
+    cycle_code: Optional[str] = None
+    level_code: Optional[str] = None
+    series_code: Optional[str] = None
 
 
 class EleveImportResult(BaseModel):
@@ -97,10 +102,14 @@ class EleveDetail(EleveRow):
     etat_sante: Optional[str] = None
     subsystem_code: Optional[str] = None
     type_code: Optional[str] = None
+    cycle_code: Optional[str] = None
     level_code: Optional[str] = None
     series_code: Optional[str] = None
     created_at: datetime
     parents: List[ParentOut] = []
+    enrollment_action: Optional[str] = None  # NEW | PROMOTION | REDOUBLE | TRANSFER | DOWNGRADE
+    previous_level_code: Optional[str] = None
+    previous_classe_id: Optional[int] = None
 
 
 class TransferIn(BaseModel):

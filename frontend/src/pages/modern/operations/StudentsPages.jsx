@@ -8,6 +8,7 @@ import LanguageCenterEnrollmentFields, {
 } from "../../../components/languageCenter/LanguageCenterEnrollmentFields";
 import PrimarySchoolEnrollmentFields from "../../../components/primarySchool/PrimarySchoolEnrollmentFields";
 import { buildPrimaryEnrollmentCodes, PS_SUBSYSTEM_FR } from "../../../utils/primarySchool";
+import { classifyLevelMove, enrollmentActionLabel } from "../../../utils/levelProgression";
 import { compressImageFile } from "../../../utils/imageCompress";
 import {
   Badge,
@@ -496,7 +497,7 @@ export function OperationalStudentsPage() {
 
 export function EleveCreatePage() {
   const navigate = useNavigate();
-  const { labels: ui, isLanguageCenter, isPrimarySchool } = useEstablishmentProfile();
+  const { labels: ui, isLanguageCenter, isPrimarySchool, schoolName } = useEstablishmentProfile();
   const [form, setForm] = useState({
     nom: "",
     prenom: "",
@@ -516,6 +517,7 @@ export function EleveCreatePage() {
   const [psSection, setPsSection] = useState(PS_SUBSYSTEM_FR);
   const [psLevel, setPsLevel] = useState("");
   const [notice, setNotice] = useState("");
+  const [existing, setExisting] = useState(null);
   const cascade = useReferentielCascade({
     excludeCycleCodes: ["PRIMAIRE", "CECRL"],
   });
@@ -539,6 +541,41 @@ export function EleveCreatePage() {
   const versement = Number(paiement.amount) || 0;
   const resteApresVersement = feeTotal ? Math.max(0, feeTotal - versement) : 0;
 
+  const targetLevel = isLanguageCenter ? lcLevel : isPrimarySchool ? psLevel : cascade.value.level_code;
+  const enrollAction = existing
+    ? classifyLevelMove(existing.level_code, targetLevel, existing.classe_id, form.classe_id)
+    : null;
+  const enrollHint = existing
+    ? (targetLevel
+      ? enrollmentActionLabel(enrollAction, existing.level_code, targetLevel)
+      : `Élève déjà connu (matricule ${existing.matricule || "—"}${existing.level_code ? `, niveau ${existing.level_code}` : ""}). Choisissez la classe d'inscription : le système détectera un passage en classe supérieure.`)
+    : "";
+
+  async function lookupExisting(overrides = {}) {
+    const matricule = (overrides.matricule ?? form.matricule).trim();
+    const nom = (overrides.nom ?? form.nom).trim();
+    const prenom = (overrides.prenom ?? form.prenom).trim();
+    if (!matricule && nom.length < 2) {
+      setExisting(null);
+      return;
+    }
+    try {
+      const found = await api.lookupEleve({ matricule, nom: matricule ? undefined : nom, prenom });
+      setExisting(found);
+      if (found && !form.parent_nom && found.parents?.[0]) {
+        const p = found.parents[0];
+        setForm((f) => ({
+          ...f,
+          parent_nom: f.parent_nom || p.nom || "",
+          parent_phone: f.parent_phone || p.phone || "",
+          parent_phone2: f.parent_phone2 || p.phone2 || "",
+        }));
+      }
+    } catch {
+      setExisting(null);
+    }
+  }
+
   // Charge la grille de frais dès qu'une classe est sélectionnée.
   useEffect(() => {
     if (!form.classe_id) { setFeeSchedule(null); return; }
@@ -557,7 +594,7 @@ export function EleveCreatePage() {
   async function recordInitialPayment(eleve) {
     if (versement <= 0 || !eleve?.id || !form.classe_id) return;
     try {
-      await api.payerPension({
+      const res = await api.payerPension({
         eleve_id: eleve.id,
         classe_id: Number(form.classe_id),
         eleve_nom: [form.nom, form.prenom].filter(Boolean).join(" "),
@@ -566,6 +603,13 @@ export function EleveCreatePage() {
         payment_method: paiement.method,
         paid_online: paiement.method === "MOBILE_MONEY",
       });
+      if (res?.receipt_number) {
+        try {
+          await api.downloadPensionRecu(res.receipt_number, schoolName || "Établissement");
+        } catch {
+          /* l'inscription reste valide même si le PDF échoue */
+        }
+      }
     } catch (err) {
       // L'élève est créé même si le versement échoue : on prévient sans bloquer.
       setNotice(`Élève inscrit, mais le versement n'a pas pu être enregistré : ${err.message}`);
@@ -738,6 +782,7 @@ export function EleveCreatePage() {
         }
       />
       <Notice message={notice} tone="rose" />
+      {enrollHint && <Notice message={enrollHint} tone={enrollAction === "DOWNGRADE" ? "rose" : "blue"} />}
       <Card className="p-5">
         <form
           id="student-form"
@@ -749,16 +794,19 @@ export function EleveCreatePage() {
             placeholder="Nom"
             value={form.nom}
             onChange={(e) => setForm({ ...form, nom: e.target.value })}
+            onBlur={() => lookupExisting()}
           />
           <Input
             placeholder="Prénom"
             value={form.prenom}
             onChange={(e) => setForm({ ...form, prenom: e.target.value })}
+            onBlur={() => lookupExisting()}
           />
           <Input
             placeholder="Matricule (auto si vide)"
             value={form.matricule}
             onChange={(e) => setForm({ ...form, matricule: e.target.value })}
+            onBlur={() => lookupExisting()}
           />
           <Select
             value={form.sexe}

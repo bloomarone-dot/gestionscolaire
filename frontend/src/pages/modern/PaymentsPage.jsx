@@ -7,6 +7,7 @@ import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
 import {
   Badge, Button, DataTable, Input, Modal, PageHeader, Select, StatCard,
 } from '../../components/ui';
+import { buildPensionSuiviRow, FEE_STATUS_META, matchesSuiviFilter } from '../../utils/pensionSuivi';
 
 const METHODS = [
   ['ESPECES', 'Espèces'],
@@ -423,9 +424,19 @@ function PaiementTab({ ui, eleves, classesById, establishmentName, onFlash, onFa
             </form>
 
             {lastReceipt && (
-              <p className="text-xs text-slate-500">
-                Dernier reçu : <b>{lastReceipt.receipt_number}</b> — affectation automatique inscription → tranches.
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-xs text-slate-500">
+                  Dernier reçu : <b>{lastReceipt.receipt_number}</b> — affectation automatique inscription → tranches.
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="px-3 py-1.5 text-xs"
+                  onClick={() => api.downloadPensionRecu(lastReceipt.receipt_number, establishmentName).catch((err) => onFail(err.message))}
+                >
+                  <Download size={14} /> Télécharger le reçu
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -671,6 +682,23 @@ function CaisseTab({ stats, onFlash, onFail, onChanged }) {
 }
 
 /* ───────────────────────── Onglet Suivi ───────────────────────── */
+function FeeBucketBadges({ buckets }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {buckets.filter((b) => b.status !== 'none').map((b) => {
+        const meta = FEE_STATUS_META[b.status];
+        return (
+          <div key={b.key} className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{b.label}</span>
+            <Badge tone={meta.tone}>{meta.label}</Badge>
+          </div>
+        );
+      })}
+      {buckets.every((b) => b.status === 'none') && <span className="text-sm text-slate-400">—</span>}
+    </div>
+  );
+}
+
 function SuiviTab({ ui, eleves, classesById, schedulesByClasse }) {
   const [comptes, setComptes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -696,53 +724,23 @@ function SuiviTab({ ui, eleves, classesById, schedulesByClasse }) {
     return map;
   }, [comptes]);
 
-  const rows = useMemo(() => eleves.map((e) => {
-    const schedule = e.classe_id ? schedulesByClasse[e.classe_id] : null;
-    const totalDue = schedule
-      ? Number(schedule.inscription || 0) + Number(schedule.tranche1 || 0)
-        + Number(schedule.tranche2 || 0) + Number(schedule.tranche3 || 0)
-      : 0;
-    const compte = comptesByEleve[e.id];
-    const totalPaid = compte ? Number(compte.total_paid || 0) : 0;
-    const reste = Math.max(0, totalDue - totalPaid);
-    // Montant dû à ce jour = inscription + tranches dont la période a débuté.
-    const rank = (m) => (m ? (((Number(m) - 9) % 12) + 12) % 12 : -1);
-    const nowRank = rank(new Date().getMonth() + 1);
-    let expectedNow = 0;
-    if (schedule) {
-      expectedNow = Number(schedule.inscription || 0);
-      [['tranche1', 't1_start_month'], ['tranche2', 't2_start_month'], ['tranche3', 't3_start_month']]
-        .forEach(([amt, startKey]) => {
-          const start = schedule[startKey];
-          if (!start || nowRank >= rank(start)) expectedNow += Number(schedule[amt] || 0);
-        });
-    }
-    let statut = 'unknown';
-    if (totalDue === 0) statut = 'unknown';
-    else if (reste <= 0 || totalPaid >= expectedNow) statut = 'ok';
-    else statut = 'late';
-    return {
-      id: e.id,
-      student: [e.nom, e.prenom].filter(Boolean).join(' ') || `ID ${e.id}`,
-      matricule: e.matricule || '—',
-      classe: e.classe_id ? (classesById[e.classe_id] || `#${e.classe_id}`) : '—',
-      classe_id: e.classe_id,
-      due_label: totalDue ? formatXaf(totalDue) : '—',
-      paid_label: formatXaf(totalPaid),
-      reste_label: totalDue ? formatXaf(reste) : '—',
-      statut,
-    };
-  }), [eleves, schedulesByClasse, comptesByEleve, classesById]);
+  const rows = useMemo(() => eleves.map((e) => buildPensionSuiviRow(
+    e,
+    e.classe_id ? schedulesByClasse[e.classe_id] : null,
+    comptesByEleve[e.id],
+    classesById,
+  )), [eleves, schedulesByClasse, comptesByEleve, classesById]);
 
   const filtered = useMemo(() => rows.filter((r) => {
     if (classeFilter && String(r.classe_id) !== String(classeFilter)) return false;
-    if (statutFilter && r.statut !== statutFilter) return false;
-    return true;
+    return matchesSuiviFilter(r, statutFilter);
   }), [rows, classeFilter, statutFilter]);
 
   const counts = useMemo(() => ({
     ok: rows.filter((r) => r.statut === 'ok').length,
     late: rows.filter((r) => r.statut === 'late').length,
+    solde: rows.filter((r) => r.progress === 'solde').length,
+    partial: rows.filter((r) => r.progress === 'partial' || r.progress === 'inscription').length,
   }), [rows]);
 
   const classeOptions = useMemo(() => {
@@ -752,13 +750,16 @@ function SuiviTab({ ui, eleves, classesById, schedulesByClasse }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Élèves en règle" value={loading ? '…' : counts.ok} icon={ListChecks} tone="emerald" />
         <StatCard label="Élèves pas en règle" value={loading ? '…' : counts.late} icon={ListChecks} tone="rose" />
+        <StatCard label="Soldés (totalité)" value={loading ? '…' : counts.solde} icon={ListChecks} tone="blue" />
+        <StatCard label="Inscription / partiel" value={loading ? '…' : counts.partial} icon={ListChecks} tone="amber" />
       </div>
 
       <DataTable
         title="Suivi des paiements par élève"
+        description="Inscription, 1re / 2e / 3e tranche : payée, partielle ou impayée."
         filters={(
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-[180px]">
@@ -768,10 +769,14 @@ function SuiviTab({ ui, eleves, classesById, schedulesByClasse }) {
                 {classeOptions.map(([id, nom]) => <option key={id} value={id}>{nom}</option>)}
               </Select>
             </div>
-            <div className="min-w-[180px]">
-              <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Statut</label>
+            <div className="min-w-[220px]">
+              <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Situation</label>
               <Select value={statutFilter} onChange={(e) => setStatutFilter(e.target.value)}>
                 <option value="">Tous</option>
+                <option value="solde">Soldé (totalité)</option>
+                <option value="inscription">Inscription seulement</option>
+                <option value="tranche1">Jusqu'à la 1re tranche</option>
+                <option value="partial">Paiement partiel</option>
                 <option value="ok">En règle</option>
                 <option value="late">Pas en règle</option>
                 <option value="unknown">Frais non configurés</option>
@@ -783,14 +788,24 @@ function SuiviTab({ ui, eleves, classesById, schedulesByClasse }) {
           { key: 'student', label: ui.student },
           { key: 'matricule', label: 'Matricule' },
           { key: 'classe', label: 'Classe' },
-          { key: 'due_label', label: 'Total dû' },
+          {
+            key: 'buckets',
+            label: 'Inscription & tranches',
+            render: (row) => <FeeBucketBadges buckets={row.buckets} />,
+          },
+          {
+            key: 'detail',
+            label: 'Détail',
+            render: (row) => <span className="max-w-xs text-xs leading-5 text-slate-600">{row.detail}</span>,
+          },
           { key: 'paid_label', label: 'Versé' },
           { key: 'reste_label', label: 'Reste' },
           {
             key: 'statut',
             label: 'Situation',
             render: (row) => (
-              row.statut === 'ok' ? <Badge tone="emerald">En règle</Badge>
+              row.progress === 'solde' ? <Badge tone="emerald">Soldé</Badge>
+                : row.statut === 'ok' ? <Badge tone="blue">En règle</Badge>
                 : row.statut === 'late' ? <Badge tone="rose">Pas en règle</Badge>
                 : <Badge tone="slate">Non configuré</Badge>
             ),

@@ -60,7 +60,12 @@ def _row(e: Eleve) -> EleveRow:
     )
 
 
-def _detail(e: Eleve) -> EleveDetail:
+def _detail(
+    e: Eleve,
+    enrollment_action: str | None = None,
+    previous_level_code: str | None = None,
+    previous_classe_id: int | None = None,
+) -> EleveDetail:
     return EleveDetail(
         **_row(e).model_dump(), date_naissance=e.date_naissance,
         lieu_naissance=e.lieu_naissance, photo_url=e.photo_url,
@@ -69,6 +74,9 @@ def _detail(e: Eleve) -> EleveDetail:
         type_code=e.type_code, level_code=e.level_code, series_code=e.series_code,
         created_at=e.created_at,
         parents=[ParentOut.model_validate(p) for p in e.parents],
+        enrollment_action=enrollment_action,
+        previous_level_code=previous_level_code,
+        previous_classe_id=previous_classe_id,
     )
 
 
@@ -84,15 +92,43 @@ def create_eleve(
     db: Session = Depends(get_db),
     ctx: TenantContext = Depends(require_tenant),
 ):
-    eleve = crud.create_eleve(db, ctx.tenant_id, payload)
+    eleve, action, prev_level, prev_classe = crud.enroll_eleve(db, ctx.tenant_id, payload)
     if eleve.classe_id:
         # §12 : notifie le parent (SMS + notif). Best-effort, jamais bloquant.
-        _emit(EventNames.STUDENT_ENROLLED, {
+        event = EventNames.STUDENT_ENROLLED
+        if action == "PROMOTION":
+            event = EventNames.STUDENT_PROMOTED
+        elif action in ("TRANSFER", "REDOUBLE", "DOWNGRADE"):
+            event = EventNames.STUDENT_TRANSFERRED
+        _emit(event, {
             "tenant_id": ctx.tenant_id, "eleve_id": eleve.id,
             "classe_id": eleve.classe_id, "nom": eleve.nom, "prenom": eleve.prenom,
             "parent_phone": crud.primary_parent_phone(eleve),
+            "new_classe_id": eleve.classe_id,
+            "old_classe_id": prev_classe,
         })
-    return _detail(eleve)
+    return _detail(eleve, enrollment_action=action, previous_level_code=prev_level, previous_classe_id=prev_classe)
+
+
+@app.get("/eleves/lookup", response_model=EleveDetail | None, tags=["eleves"])
+def lookup_eleve(
+    matricule: str | None = None,
+    nom: str | None = None,
+    prenom: str | None = None,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    """Retrouve un élève déjà connu (réinscription / passage de classe)."""
+    found = None
+    if matricule:
+        found = crud.get_eleve_by_matricule(db, ctx.tenant_id, matricule)
+    if found is None and nom:
+        found = crud.find_existing_eleve(
+            db, ctx.tenant_id, EleveCreate(nom=nom, prenom=prenom, matricule=matricule),
+        )
+    if not found:
+        return None
+    return _detail(found)
 
 
 @app.get("/eleves", response_model=list[EleveRow], tags=["eleves"])

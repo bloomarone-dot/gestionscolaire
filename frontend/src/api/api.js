@@ -683,6 +683,16 @@ export async function downloadPaiementRecu(paiementId, establishmentName = 'Éta
   return downloadFileResponse(res, `recu_${paiementId}.pdf`);
 }
 
+export async function downloadPensionRecu(receiptNumber, establishmentName = 'Établissement') {
+  if (!receiptNumber) throw new Error('Numéro de reçu manquant.');
+  const params = new URLSearchParams({ establishment_name: establishmentName });
+  const res = await fetch(
+    `/tresorerie/pension/recus/${encodeURIComponent(receiptNumber)}/pdf?${params}`,
+    { headers: getHeaders() },
+  );
+  return downloadFileResponse(res, `${receiptNumber}.pdf`);
+}
+
 export async function genererLienParentPaiement(paiementId) {
   return apiRequest(`/tresorerie/paiements/${paiementId}/lien-parent`, { method: 'POST' });
 }
@@ -1289,6 +1299,18 @@ export async function fetchEleves_admin(classeId = null, search = '') {
   const res = await fetch(url, { headers: getHeaders() });
   const data = await handleResponse(res);
   return data.map(normalizeEleve);
+}
+
+export async function lookupEleve({ matricule, nom, prenom } = {}) {
+  const params = new URLSearchParams();
+  if (matricule) params.set('matricule', matricule);
+  if (nom) params.set('nom', nom);
+  if (prenom) params.set('prenom', prenom);
+  if (![...params.keys()].length) return null;
+  const res = await fetch(`/eleves/lookup?${params}`, { headers: getHeaders() });
+  if (res.status === 404) return null;
+  const data = await handleResponse(res);
+  return data ? normalizeEleve(data) : null;
 }
 
 export async function createEleve_admin(eleveData) {

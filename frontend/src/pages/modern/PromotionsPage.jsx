@@ -5,27 +5,14 @@ import { Badge, Button, DataTable, EmptyState, PageHeader, Select } from '../../
 import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
 import LanguageCenterPromotionsPanel from './LanguageCenterPromotionsPanel';
 import { suggestPrimaryDestination } from '../../utils/primarySchool';
+import { NEXT_LEVEL } from '../../utils/levelProgression';
 
-// §10 — Outil de fin d'année : décider du passage de chaque élève d'une classe.
 const DECISIONS = [
   ['ADMIS', 'Admis (passe en classe supérieure)'],
   ['REDOUBLE', 'Redouble'],
   ['REORIENTE', 'Réorienté (change de série)'],
   ['SORTANT', 'Sortant (quitte / diplômé)'],
 ];
-
-// §10.2 — niveau supérieur logique selon le référentiel MINESEC (codes niveaux).
-const NEXT_LEVEL = {
-  // Francophone général
-  '6E': '5E', '5E': '4E', '4E': '3E', '3E': '2ND', '2ND': '1ERE', '1ERE': 'TLE', TLE: null,
-  // Francophone technique
-  '1CETIC': '2CETIC', '2CETIC': '3CETIC', '3CETIC': null,
-  '2ND-T': '1ERE-T', '1ERE-T': 'TLE-T', 'TLE-T': null,
-  // Anglophone général
-  F1: 'F2', F2: 'F3', F3: 'F4', F4: 'F5', F5: 'LS', LS: 'US', US: null,
-  // Anglophone technique
-  TF1: 'TF2', TF2: 'TF3', TF3: 'TF4', TF4: 'TF5', TF5: 'LST', LST: 'UST', UST: null,
-};
 
 function className(classe) {
   return classe?.nom || classe?.nom_personnalise || classe?.name || `Classe ${classe?.id}`;

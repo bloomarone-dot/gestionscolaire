@@ -4,8 +4,11 @@ from typing import Optional
 
 from sqlalchemy.orm import Session, joinedload
 
+from app.level_order import ACTION_NEW, classify_level_move
 from app.models import (
+    STATUT_ABANDON,
     STATUT_DIPLOME,
+    STATUT_EXCLU,
     STATUT_INSCRIT,
     Eleve,
     Parent,
@@ -29,6 +32,78 @@ def generate_matricule(db: Session, tenant_id: int) -> str:
     year = datetime.utcnow().year
     seq = db.query(Eleve).filter(Eleve.tenant_id == tenant_id).count() + 1
     return f"{year}{tenant_id:03d}{seq:04d}"
+
+
+def find_existing_eleve(db: Session, tenant_id: int, payload: EleveCreate) -> Optional[Eleve]:
+    """Retrouve un élève déjà inscrit (matricule, sinon nom + prénom + date de naissance)."""
+    if payload.matricule:
+        found = get_eleve_by_matricule(db, tenant_id, payload.matricule)
+        if found:
+            return found
+    nom = (payload.nom or "").strip().lower()
+    prenom = (payload.prenom or "").strip().lower()
+    if not nom:
+        return None
+    q = db.query(Eleve).filter(Eleve.tenant_id == tenant_id, Eleve.nom.ilike(payload.nom.strip()))
+    if prenom:
+        q = q.filter(Eleve.prenom.ilike(payload.prenom.strip()))
+    if payload.date_naissance:
+        q = q.filter(Eleve.date_naissance == payload.date_naissance)
+    return q.order_by(Eleve.id.desc()).first()
+
+
+def reenroll_eleve(db: Session, tenant_id: int, existing: Eleve, payload: EleveCreate) -> tuple[Eleve, str, Optional[str], Optional[int]]:
+    """Réinscrit un élève existant (passage, redoublement ou changement de classe)."""
+    previous_level = existing.level_code
+    previous_classe = existing.classe_id
+    action = classify_level_move(
+        previous_level, payload.level_code, previous_classe, payload.classe_id,
+    )
+    existing.nom = payload.nom
+    if payload.prenom is not None:
+        existing.prenom = payload.prenom
+    if payload.date_naissance is not None:
+        existing.date_naissance = payload.date_naissance
+    if payload.sexe is not None:
+        existing.sexe = payload.sexe
+    if payload.lieu_naissance is not None:
+        existing.lieu_naissance = payload.lieu_naissance
+    if payload.photo_url is not None:
+        existing.photo_url = payload.photo_url
+    if payload.etat_sante is not None:
+        existing.etat_sante = payload.etat_sante
+    if payload.subsystem_code is not None:
+        existing.subsystem_code = payload.subsystem_code
+    if payload.type_code is not None:
+        existing.type_code = payload.type_code
+    if payload.cycle_code is not None:
+        existing.cycle_code = payload.cycle_code
+    if payload.level_code is not None:
+        existing.level_code = payload.level_code
+    if payload.series_code is not None:
+        existing.series_code = payload.series_code
+    existing.classe_id = payload.classe_id
+    existing.statut = STATUT_INSCRIT
+    if payload.parents:
+        existing.parents.clear()
+        db.flush()
+        for p in payload.parents:
+            db.add(Parent(
+                tenant_id=tenant_id, eleve_id=existing.id, nom=p.nom, phone=p.phone,
+                phone2=p.phone2, adresse=p.adresse, email=p.email,
+            ))
+    db.commit()
+    db.refresh(existing)
+    return existing, action, previous_level, previous_classe
+
+
+def enroll_eleve(db: Session, tenant_id: int, payload: EleveCreate) -> tuple[Eleve, str, Optional[str], Optional[int]]:
+    """Nouvelle inscription, ou réinscription si l'élève est déjà connu."""
+    existing = find_existing_eleve(db, tenant_id, payload)
+    if existing:
+        return reenroll_eleve(db, tenant_id, existing, payload)
+    created = create_eleve(db, tenant_id, payload)
+    return created, ACTION_NEW, None, None
 
 
 def create_eleve(db: Session, tenant_id: int, payload: EleveCreate) -> Eleve:

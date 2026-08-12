@@ -109,3 +109,33 @@ def test_parent_payment_flow(db):
 
     s = crud.stats(db, TENANT)
     assert s["online_month_count"] >= 1
+
+
+def test_pension_receipt_pdf(db):
+    from app.pdf import render_pension_recu_pdf
+    from app.schemas import FeeScheduleIn, PensionPayIn
+
+    crud.upsert_fee_schedule(
+        db,
+        TENANT,
+        4,
+        FeeScheduleIn(inscription=Decimal("10000"), tranche1=Decimal("20000"), classe_nom="3ème A"),
+    )
+    result = crud.record_pension_payment(
+        db,
+        TENANT,
+        PensionPayIn(
+            eleve_id=12,
+            classe_id=4,
+            eleve_nom="Eboa Marie",
+            matricule="EL-3E-001",
+            amount=Decimal("15000"),
+            payment_method="ESPECES",
+        ),
+        recorded_by=1,
+    )
+    assert result["receipt_number"]
+    rows = crud.get_pension_receipt_rows(db, TENANT, result["receipt_number"])
+    assert rows
+    pdf = render_pension_recu_pdf(rows, establishment_name="Lycée Test")
+    assert pdf.startswith(b"%PDF")

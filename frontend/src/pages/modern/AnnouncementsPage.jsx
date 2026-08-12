@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Megaphone, Send } from 'lucide-react';
 import * as api from '../../api/api';
-import { Badge, Button, Card, DataTable, EmptyState, PageHeader, Textarea } from '../../components/ui';
+import { Badge, Button, Card, DataTable, EmptyState, PageHeader, Select, Textarea } from '../../components/ui';
+import { classDisplayName } from './operations/shared';
 
 // §8 / §12.1 — Annonce générale : texte libre diffusé au personnel et/ou aux parents.
 const CHANNEL_OPTS = [['SMS', 'SMS'], ['WHATSAPP', 'WhatsApp'], ['EMAIL', 'Email'], ['INTERNAL', 'Notification interne']];
@@ -25,6 +26,8 @@ export default function AnnouncementsPage() {
   const [content, setContent] = useState('');
   const [channels, setChannels] = useState(['INTERNAL']);
   const [audience, setAudience] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [classeId, setClasseId] = useState('');
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState(null);
   const [history, setHistory] = useState([]);
@@ -37,8 +40,10 @@ export default function AnnouncementsPage() {
       .catch(() => setHistory([]));
   }
   useEffect(loadHistory, []);
+  useEffect(() => {
+    api.fetchClasses().then((data) => setClasses(Array.isArray(data) ? data : [])).catch(() => setClasses([]));
+  }, []);
 
-  // Résout l'audience choisie en numéros/contacts.
   async function resolveRecipients() {
     const recipients = new Set();
     if (audience.includes('personnel')) {
@@ -46,7 +51,7 @@ export default function AnnouncementsPage() {
       staff.forEach((p) => { if (p.phone) recipients.add(p.phone); });
     }
     if (audience.includes('parents')) {
-      const eleves = await api.fetchEleves_admin().catch(() => []);
+      const eleves = await api.fetchEleves_admin(classeId || null).catch(() => []);
       eleves.forEach((e) => { const ph = e.contact_parent; if (ph && ph !== '-') recipients.add(ph); });
     }
     return [...recipients];
@@ -60,7 +65,14 @@ export default function AnnouncementsPage() {
     try {
       const recipients = await resolveRecipients();
       const res = await api.sendAnnouncement({ content: content.trim(), recipients, channels });
-      setNotice({ message: `Annonce envoyée (${Array.isArray(res) ? res.length : 0} message(s)).`, tone: 'emerald' });
+      const selected = classes.find((c) => String(c.id) === String(classeId));
+      const scope = audience.includes('parents')
+        ? (classeId ? `classe ${classDisplayName(selected || { id: classeId })}` : 'toutes les classes')
+        : '';
+      setNotice({
+        message: `Annonce envoyée (${Array.isArray(res) ? res.length : 0} message(s))${scope ? ` — ${scope}` : ''}.`,
+        tone: 'emerald',
+      });
       setContent('');
       loadHistory();
     } catch (err) {
@@ -80,7 +92,7 @@ export default function AnnouncementsPage() {
 
   return (
     <div>
-      <PageHeader title="Annonces" breadcrumb="Communication" description="Diffusez un message au personnel et/ou aux parents (SMS, WhatsApp, Email, notification interne)." />
+      <PageHeader title="Annonces" breadcrumb="Communication" description="Diffusez un message au personnel et/ou aux parents d'une classe (SMS, WhatsApp, Email, notification interne)." />
       {notice && <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-semibold ${notice.tone === 'rose' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>{notice.message}</div>}
 
       <Card className="mb-6 p-5">
@@ -96,6 +108,20 @@ export default function AnnouncementsPage() {
             </div>
             <p className="mt-1 text-xs text-slate-400">Sans destinataire, l'annonce est diffusée en interne uniquement.</p>
           </div>
+          {audience.includes('parents') && (
+            <div>
+              <span className="mb-1 block text-sm font-semibold text-slate-700">Classe (parents)</span>
+              <Select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
+                <option value="">Toutes les classes</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{classDisplayName(c)}</option>
+                ))}
+              </Select>
+              <p className="mt-1 text-xs text-slate-400">
+                Seuls les parents des élèves de la classe choisie recevront le message.
+              </p>
+            </div>
+          )}
           <div>
             <span className="mb-1 block text-sm font-semibold text-slate-700">Canaux</span>
             <div className="flex flex-wrap gap-2">

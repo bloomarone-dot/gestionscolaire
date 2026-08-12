@@ -130,3 +130,31 @@ def test_tenant_isolation(db):
     assert crud.list_eleves(db, 999) == []
     with pytest.raises(crud.NotFound):
         crud.get_eleve(db, 999, e.id)
+
+
+def test_reenroll_detects_promotion_4e_to_3e(db):
+    e = _make(db, classe_id=10, matricule="EL-4E-001")
+    e.level_code = "4E"
+    db.commit()
+    again, action, prev_level, prev_classe = crud.enroll_eleve(db, TENANT, EleveCreate(
+        nom="Eboa", prenom="Marie", matricule="EL-4E-001",
+        level_code="3E", classe_id=20,
+        parents=[ParentIn(nom="Eboa Père", phone="690000000")],
+    ))
+    assert action == "PROMOTION"
+    assert prev_level == "4E"
+    assert prev_classe == 10
+    assert again.id == e.id
+    assert again.classe_id == 20
+    assert again.level_code == "3E"
+    assert len(crud.list_eleves(db, TENANT)) == 1
+
+
+def test_lookup_by_matricule(db):
+    e = _make(db, matricule="LOOK-1")
+    found = crud.get_eleve_by_matricule(db, TENANT, "LOOK-1")
+    assert found.id == e.id
+    assert crud.find_existing_eleve(db, TENANT, EleveCreate(
+        nom="Autre", matricule="LOOK-1",
+        parents=[ParentIn(nom="X", phone="690000001")],
+    )).id == e.id

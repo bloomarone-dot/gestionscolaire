@@ -605,3 +605,19 @@ def list_pension_paiements(db: Session, tenant_id: int, eleve_id: int) -> list[P
             .order_by(PensionPaiement.created_at.desc())
         ).all()
     )
+
+
+def get_pension_receipt_rows(db: Session, tenant_id: int, receipt_number: str) -> list[PensionPaiement]:
+    key = (receipt_number or "").strip()
+    if not key:
+        return []
+    return list(
+        db.scalars(
+            select(PensionPaiement)
+            .where(
+                PensionPaiement.tenant_id == tenant_id,
+                PensionPaiement.receipt_number == key,
+            )
+            .order_by(PensionPaiement.id.asc())
+        ).all()
+    )
