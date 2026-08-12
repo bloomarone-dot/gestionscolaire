@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import {
   BadgeCheck,
   CalendarCheck2,
@@ -230,6 +230,12 @@ export default function LoginPage() {
             </form>
           </Card>
 
+          <p className="mt-4 text-center text-sm text-slate-500">
+            Parent d'élève ?{" "}
+            <Link className="font-semibold text-[#101F3C]" to="/espace-parent">
+              Espace parent
+            </Link>
+          </p>
           <p className="mt-6 text-center text-xs leading-relaxed text-slate-400">
             Gestion scolaire simplifiée pour votre établissement.
           </p>

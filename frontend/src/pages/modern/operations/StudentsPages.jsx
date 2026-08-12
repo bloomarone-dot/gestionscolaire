@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRightLeft, Download, FileUp, Pencil, Trash2, UserPlus } from "lucide-react";
+import { ArrowRightLeft, Download, FileUp, Pencil, Trash2, UserPlus, KeyRound } from "lucide-react";
 import * as api from "../../../api/api";
 import HealthFields, { parseHealth, serializeHealth } from "../../../components/HealthFields";
 import LanguageCenterEnrollmentFields, {
@@ -10,6 +10,7 @@ import PrimarySchoolEnrollmentFields from "../../../components/primarySchool/Pri
 import { buildPrimaryEnrollmentCodes, PS_SUBSYSTEM_FR } from "../../../utils/primarySchool";
 import { classifyLevelMove, enrollmentActionLabel } from "../../../utils/levelProgression";
 import { compressImageFile } from "../../../utils/imageCompress";
+import { PIECE_DEFS, parsePieces } from "../../../utils/studentPieces";
 import {
   Badge,
   Button,
@@ -33,7 +34,7 @@ import {
 } from "./shared";
 
 export function OperationalStudentsPage() {
-  const { labels: ui, isLanguageCenter, isPrimarySchool } = useEstablishmentProfile();
+  const { labels: ui, isLanguageCenter, isPrimarySchool, schoolName } = useEstablishmentProfile();
   const loadStudents = useCallback(async () => {
     const [eleves, classesData] = await Promise.all([
       api.fetchEleves_admin(),
@@ -58,6 +59,8 @@ export function OperationalStudentsPage() {
   const [filterClasseId, setFilterClasseId] = useState("");
   const [fiche, setFiche] = useState(null);
   const [ficheSaving, setFicheSaving] = useState(false);
+  const [parentCode, setParentCode] = useState(null);
+  const [radiationMotif, setRadiationMotif] = useState("");
 
   const classRows = allClasses.map(classRow);
   const importClassObj = classRows.find(
@@ -133,7 +136,12 @@ export function OperationalStudentsPage() {
 
   async function openFiche(row) {
     try {
-      const detail = await api.fetchEleve_admin(row.id);
+      const [detail, mouvements] = await Promise.all([
+        api.fetchEleve_admin(row.id),
+        api.fetchEleveMouvements(row.id).catch(() => []),
+      ]);
+      setParentCode(null);
+      setRadiationMotif("");
       setFiche({
         id: detail.id,
         nom: detail.nom || "",
@@ -144,6 +152,10 @@ export function OperationalStudentsPage() {
         health: parseHealth(detail.etat_sante),
         photo_url: detail.photo_url || "",
         matricule: detail.matricule || "",
+        classe_id: detail.classe_id,
+        statut: detail.statut || row.status,
+        pieces: parsePieces(detail.pieces),
+        mouvements: Array.isArray(mouvements) ? mouvements : [],
       });
     } catch (err) {
       setNotice(err.message);
@@ -162,6 +174,7 @@ export function OperationalStudentsPage() {
         lieu_naissance: fiche.lieu_naissance || null,
         etat_sante: serializeHealth(fiche.health),
         photo_url: fiche.photo_url || null,
+        pieces: fiche.pieces,
       });
       setNotice("Fiche élève enregistrée.");
       setFiche(null);
@@ -179,9 +192,60 @@ export function OperationalStudentsPage() {
     if (!file || !fiche) return;
     try {
       const dataUrl = await compressImageFile(file);
-      setFiche((f) => ({ ...f, photo_url: dataUrl }));
+      setFiche((f) => ({
+        ...f,
+        photo_url: dataUrl,
+        pieces: { ...(f.pieces || {}), photo: "recu" },
+      }));
     } catch (err) {
       setNotice(err.message || "Photo impossible.");
+    }
+  }
+
+  async function handleFicheDocument(kind) {
+    if (!fiche) return;
+    try {
+      if (kind === "quitus") {
+        await api.downloadQuitusCaisse(fiche.id, {
+          classeId: fiche.classe_id,
+          establishmentName: schoolName,
+          eleveNom: [fiche.prenom, fiche.nom].filter(Boolean).join(" "),
+          matricule: fiche.matricule,
+        });
+      } else {
+        await api.downloadEleveDocument(fiche.id, kind, schoolName);
+      }
+    } catch (err) {
+      setNotice(err.message);
+    }
+  }
+
+  async function handleParentCode() {
+    if (!fiche) return;
+    try {
+      const data = await api.generateParentCode(fiche.id);
+      setParentCode(data);
+      setNotice("Code parent généré — un SMS/WhatsApp est préparé.");
+    } catch (err) {
+      setNotice(err.message);
+    }
+  }
+
+  async function handleRadiation() {
+    if (!fiche) return;
+    if (!radiationMotif.trim()) {
+      setNotice("Indiquez le motif de radiation.");
+      return;
+    }
+    if (!window.confirm(`Radier ${fiche.nom} ${fiche.prenom || ""} des effectifs ?`)) return;
+    try {
+      await api.radierEleve(fiche.id, { motif: radiationMotif.trim() });
+      setNotice("Élève radié. Vous pouvez imprimer l'attestation de radiation.");
+      setFiche(null);
+      const refreshed = await loadStudents();
+      setRows(refreshed);
+    } catch (err) {
+      setNotice(err.message);
     }
   }
 
@@ -350,7 +414,11 @@ export function OperationalStudentsPage() {
           {
             key: "status",
             label: "Statut",
-            render: (row) => <Badge tone="emerald">{row.status}</Badge>,
+            render: (row) => (
+              <Badge tone={row.status === "RADIE" ? "rose" : row.status === "INSCRIT" ? "emerald" : "slate"}>
+                {row.status}
+              </Badge>
+            ),
           },
         ]}
         rows={displayedRows}
@@ -424,7 +492,79 @@ export function OperationalStudentsPage() {
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">État de santé</p>
               <HealthFields value={fiche.health} onChange={(health) => setFiche({ ...fiche, health })} />
             </div>
-            <p className="text-xs text-slate-400">Matricule : {fiche.matricule}</p>
+            <p className="text-xs text-slate-400">Matricule : {fiche.matricule} · Statut : {fiche.statut}</p>
+            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Pièces du dossier</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {PIECE_DEFS.map((piece) => (
+                  <label key={piece.key} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={fiche.pieces?.[piece.key] === "recu"}
+                      onChange={(e) => setFiche({
+                        ...fiche,
+                        pieces: { ...fiche.pieces, [piece.key]: e.target.checked ? "recu" : "manquant" },
+                      })}
+                    />
+                    {piece.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" className="text-xs" onClick={() => handleFicheDocument("scolarite")}>
+                <Download size={14} /> Scolarité
+              </Button>
+              <Button variant="secondary" className="text-xs" onClick={() => handleFicheDocument("carte")}>
+                <Download size={14} /> Carte élève
+              </Button>
+              <Button variant="secondary" className="text-xs" onClick={() => handleFicheDocument("quitus")}>
+                <Download size={14} /> Quitus
+              </Button>
+              {fiche.statut === "RADIE" && (
+                <Button variant="secondary" className="text-xs" onClick={() => handleFicheDocument("radiation")}>
+                  Radiation PDF
+                </Button>
+              )}
+              {fiche.statut === "DIPLOME" && (
+                <Button variant="secondary" className="text-xs" onClick={() => handleFicheDocument("reussite")}>
+                  Réussite PDF
+                </Button>
+              )}
+              <Button variant="secondary" className="text-xs" onClick={handleParentCode}>
+                <KeyRound size={14} /> Code parent
+              </Button>
+            </div>
+            {parentCode && (
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Code à communiquer au {parentCode.phone} : <strong className="tracking-widest">{parentCode.pin}</strong>
+              </p>
+            )}
+            {fiche.mouvements?.length > 0 && (
+              <div>
+                <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Historique</p>
+                <ul className="space-y-1 text-xs text-slate-600">
+                  {fiche.mouvements.slice(0, 6).map((m) => (
+                    <li key={m.id}>
+                      {m.kind} — {m.created_at ? String(m.created_at).slice(0, 10) : ""} {m.motif ? `· ${m.motif}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {fiche.statut === "INSCRIT" && (
+              <div className="rounded-lg border border-rose-100 p-3">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-rose-400">Radiation</p>
+                <Input
+                  placeholder="Motif (transfert, départ, etc.)"
+                  value={radiationMotif}
+                  onChange={(e) => setRadiationMotif(e.target.value)}
+                />
+                <Button variant="danger" className="mt-2 text-xs" onClick={handleRadiation}>
+                  Radier l'élève
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

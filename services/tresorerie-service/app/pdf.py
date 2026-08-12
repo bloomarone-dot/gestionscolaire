@@ -139,3 +139,42 @@ def render_pension_recu_pdf(
     story.extend([alloc, Spacer(1, 1.2 * cm), Paragraph("Document généré par BloomSchool — à conserver comme preuve de paiement.", center)])
     doc.build(story)
     return buffer.getvalue()
+
+
+def render_quitus_pdf(
+    *,
+    establishment_name: str = "Établissement",
+    eleve_nom: str,
+    matricule: str,
+    total_due,
+    total_paid,
+    status: str,
+) -> bytes:
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("title", parent=styles["Heading1"], alignment=TA_CENTER, textColor=colors.HexColor("#101F3C"))
+    body = styles["Normal"]
+    center = ParagraphStyle("center", parent=body, alignment=TA_CENTER)
+    today = datetime.utcnow().strftime("%d/%m/%Y")
+    story = [
+        Paragraph(establishment_name, title_style),
+        Spacer(1, 0.4 * cm),
+        Paragraph("QUITUS DE CAISSE", title_style),
+        Spacer(1, 0.6 * cm),
+        Paragraph(
+            f"Je soussigné(e), responsable de la caisse de <b>{establishment_name}</b>, "
+            f"atteste que <b>{eleve_nom}</b>, matricule <b>{matricule or '—'}</b>, "
+            "est en règle vis-à-vis des frais de scolarité de l'année en cours "
+            f"(versé {_fmt_amount(total_paid)} sur {_fmt_amount(total_due)}, situation : {status}).",
+            body,
+        ),
+        Spacer(1, 0.6 * cm),
+        Paragraph(f"Fait le {today}. Le présent quitus est délivré pour servir et valoir ce que de droit.", body),
+        Spacer(1, 2 * cm),
+        Paragraph("Le caissier / l'intendant", center),
+        Spacer(1, 1.2 * cm),
+        Paragraph("Document généré par BloomSchool.", center),
+    ]
+    doc.build(story)
+    return buffer.getvalue()

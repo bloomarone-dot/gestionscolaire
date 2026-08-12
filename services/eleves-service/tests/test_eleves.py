@@ -9,6 +9,7 @@ from app import crud
 from app.models import STATUT_DIPLOME, STATUT_INSCRIT
 from app.schemas import (
     EleveCreate,
+    EleveUpdate,
     ParentIn,
     PromotionApply,
     PromotionItem,
@@ -158,3 +159,63 @@ def test_lookup_by_matricule(db):
         nom="Autre", matricule="LOOK-1",
         parents=[ParentIn(nom="X", phone="690000001")],
     )).id == e.id
+
+
+def test_pieces_and_radiation(db):
+    from app.models import STATUT_RADIE, MOUVEMENT_RADIATION
+    from app.pieces import pieces_complete
+    from app.schemas import RadiationIn
+
+    e = _make(db)
+    assert pieces_complete(e.pieces) is False
+    updated = crud.update_eleve(db, TENANT, e.id, EleveUpdate(pieces={
+        "acte_naissance": "recu", "photo": "recu",
+        "bulletin_precedent": "recu", "quitus_ancienne_ecole": "recu",
+    }))
+    assert pieces_complete(updated.pieces) is True
+    radié = crud.radier(db, TENANT, e.id, RadiationIn(motif="Transfert Lycée Bilingue"))
+    assert radié.statut == STATUT_RADIE
+    assert radié.classe_id is None
+    moves = crud.list_mouvements(db, TENANT, e.id)
+    assert any(m.kind == MOUVEMENT_RADIATION for m in moves)
+
+
+def test_parent_code_and_login(db):
+    e = _make(db)
+    phone, pin = crud.generate_parent_code(db, TENANT, e.id)
+    assert phone == "690000000"
+    assert len(pin) == 6
+    access, token = crud.login_parent(db, phone, pin)
+    assert access.tenant_id == TENANT
+    assert token
+    kids = crud.list_eleves_for_parent_phone(db, TENANT, phone)
+    assert kids[0].id == e.id
+
+
+def test_appel_marks_absence(db):
+    from datetime import date
+    from app.models import PRESENCE_ABSENT
+    from app.schemas import AppelIn, PresenceItemIn
+
+    e = _make(db, classe_id=10)
+    saved, newly = crud.save_appel(db, TENANT, AppelIn(
+        classe_id=10, jour=date(2026, 8, 12),
+        items=[PresenceItemIn(eleve_id=e.id, statut="ABSENT")],
+    ))
+    assert len(saved) == 1
+    assert saved[0].statut == PRESENCE_ABSENT
+    assert len(newly) == 1
+    # Re-sauvegarde : pas de nouvelle notification
+    _, newly2 = crud.save_appel(db, TENANT, AppelIn(
+        classe_id=10, jour=date(2026, 8, 12),
+        items=[PresenceItemIn(eleve_id=e.id, statut="ABSENT")],
+    ))
+    assert newly2 == []
+
+
+def test_attestation_pdf_bytes(db):
+    from app.pdf_documents import render_attestation_scolarite, render_carte_eleve
+
+    e = _make(db)
+    assert render_attestation_scolarite(e, establishment_name="Test School").startswith(b"%PDF")
+    assert render_carte_eleve(e, establishment_name="Test School").startswith(b"%PDF")

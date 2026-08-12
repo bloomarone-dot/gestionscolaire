@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CalendarDays, ClipboardCheck, FileText, Pencil, Plus, Search, Trash2, UserPlus, WalletCards } from 'lucide-react';
+import { CalendarDays, FileText, Pencil, Plus, Search, Trash2, UserPlus, WalletCards } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, Card, DataTable, EmptyState, Input, PageHeader, Select } from '../../components/ui';
 
@@ -242,9 +242,6 @@ export function SubjectsPage() {
 
 // ─────────────────────── Sections sans backend (à venir) ───────────────────────
 export { default as SchedulesPage } from './SchedulesPage';
-export function AttendancePage() {
-  return <ComingSoon title="Presences" description="Appel et suivi des presences par classe." icon={ClipboardCheck} />;
-}
 export { default as PaymentsPage } from './PaymentsPage';
 export function GradesPage() {
   return <ComingSoon title="Notes" description="Saisie des notes par classe, matiere et sequence." icon={FileText} />;

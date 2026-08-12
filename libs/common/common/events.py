@@ -25,6 +25,8 @@ class EventNames:
     CLASS_SUBJECTS_UPDATED = "ClassSubjectsUpdated"
     STUDENT_TRANSFERRED = "StudentTransferred"
     STUDENT_PROMOTED = "StudentPromoted"
+    STUDENT_ABSENT = "StudentAbsent"
+    PARENT_PIN_ISSUED = "ParentPinIssued"
 
 
 class EventPublisher:

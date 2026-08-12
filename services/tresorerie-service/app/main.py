@@ -12,7 +12,7 @@ from common.tenant import TenantContext, require_tenant
 from app import crud
 from app.config import settings
 from app.models import STATUS_PAYE
-from app.pdf import render_pension_recu_pdf, render_recu_pdf
+from app.pdf import render_pension_recu_pdf, render_quitus_pdf, render_recu_pdf
 from app.schemas import (
     FeeScheduleIn,
     FeeScheduleOut,
@@ -257,6 +257,38 @@ def pension_comptes(
 ):
     """Cumul versé par élève (base du suivi des paiements)."""
     return crud.list_pension_accounts(db, ctx.tenant_id)
+
+
+@app.get("/tresorerie/pension/{eleve_id}/quitus.pdf", tags=["tresorerie"])
+def pension_quitus_pdf(
+    eleve_id: int,
+    classe_id: int | None = None,
+    establishment_name: str = "Établissement",
+    eleve_nom: str = "Élève",
+    matricule: str = "",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_treasury_staff),
+):
+    """Quitus de caisse — uniquement si la scolarité est soldée."""
+    summary = crud.pension_summary(db, ctx.tenant_id, eleve_id, classe_id)
+    if summary["status"] != "SOLDE":
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Quitus refusé : la scolarité n'est pas soldée.",
+        )
+    pdf = render_quitus_pdf(
+        establishment_name=establishment_name,
+        eleve_nom=eleve_nom,
+        matricule=matricule,
+        total_due=summary["total_due"],
+        total_paid=summary["total_paid"],
+        status=summary["status"],
+    )
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="quitus_{matricule or eleve_id}.pdf"'},
+    )
 
 
 def _public_paiement(row) -> PublicPaiementOut:

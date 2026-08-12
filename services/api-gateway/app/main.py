@@ -37,6 +37,7 @@ PUBLIC_PATHS = {
 PUBLIC_PREFIXES = (
     "tresorerie/public/",
     "tresorerie/webhooks/",
+    "eleves/public/",
 )
 
 _ROUTES = settings.routes()

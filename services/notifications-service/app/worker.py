@@ -23,6 +23,8 @@ ROUTING_KEYS = [
     EventNames.CLASS_SUBJECTS_UPDATED,
     EventNames.STUDENT_TRANSFERRED,
     EventNames.STUDENT_PROMOTED,
+    EventNames.STUDENT_ABSENT,
+    EventNames.PARENT_PIN_ISSUED,
 ]
 
 _tenant_client = InternalClient(settings.tenant_service_url, settings.internal_shared_secret)

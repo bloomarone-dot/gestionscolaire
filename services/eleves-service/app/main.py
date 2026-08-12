@@ -1,4 +1,5 @@
 """eleves-service — inscriptions (§6), transferts (§6.3), promotions (§10)."""
+import logging
 import re
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
@@ -7,26 +8,46 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from common.db import Base, add_missing_columns, get_engine, init_engine
 from common.events import EventNames, EventPublisher
+from common.http_client import InternalClient
+from common.roles import PARENT
 from common.tenant import TenantContext, require_tenant
 
 from app import crud, import_export, pedagogie_client
 from app.config import settings
-from app.models import Eleve
+from app.models import STATUT_DIPLOME, STATUT_INSCRIT, STATUT_RADIE, Eleve
+from app.pdf_documents import (
+    render_attestation_radiation,
+    render_attestation_reussite,
+    render_attestation_scolarite,
+    render_carte_eleve,
+)
+from app.pieces import parse_pieces, pieces_complete
 from app.schemas import (
+    AppelIn,
     EleveCreate,
     EleveDetail,
     EleveImportResult,
     EleveRow,
     EleveUpdate,
+    MouvementOut,
+    ParentChildOut,
+    ParentCodeOut,
+    ParentDashboardOut,
+    ParentLoginIn,
+    ParentLoginOut,
     ParentOut,
+    PresenceOut,
     PromotionApply,
+    RadiationIn,
     TransferIn,
 )
 
 app = FastAPI(title="eleves-service — SaaS Scolaire", version="0.1.0")
 
+logger = logging.getLogger(__name__)
 _SessionLocal = None
 _publisher: EventPublisher | None = None
+_tresorerie = InternalClient(settings.tresorerie_service_url, settings.internal_shared_secret)
 
 
 @app.on_event("startup")
@@ -34,7 +55,7 @@ def _startup() -> None:
     global _SessionLocal, _publisher
     init_engine(settings.database_url)
     Base.metadata.create_all(bind=get_engine())  # Alembic en Phase 5
-    add_missing_columns("eleves", {"etat_sante": "TEXT"})
+    add_missing_columns("eleves", {"etat_sante": "TEXT", "pieces": "TEXT"})
     _SessionLocal = sessionmaker(bind=get_engine(), future=True)
     _publisher = EventPublisher(settings.rabbitmq_url, settings.events_exchange)
 
@@ -57,6 +78,7 @@ def _row(e: Eleve) -> EleveRow:
         id=e.id, matricule=e.matricule, nom=e.nom, prenom=e.prenom,
         classe_id=e.classe_id, sexe=e.sexe,
         contact_parent=crud.primary_parent_phone(e), statut=e.statut,
+        pieces_complets=pieces_complete(e.pieces),
     )
 
 
@@ -77,6 +99,7 @@ def _detail(
         enrollment_action=enrollment_action,
         previous_level_code=previous_level_code,
         previous_classe_id=previous_classe_id,
+        pieces=parse_pieces(e.pieces),
     )
 
 
@@ -263,6 +286,121 @@ def export_eleves_csv(
     )
 
 
+def _classe_names(ctx: TenantContext) -> dict[int, str]:
+    try:
+        return pedagogie_client.class_id_to_name(pedagogie_client.list_classes(ctx))
+    except Exception:
+        return {}
+
+
+def _pension_summary(ctx: TenantContext, eleve: Eleve) -> dict | None:
+    try:
+        staff_ctx = TenantContext(user_id=ctx.user_id, role="admin", tenant_id=ctx.tenant_id)
+        params = {"classe_id": eleve.classe_id} if eleve.classe_id else None
+        return _tresorerie.get(f"/tresorerie/pension/{eleve.id}/resume", ctx=staff_ctx, params=params)
+    except Exception as exc:
+        logger.warning("Résumé pension élève %s indisponible : %s", eleve.id, exc)
+        return None
+
+
+def _pdf_response(content: bytes, filename: str) -> Response:
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _last_radiation_motif(db, tenant_id: int, eleve_id: int) -> str | None:
+    rows = crud.list_mouvements(db, tenant_id, eleve_id)
+    for row in rows:
+        if row.kind == "RADIATION":
+            return row.motif
+    return None
+
+
+# ═══════════════════════ ESPACE PARENT (public + JWT) ════════════════════════
+@app.post("/eleves/public/parent/login", response_model=ParentLoginOut, tags=["parent"])
+def parent_login(payload: ParentLoginIn, db: Session = Depends(get_db)):
+    try:
+        access, token = crud.login_parent(db, payload.phone, payload.pin)
+    except crud.AuthError as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(e))
+    return ParentLoginOut(access_token=token, phone=access.phone)
+
+
+@app.get("/eleves/parent/dashboard", response_model=ParentDashboardOut, tags=["parent"])
+def parent_dashboard(db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
+    if ctx.role != PARENT:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Espace réservé aux parents.")
+    try:
+        access = crud.get_parent_access(db, ctx.tenant_id, ctx.user_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    names = _classe_names(ctx)
+    enfants = []
+    for eleve in crud.list_eleves_for_parent_phone(db, ctx.tenant_id, access.phone):
+        enfants.append(ParentChildOut(
+            id=eleve.id,
+            matricule=eleve.matricule,
+            nom=eleve.nom,
+            prenom=eleve.prenom,
+            classe_id=eleve.classe_id,
+            classe_nom=names.get(eleve.classe_id) if eleve.classe_id else None,
+            statut=eleve.statut,
+            pieces=parse_pieces(eleve.pieces),
+            pieces_complets=pieces_complete(eleve.pieces),
+            pension=_pension_summary(ctx, eleve),
+            absences=[PresenceOut.model_validate(p) for p in crud.list_absences_eleve(db, ctx.tenant_id, eleve.id)],
+            mouvements=[MouvementOut.model_validate(m) for m in crud.list_mouvements(db, ctx.tenant_id, eleve.id)[:8]],
+        ))
+    return ParentDashboardOut(phone=access.phone, enfants=enfants)
+
+
+@app.get("/eleves/presences", response_model=list[PresenceOut], tags=["presences"])
+def list_presences(
+    classe_id: int,
+    jour: str,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    from datetime import date as date_cls
+    try:
+        parsed = date_cls.fromisoformat(jour)
+    except ValueError:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Date invalide (AAAA-MM-JJ).")
+    return crud.list_presences(db, ctx.tenant_id, classe_id, parsed)
+
+
+@app.post("/eleves/presences/appel", response_model=list[PresenceOut], tags=["presences"])
+def save_appel(
+    payload: AppelIn,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        saved, newly_absent = crud.save_appel(db, ctx.tenant_id, payload)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+    for row in newly_absent:
+        try:
+            eleve = crud.get_eleve(db, ctx.tenant_id, row.eleve_id)
+        except crud.NotFound:
+            continue
+        _emit(EventNames.STUDENT_ABSENT, {
+            "tenant_id": ctx.tenant_id,
+            "eleve_id": eleve.id,
+            "nom": eleve.nom,
+            "prenom": eleve.prenom,
+            "classe_id": row.classe_id,
+            "jour": str(row.jour),
+            "parent_phone": crud.primary_parent_phone(eleve),
+        })
+    return saved
+
+
 @app.get("/eleves/{eleve_id}", response_model=EleveDetail, tags=["eleves"])
 def get_eleve(eleve_id: int, db: Session = Depends(get_db), ctx: TenantContext = Depends(require_tenant)):
     try:
@@ -345,3 +483,145 @@ def apply_promotion(
     for r in results:
         _emit(EventNames.STUDENT_PROMOTED, {"tenant_id": ctx.tenant_id, **r})
     return {"applied": len(results), "results": results}
+
+
+@app.post("/eleves/{eleve_id}/radier", response_model=EleveDetail, tags=["dossier"])
+def radier_eleve(
+    eleve_id: int,
+    payload: RadiationIn,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        eleve = crud.radier(db, ctx.tenant_id, eleve_id, payload)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    _emit(EventNames.STUDENT_TRANSFERRED, {
+        "tenant_id": ctx.tenant_id, "eleve_id": eleve.id,
+        "nom": eleve.nom, "prenom": eleve.prenom,
+        "parent_phone": crud.primary_parent_phone(eleve),
+        "new_classe_id": None,
+        "old_classe_id": None,
+        "motif": payload.motif,
+    })
+    return _detail(eleve)
+
+
+@app.get("/eleves/{eleve_id}/mouvements", response_model=list[MouvementOut], tags=["dossier"])
+def eleve_mouvements(
+    eleve_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        return crud.list_mouvements(db, ctx.tenant_id, eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+
+@app.post("/eleves/{eleve_id}/parent-code", response_model=ParentCodeOut, tags=["parent"])
+def generate_parent_code(
+    eleve_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        phone, pin = crud.generate_parent_code(db, ctx.tenant_id, eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+    eleve = crud.get_eleve(db, ctx.tenant_id, eleve_id)
+    _emit(EventNames.PARENT_PIN_ISSUED, {
+        "tenant_id": ctx.tenant_id,
+        "eleve_id": eleve.id,
+        "nom": eleve.nom,
+        "prenom": eleve.prenom,
+        "parent_phone": phone,
+        "pin": pin,
+    })
+    return ParentCodeOut(
+        phone=phone,
+        pin=pin,
+        message="Communiquez ce code au parent. Il ne sera plus réaffiché.",
+    )
+
+
+@app.get("/eleves/{eleve_id}/attestations/scolarite.pdf", tags=["dossier"])
+def attestation_scolarite(
+    eleve_id: int,
+    establishment_name: str = "Établissement",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        eleve = crud.get_eleve(db, ctx.tenant_id, eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    if eleve.statut != STATUT_INSCRIT:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Attestation de scolarité réservée aux élèves inscrits.")
+    names = _classe_names(ctx)
+    pdf = render_attestation_scolarite(
+        eleve, establishment_name=establishment_name,
+        classe_nom=names.get(eleve.classe_id) if eleve.classe_id else None,
+    )
+    return _pdf_response(pdf, f"attestation_scolarite_{eleve.matricule}.pdf")
+
+
+@app.get("/eleves/{eleve_id}/attestations/radiation.pdf", tags=["dossier"])
+def attestation_radiation(
+    eleve_id: int,
+    establishment_name: str = "Établissement",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        eleve = crud.get_eleve(db, ctx.tenant_id, eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    if eleve.statut != STATUT_RADIE:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "L'élève n'est pas radié.")
+    pdf = render_attestation_radiation(
+        eleve, establishment_name=establishment_name,
+        motif=_last_radiation_motif(db, ctx.tenant_id, eleve.id),
+    )
+    return _pdf_response(pdf, f"attestation_radiation_{eleve.matricule}.pdf")
+
+
+@app.get("/eleves/{eleve_id}/attestations/reussite.pdf", tags=["dossier"])
+def attestation_reussite(
+    eleve_id: int,
+    establishment_name: str = "Établissement",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        eleve = crud.get_eleve(db, ctx.tenant_id, eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    if eleve.statut != STATUT_DIPLOME:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Attestation de réussite réservée aux élèves sortants.")
+    names = _classe_names(ctx)
+    last = next((m for m in crud.list_mouvements(db, ctx.tenant_id, eleve.id) if m.from_classe_id), None)
+    classe_nom = names.get(last.from_classe_id) if last and last.from_classe_id else None
+    pdf = render_attestation_reussite(eleve, establishment_name=establishment_name, classe_nom=classe_nom)
+    return _pdf_response(pdf, f"attestation_reussite_{eleve.matricule}.pdf")
+
+
+@app.get("/eleves/{eleve_id}/carte.pdf", tags=["dossier"])
+def carte_eleve(
+    eleve_id: int,
+    establishment_name: str = "Établissement",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        eleve = crud.get_eleve(db, ctx.tenant_id, eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    names = _classe_names(ctx)
+    pdf = render_carte_eleve(
+        eleve, establishment_name=establishment_name,
+        classe_nom=names.get(eleve.classe_id) if eleve.classe_id else None,
+    )
+    return _pdf_response(pdf, f"carte_eleve_{eleve.matricule}.pdf")

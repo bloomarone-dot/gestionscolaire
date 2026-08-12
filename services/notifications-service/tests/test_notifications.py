@@ -63,6 +63,22 @@ def test_unknown_event_no_notifications():
     assert build_notifications("GradesEntered", {"tenant_id": TENANT}) == []
 
 
+def test_student_absent_sms_whatsapp():
+    items = build_notifications("StudentAbsent", {
+        "tenant_id": TENANT, "parent_phone": "690", "nom": "Ngo", "prenom": "Ana", "jour": "2026-08-12",
+    })
+    assert _channels(items) == {"SMS", "WHATSAPP"}
+    assert "Absence" in items[0]["content"]
+
+
+def test_parent_pin_issued():
+    items = build_notifications("ParentPinIssued", {
+        "tenant_id": TENANT, "parent_phone": "690", "nom": "Ngo", "prenom": "Ana", "pin": "123456",
+    })
+    assert "123456" in items[0]["content"]
+    assert _channels(items) == {"SMS", "WHATSAPP"}
+
+
 def test_handle_event_persists_history(db):
     saved = delivery.handle_event(db, "StudentEnrolled", {
         "tenant_id": TENANT, "parent_phone": "690", "nom": "Ngo", "classe_id": 7,

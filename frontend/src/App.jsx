@@ -9,11 +9,11 @@ import Dashboard from './pages/modern/AdminDashboard';
 import SuperAdminConsole from './pages/modern/SuperAdminConsole';
 import ReferentielAdminPage, { SubjectCreatePage, EligibilityCreatePage } from './pages/modern/ReferentielAdminPage';
 import {
-  AttendancePage,
   ParentsPage,
   ReportsPage,
   UsersPage,
 } from './pages/modern/ListPages';
+import AttendancePage from './pages/modern/AttendancePage';
 import ExpensesPage from './pages/modern/ExpensesPage';
 import PaymentsPage from './pages/modern/PaymentsPage';
 import SchedulesPage from './pages/modern/SchedulesPage';
@@ -47,6 +47,7 @@ import SecretaryLayout from './components/layout/SecretaryLayout';
 import SecretaryDashboard from './pages/modern/SecretaryDashboard';
 import TeamPage from './pages/modern/TeamPage';
 import ParentPaymentPage from './pages/ParentPaymentPage';
+import ParentPortalPage from './pages/ParentPortalPage';
 import OfflineBanner from './components/OfflineBanner';
 
 function ProtectedSecretary() {
@@ -108,6 +109,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/espace-parent" element={<ParentPortalPage />} />
       <Route path="/payer/:token" element={<ParentPaymentPage />} />
       <Route path="/superadmin" element={<ProtectedSuperAdmin />}>
         <Route index element={<Navigate to="dashboard" replace />} />

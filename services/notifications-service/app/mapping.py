@@ -52,6 +52,19 @@ def _messages_for(event: str, data: dict) -> list[tuple[Optional[str], list[str]
             data.get("parent_phone"), [INTERNAL, SMS],
             f"{name} est désormais inscrit en classe {new_classe}.",
         )]
+    if event == "StudentAbsent":
+        jour = data.get("jour") or "aujourd'hui"
+        return [(
+            data.get("parent_phone"), [SMS, WHATSAPP],
+            f"Absence : {name} n'était pas en classe le {jour}. Contactez l'établissement si besoin.",
+        )]
+    if event == "ParentPinIssued":
+        pin = data.get("pin") or "******"
+        return [(
+            data.get("parent_phone"), [SMS, WHATSAPP],
+            f"Votre code espace parent BloomSchool pour {name} est {pin}. "
+            "Connectez-vous sur /espace-parent (téléphone + code).",
+        )]
     return []
 
 

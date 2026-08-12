@@ -1,19 +1,42 @@
 """Logique métier eleves-service (pure et testable)."""
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
+
+import hmac
+import secrets
+from hashlib import sha256
 
 from sqlalchemy.orm import Session, joinedload
 
+from common.config import get_base_settings
+from common.jwt import TokenPayload, create_access_token
+from common.phone import normalize_phone
+
 from app.level_order import ACTION_NEW, classify_level_move
 from app.models import (
+    MOUVEMENT_INSCRIPTION,
+    MOUVEMENT_PROMOTION,
+    MOUVEMENT_RADIATION,
+    MOUVEMENT_REDOUBLEMENT,
+    MOUVEMENT_REINSCRIPTION,
+    MOUVEMENT_SORTIE,
+    MOUVEMENT_TRANSFERT,
+    PRESENCE_ABSENT,
+    PRESENCE_PRESENT,
+    PRESENCE_RETARD,
     STATUT_ABANDON,
     STATUT_DIPLOME,
     STATUT_EXCLU,
     STATUT_INSCRIT,
+    STATUT_RADIE,
     Eleve,
+    EleveMouvement,
     Parent,
+    ParentAccess,
+    Presence,
 )
-from app.schemas import EleveCreate, EleveUpdate, PromotionApply
+from app.pieces import apply_photo_piece, parse_pieces, serialize_pieces
+from app.schemas import AppelIn, EleveCreate, EleveUpdate, PromotionApply, RadiationIn
 
 # Statuts de promotion (§10)
 PROMO_ADMIS = "ADMIS"
@@ -23,8 +46,14 @@ PROMO_SORTANT = "SORTANT"
 PROMO_EXCLU = "EXCLU"
 PROMO_ABANDON = "ABANDON"
 
+PRESENCE_STATUTS = {PRESENCE_PRESENT, PRESENCE_ABSENT, PRESENCE_RETARD}
+
 
 class NotFound(Exception):
+    pass
+
+
+class AuthError(Exception):
     pass
 
 
@@ -32,6 +61,32 @@ def generate_matricule(db: Session, tenant_id: int) -> str:
     year = datetime.utcnow().year
     seq = db.query(Eleve).filter(Eleve.tenant_id == tenant_id).count() + 1
     return f"{year}{tenant_id:03d}{seq:04d}"
+
+
+def _pieces_for(payload_pieces, photo_url: Optional[str]) -> str:
+    return serialize_pieces(apply_photo_piece(parse_pieces(payload_pieces), photo_url))
+
+
+def log_mouvement(
+    db: Session,
+    tenant_id: int,
+    eleve_id: int,
+    kind: str,
+    *,
+    from_classe_id: Optional[int] = None,
+    to_classe_id: Optional[int] = None,
+    motif: Optional[str] = None,
+) -> EleveMouvement:
+    row = EleveMouvement(
+        tenant_id=tenant_id,
+        eleve_id=eleve_id,
+        kind=kind,
+        from_classe_id=from_classe_id,
+        to_classe_id=to_classe_id,
+        motif=motif,
+    )
+    db.add(row)
+    return row
 
 
 def find_existing_eleve(db: Session, tenant_id: int, payload: EleveCreate) -> Optional[Eleve]:
@@ -82,6 +137,8 @@ def reenroll_eleve(db: Session, tenant_id: int, existing: Eleve, payload: EleveC
         existing.level_code = payload.level_code
     if payload.series_code is not None:
         existing.series_code = payload.series_code
+    if payload.pieces is not None or payload.photo_url:
+        existing.pieces = _pieces_for(payload.pieces if payload.pieces is not None else existing.pieces, existing.photo_url)
     existing.classe_id = payload.classe_id
     existing.statut = STATUT_INSCRIT
     if payload.parents:
@@ -92,6 +149,16 @@ def reenroll_eleve(db: Session, tenant_id: int, existing: Eleve, payload: EleveC
                 tenant_id=tenant_id, eleve_id=existing.id, nom=p.nom, phone=p.phone,
                 phone2=p.phone2, adresse=p.adresse, email=p.email,
             ))
+    kind = MOUVEMENT_REDOUBLEMENT if action == "REDOUBLE" else MOUVEMENT_REINSCRIPTION
+    if action == "PROMOTION":
+        kind = MOUVEMENT_PROMOTION
+    elif action == "TRANSFER":
+        kind = MOUVEMENT_TRANSFERT
+    log_mouvement(
+        db, tenant_id, existing.id, kind,
+        from_classe_id=previous_classe, to_classe_id=payload.classe_id,
+        motif=action,
+    )
     db.commit()
     db.refresh(existing)
     return existing, action, previous_level, previous_classe
@@ -113,6 +180,7 @@ def create_eleve(db: Session, tenant_id: int, payload: EleveCreate) -> Eleve:
         date_naissance=payload.date_naissance, sexe=payload.sexe,
         lieu_naissance=payload.lieu_naissance,
         photo_url=payload.photo_url, etat_sante=payload.etat_sante,
+        pieces=_pieces_for(payload.pieces, payload.photo_url),
         subsystem_code=payload.subsystem_code, type_code=payload.type_code,
         cycle_code=payload.cycle_code, level_code=payload.level_code,
         series_code=payload.series_code, classe_id=payload.classe_id,
@@ -125,6 +193,7 @@ def create_eleve(db: Session, tenant_id: int, payload: EleveCreate) -> Eleve:
             tenant_id=tenant_id, eleve_id=eleve.id, nom=p.nom, phone=p.phone,
             phone2=p.phone2, adresse=p.adresse, email=p.email,
         ))
+    log_mouvement(db, tenant_id, eleve.id, MOUVEMENT_INSCRIPTION, to_classe_id=eleve.classe_id)
     db.commit()
     db.refresh(eleve)
     return eleve
@@ -157,8 +226,12 @@ def get_eleve_by_matricule(db: Session, tenant_id: int, matricule: str) -> Optio
 
 def update_eleve(db: Session, tenant_id: int, eleve_id: int, payload: EleveUpdate) -> Eleve:
     e = get_eleve(db, tenant_id, eleve_id)
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    pieces = data.pop("pieces", None)
+    for field, value in data.items():
         setattr(e, field, value)
+    if pieces is not None or data.get("photo_url"):
+        e.pieces = _pieces_for(pieces if pieces is not None else e.pieces, e.photo_url)
     db.commit()
     db.refresh(e)
     return e
@@ -177,9 +250,40 @@ def transfer(db: Session, tenant_id: int, eleve_id: int, new_classe_id: int) -> 
     old = e.classe_id
     e.classe_id = new_classe_id
     e.statut = STATUT_INSCRIT
+    log_mouvement(
+        db, tenant_id, e.id, MOUVEMENT_TRANSFERT,
+        from_classe_id=old, to_classe_id=new_classe_id,
+    )
     db.commit()
     db.refresh(e)
     return e, old
+
+
+def radier(db: Session, tenant_id: int, eleve_id: int, payload: RadiationIn) -> Eleve:
+    e = get_eleve(db, tenant_id, eleve_id)
+    old = e.classe_id
+    motif = payload.motif
+    if payload.destination_ecole:
+        motif = f"{payload.motif} → {payload.destination_ecole}"
+    e.statut = STATUT_RADIE
+    e.classe_id = None
+    log_mouvement(
+        db, tenant_id, e.id, MOUVEMENT_RADIATION,
+        from_classe_id=old, motif=motif,
+    )
+    db.commit()
+    db.refresh(e)
+    return e
+
+
+def list_mouvements(db: Session, tenant_id: int, eleve_id: int) -> list[EleveMouvement]:
+    get_eleve(db, tenant_id, eleve_id)
+    return (
+        db.query(EleveMouvement)
+        .filter(EleveMouvement.tenant_id == tenant_id, EleveMouvement.eleve_id == eleve_id)
+        .order_by(EleveMouvement.created_at.desc())
+        .all()
+    )
 
 
 def apply_promotion(db: Session, tenant_id: int, payload: PromotionApply) -> list[dict]:
@@ -187,6 +291,7 @@ def apply_promotion(db: Session, tenant_id: int, payload: PromotionApply) -> lis
     results = []
     for item in payload.items:
         e = get_eleve(db, tenant_id, item.eleve_id)
+        old_classe = e.classe_id
         if item.status in (PROMO_ADMIS, PROMO_REDOUBLE):
             if item.dest_classe_id is None:
                 raise ValueError(f"Classe de destination requise pour l'élève {e.id}")
@@ -194,6 +299,7 @@ def apply_promotion(db: Session, tenant_id: int, payload: PromotionApply) -> lis
             if item.new_level_code:
                 e.level_code = item.new_level_code
             e.statut = STATUT_INSCRIT
+            kind = MOUVEMENT_REDOUBLEMENT if item.status == PROMO_REDOUBLE else MOUVEMENT_PROMOTION
         elif item.status == PROMO_REORIENTE:
             if item.dest_classe_id is None:
                 raise ValueError(f"Classe de destination requise pour l'élève {e.id}")
@@ -203,17 +309,25 @@ def apply_promotion(db: Session, tenant_id: int, payload: PromotionApply) -> lis
             if item.new_level_code:
                 e.level_code = item.new_level_code
             e.statut = STATUT_INSCRIT
+            kind = MOUVEMENT_TRANSFERT
         elif item.status == PROMO_SORTANT:
             e.classe_id = None
             e.statut = STATUT_DIPLOME
+            kind = MOUVEMENT_SORTIE
         elif item.status == PROMO_EXCLU:
             e.classe_id = None
             e.statut = STATUT_EXCLU
+            kind = MOUVEMENT_SORTIE
         elif item.status == PROMO_ABANDON:
             e.classe_id = None
             e.statut = STATUT_ABANDON
+            kind = MOUVEMENT_SORTIE
         else:
             raise ValueError(f"Statut de promotion inconnu : {item.status}")
+        log_mouvement(
+            db, tenant_id, e.id, kind,
+            from_classe_id=old_classe, to_classe_id=e.classe_id, motif=item.status,
+        )
         results.append({"eleve_id": e.id, "status": item.status, "classe_id": e.classe_id})
     db.commit()
     return results
@@ -221,3 +335,159 @@ def apply_promotion(db: Session, tenant_id: int, payload: PromotionApply) -> lis
 
 def primary_parent_phone(e: Eleve) -> Optional[str]:
     return e.parents[0].phone if e.parents else None
+
+
+def _hash_pin(pin: str) -> str:
+    secret = get_base_settings().jwt_secret.encode()
+    return hmac.new(secret, pin.encode(), sha256).hexdigest()
+
+
+def generate_parent_code(db: Session, tenant_id: int, eleve_id: int) -> tuple[str, str]:
+    e = get_eleve(db, tenant_id, eleve_id)
+    phone = normalize_phone(primary_parent_phone(e))
+    if not phone:
+        raise ValueError("Aucun téléphone parent sur ce dossier.")
+    pin = f"{secrets.randbelow(1_000_000):06d}"
+    row = (
+        db.query(ParentAccess)
+        .filter(ParentAccess.tenant_id == tenant_id, ParentAccess.phone == phone)
+        .first()
+    )
+    if row is None:
+        row = ParentAccess(tenant_id=tenant_id, phone=phone, pin_hash=_hash_pin(pin))
+        db.add(row)
+    else:
+        row.pin_hash = _hash_pin(pin)
+        row.created_at = datetime.utcnow()
+    db.commit()
+    return phone, pin
+
+
+def login_parent(db: Session, phone: str, pin: str) -> tuple[ParentAccess, str]:
+    key = normalize_phone(phone)
+    if not key or not pin:
+        raise AuthError("Téléphone ou code invalide.")
+    pin_hash = _hash_pin(pin)
+    matches = (
+        db.query(ParentAccess)
+        .filter(ParentAccess.phone == key, ParentAccess.pin_hash == pin_hash)
+        .all()
+    )
+    if not matches:
+        # Anciens dossiers : téléphone stocké non normalisé.
+        matches = [
+            row for row in db.query(ParentAccess).all()
+            if normalize_phone(row.phone) == key and hmac.compare_digest(row.pin_hash, pin_hash)
+        ]
+    if not matches:
+        raise AuthError("Téléphone ou code incorrect.")
+    access = matches[0]
+    token = create_access_token(
+        TokenPayload(sub=access.phone, user_id=access.id, role="parent", tenant_id=access.tenant_id),
+        expires_delta=timedelta(days=7),
+    )
+    return access, token
+
+
+def list_eleves_for_parent_phone(db: Session, tenant_id: int, phone: str) -> list[Eleve]:
+    key = normalize_phone(phone)
+    eleves = (
+        db.query(Eleve)
+        .options(joinedload(Eleve.parents), joinedload(Eleve.mouvements))
+        .filter(Eleve.tenant_id == tenant_id)
+        .all()
+    )
+    out = []
+    for e in eleves:
+        for parent in e.parents:
+            if normalize_phone(parent.phone) == key or normalize_phone(parent.phone2) == key:
+                out.append(e)
+                break
+    return out
+
+
+def get_parent_access(db: Session, tenant_id: int, access_id: int) -> ParentAccess:
+    row = (
+        db.query(ParentAccess)
+        .filter(ParentAccess.tenant_id == tenant_id, ParentAccess.id == access_id)
+        .first()
+    )
+    if not row:
+        raise NotFound("Accès parent introuvable")
+    return row
+
+
+def save_appel(db: Session, tenant_id: int, payload: AppelIn) -> tuple[list[Presence], list[Presence]]:
+    """Enregistre l'appel du jour. Retourne (toutes les lignes, absences nouvellement posées)."""
+    if not payload.items:
+        raise ValueError("L'appel doit contenir au moins un élève.")
+    absents_before = {
+        row.eleve_id
+        for row in db.query(Presence).filter(
+            Presence.tenant_id == tenant_id,
+            Presence.classe_id == payload.classe_id,
+            Presence.jour == payload.jour,
+            Presence.statut == PRESENCE_ABSENT,
+        )
+    }
+    saved: list[Presence] = []
+    for item in payload.items:
+        statut = (item.statut or PRESENCE_PRESENT).upper()
+        if statut not in PRESENCE_STATUTS:
+            raise ValueError(f"Statut de présence inconnu : {item.statut}")
+        get_eleve(db, tenant_id, item.eleve_id)
+        row = (
+            db.query(Presence)
+            .filter(
+                Presence.tenant_id == tenant_id,
+                Presence.classe_id == payload.classe_id,
+                Presence.eleve_id == item.eleve_id,
+                Presence.jour == payload.jour,
+            )
+            .first()
+        )
+        if row is None:
+            row = Presence(
+                tenant_id=tenant_id,
+                classe_id=payload.classe_id,
+                eleve_id=item.eleve_id,
+                jour=payload.jour,
+                statut=statut,
+                motif=item.motif,
+            )
+            db.add(row)
+        else:
+            row.statut = statut
+            row.motif = item.motif
+        saved.append(row)
+    db.commit()
+    for row in saved:
+        db.refresh(row)
+    newly_absent = [row for row in saved if row.statut == PRESENCE_ABSENT and row.eleve_id not in absents_before]
+    return saved, newly_absent
+
+
+def list_presences(db: Session, tenant_id: int, classe_id: int, jour: date) -> list[Presence]:
+    return (
+        db.query(Presence)
+        .filter(
+            Presence.tenant_id == tenant_id,
+            Presence.classe_id == classe_id,
+            Presence.jour == jour,
+        )
+        .all()
+    )
+
+
+def list_absences_eleve(db: Session, tenant_id: int, eleve_id: int, limit: int = 20) -> list[Presence]:
+    return (
+        db.query(Presence)
+        .filter(
+            Presence.tenant_id == tenant_id,
+            Presence.eleve_id == eleve_id,
+            Presence.statut == PRESENCE_ABSENT,
+        )
+        .order_by(Presence.jour.desc())
+        .limit(limit)
+        .all()
+    )

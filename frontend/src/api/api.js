@@ -178,7 +178,7 @@ async function apiRequest(path, { method = 'GET', body, auth = true } = {}) {
     options.body = typeof body === 'string' ? body : JSON.stringify(body);
   }
   const res = await apiFetch(path, options);
-  return handleResponse(res);
+  return handleResponse(res, { authFailure: !auth });
 }
 
 async function handleResponse(res, { authFailure = false } = {}) {
@@ -1343,6 +1343,82 @@ export async function transferEleve(eleveId, newClasseId) {
     body: JSON.stringify({ new_classe_id: Number(newClasseId) }),
   });
   return normalizeEleve(await handleResponse(res));
+}
+
+export async function radierEleve(eleveId, payload) {
+  return apiRequest(`/eleves/${eleveId}/radier`, { method: 'POST', body: payload });
+}
+
+export async function fetchEleveMouvements(eleveId) {
+  return apiRequest(`/eleves/${eleveId}/mouvements`);
+}
+
+export async function generateParentCode(eleveId) {
+  return apiRequest(`/eleves/${eleveId}/parent-code`, { method: 'POST' });
+}
+
+export async function downloadEleveDocument(eleveId, kind, establishmentName = 'Établissement') {
+  const params = new URLSearchParams({ establishment_name: establishmentName });
+  const path = kind === 'carte'
+    ? `/eleves/${eleveId}/carte.pdf?${params}`
+    : `/eleves/${eleveId}/attestations/${kind}.pdf?${params}`;
+  const res = await fetch(path, { headers: getHeaders() });
+  return downloadFileResponse(res, `${kind}_${eleveId}.pdf`);
+}
+
+export async function downloadQuitusCaisse(eleveId, { classeId, establishmentName, eleveNom, matricule } = {}) {
+  const params = new URLSearchParams({ establishment_name: establishmentName || 'Établissement' });
+  if (classeId) params.set('classe_id', String(classeId));
+  if (eleveNom) params.set('eleve_nom', eleveNom);
+  if (matricule) params.set('matricule', matricule);
+  const res = await fetch(`/tresorerie/pension/${eleveId}/quitus.pdf?${params}`, { headers: getHeaders() });
+  return downloadFileResponse(res, `quitus_${matricule || eleveId}.pdf`);
+}
+
+export async function fetchPresences(classeId, jour) {
+  const params = new URLSearchParams({ classe_id: String(classeId), jour });
+  return apiRequest(`/eleves/presences?${params}`);
+}
+
+export async function saveAppel(payload) {
+  return apiRequest('/eleves/presences/appel', { method: 'POST', body: payload });
+}
+
+const PARENT_TOKEN_KEY = 'parent_access_token';
+
+export function getParentAccessToken() {
+  return localStorage.getItem(PARENT_TOKEN_KEY);
+}
+
+export function clearParentAccessToken() {
+  localStorage.removeItem(PARENT_TOKEN_KEY);
+}
+
+export async function parentLogin(phone, pin) {
+  const data = await apiRequest('/eleves/public/parent/login', {
+    method: 'POST',
+    body: { phone, pin },
+    auth: false,
+  });
+  if (data?.access_token) localStorage.setItem(PARENT_TOKEN_KEY, data.access_token);
+  return data;
+}
+
+export async function fetchParentDashboard() {
+  const token = getParentAccessToken();
+  if (!token) throw new Error('Connectez-vous à l’espace parent.');
+  const res = await apiFetch('/eleves/parent/dashboard', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    clearParentAccessToken();
+    throw new Error('Session parent expirée. Reconnectez-vous.');
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Erreur serveur' }));
+    throw new Error(formatApiError(err.detail));
+  }
+  return res.json();
 }
 
 // ── Référentiel MINESEC (lecture seule, §8) ───────────────

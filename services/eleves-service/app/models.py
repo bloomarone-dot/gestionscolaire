@@ -8,13 +8,14 @@ ainsi toute modification au niveau classe s'applique automatiquement à tous ses
 from datetime import datetime
 
 from sqlalchemy import (
-    Boolean,
     Column,
     Date,
     DateTime,
     ForeignKey,
     Integer,
     String,
+    Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -26,6 +27,19 @@ STATUT_TRANSFERE = "TRANSFERE"
 STATUT_EXCLU = "EXCLU"
 STATUT_DIPLOME = "DIPLOME"
 STATUT_ABANDON = "ABANDON"
+STATUT_RADIE = "RADIE"
+
+MOUVEMENT_INSCRIPTION = "INSCRIPTION"
+MOUVEMENT_REINSCRIPTION = "REINSCRIPTION"
+MOUVEMENT_TRANSFERT = "TRANSFERT"
+MOUVEMENT_RADIATION = "RADIATION"
+MOUVEMENT_REDOUBLEMENT = "REDOUBLEMENT"
+MOUVEMENT_PROMOTION = "PROMOTION"
+MOUVEMENT_SORTIE = "SORTIE"
+
+PRESENCE_PRESENT = "PRESENT"
+PRESENCE_ABSENT = "ABSENT"
+PRESENCE_RETARD = "RETARD"
 
 
 class Eleve(Base):
@@ -42,6 +56,7 @@ class Eleve(Base):
     lieu_naissance = Column(String(120), nullable=True)
     photo_url = Column(String, nullable=True)
     etat_sante = Column(String, nullable=True)  # allergies, groupe sanguin, notes médicales
+    pieces = Column(Text, nullable=True)  # JSON checklist dossier
 
     # Profil pédagogique (cascade §6, codes du référentiel)
     subsystem_code = Column(String(20), nullable=True)
@@ -56,6 +71,7 @@ class Eleve(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     parents = relationship("Parent", cascade="all, delete-orphan", back_populates="eleve")
+    mouvements = relationship("EleveMouvement", cascade="all, delete-orphan", back_populates="eleve")
 
 
 class Parent(Base):
@@ -73,3 +89,48 @@ class Parent(Base):
     email = Column(String(120), nullable=True)     # facultatif — jamais bloquant
 
     eleve = relationship("Eleve", back_populates="parents")
+
+
+class EleveMouvement(Base):
+    """Historique inscription / transfert / radiation / redoublement."""
+    __tablename__ = "eleve_mouvements"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    eleve_id = Column(Integer, ForeignKey("eleves.id"), nullable=False, index=True)
+    kind = Column(String(20), nullable=False)
+    from_classe_id = Column(Integer, nullable=True)
+    to_classe_id = Column(Integer, nullable=True)
+    motif = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    eleve = relationship("Eleve", back_populates="mouvements")
+
+
+class ParentAccess(Base):
+    """Code d'accès espace parent (téléphone + PIN), un par établissement."""
+    __tablename__ = "parent_access"
+    __table_args__ = (UniqueConstraint("tenant_id", "phone", name="uq_parent_access_phone"),)
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    phone = Column(String(20), nullable=False, index=True)
+    pin_hash = Column(String(64), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Presence(Base):
+    """Appel quotidien par classe."""
+    __tablename__ = "presences"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "classe_id", "eleve_id", "jour", name="uq_presence_appel"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    classe_id = Column(Integer, nullable=False, index=True)
+    eleve_id = Column(Integer, ForeignKey("eleves.id"), nullable=False, index=True)
+    jour = Column(Date, nullable=False, index=True)
+    statut = Column(String(12), nullable=False, default=PRESENCE_PRESENT)
+    motif = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
