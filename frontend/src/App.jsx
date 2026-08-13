@@ -1,6 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/useAuth';
+import { LanguageProvider } from './context/LanguageContext';
+import { ThemeProvider } from './context/ThemeContext';
 import SaaSLayout from './components/layout/SaaSLayout';
 import SuperAdminLayout from './components/layout/SuperAdminLayout';
 import ProfessorLayout from './components/layout/ProfessorLayout';
@@ -46,6 +48,7 @@ import {
 import SecretaryLayout from './components/layout/SecretaryLayout';
 import SecretaryDashboard from './pages/modern/SecretaryDashboard';
 import TeamPage from './pages/modern/TeamPage';
+import ProfilePage from './pages/modern/ProfilePage';
 import ParentPaymentPage from './pages/ParentPaymentPage';
 import ParentPortalPage from './pages/ParentPortalPage';
 import OfflineBanner from './components/OfflineBanner';
@@ -167,6 +170,7 @@ function AppRoutes() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<HomeRedirect />} />
     </Routes>
@@ -176,10 +180,14 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-        <OfflineBanner />
-      </AuthProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppRoutes />
+            <OfflineBanner />
+          </AuthProvider>
+        </ThemeProvider>
+      </LanguageProvider>
     </BrowserRouter>
   );
 }

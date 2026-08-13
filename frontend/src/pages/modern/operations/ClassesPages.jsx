@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Filter, Plus, Sparkles } from "lucide-react";
 import * as api from "../../../api/api";
 import LanguageCenterGroupFields from "../../../components/languageCenter/LanguageCenterGroupFields";
 import PrimarySchoolGroupFields from "../../../components/primarySchool/PrimarySchoolGroupFields";
@@ -45,6 +45,12 @@ const emptyPsForm = {
   effectif_max: 35,
   prof_principal_id: "",
 };
+
+const SECTION_FILTERS = [
+  ["", "Toutes"],
+  ["FRANCOPHONE", "Francophone"],
+  ["ANGLOPHONE", "Anglophone"],
+];
 
 export function OperationalClassesPage() {
   const { labels: ui, isLanguageCenter, isPrimarySchool } = useEstablishmentProfile();
@@ -109,12 +115,12 @@ export function OperationalClassesPage() {
   }
 
   return (
-    <>
+    <div className="space-y-5">
       <PageHeader
         title={ui.classes}
         actions={
           <Link to="/app/classes/nouveau">
-            <Button>
+            <Button className="shadow-sm">
               <Plus size={16} /> {isLanguageCenter ? "Nouveau groupe" : "Nouvelle classe"}
             </Button>
           </Link>
@@ -125,20 +131,31 @@ export function OperationalClassesPage() {
         tone={error ? "amber" : "blue"}
       />
       <Notice message={notice} />
+
       {!isLanguageCenter && (
-        <Card className="mb-4 p-4">
-          <label className="block max-w-xs">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">
-              {isPrimarySchool ? "Filtrer par section" : "Filtrer par section"}
-            </span>
-            <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-              <option value="">Toutes les sections</option>
-              <option value="FRANCOPHONE">Francophone</option>
-              <option value="ANGLOPHONE">Anglophone</option>
-            </Select>
-          </label>
+        <Card className="flex flex-wrap items-center gap-3 p-3.5 shadow-sm">
+          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <Filter size={14} /> Section
+          </span>
+          <div className="inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            {SECTION_FILTERS.map(([value, label]) => (
+              <button
+                key={value || "all"}
+                type="button"
+                onClick={() => setSectionFilter(value)}
+                className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
+                  sectionFilter === value
+                    ? "bg-white text-[#101F3C] shadow-sm ring-1 ring-slate-200"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </Card>
       )}
+
       <DataTable
         title={ui.classes}
         columns={[
@@ -214,13 +231,15 @@ export function OperationalClassesPage() {
         ]}
         rows={rows.filter((row) => isLanguageCenter || !sectionFilter || row.subsystem_code === sectionFilter)}
         rowClassName={(row) =>
-          String(row.id) === highlightId
-            ? "bg-blue-50 ring-1 ring-inset ring-blue-200"
-            : "hover:bg-slate-50"
+          `transition-colors ${
+            String(row.id) === highlightId
+              ? "bg-blue-50 ring-1 ring-inset ring-blue-200"
+              : "hover:bg-slate-50"
+          }`
         }
         renderActions={(row) => deleteAction(() => handleDelete(row))}
       />
-    </>
+    </div>
   );
 }
 
@@ -342,60 +361,66 @@ export function ClasseCreatePage() {
   }
 
   return (
-    <>
+    <div className="mx-auto max-w-4xl space-y-5">
       <PageHeader
         title={isLanguageCenter ? "Nouveau groupe" : "Nouvelle classe"}
         breadcrumb={ui.classes}
         actions={
           <Link to="/app/classes">
-            <Button variant="secondary">Retour à la liste</Button>
+            <Button variant="secondary">
+              <ArrowLeft size={16} /> Retour à la liste
+            </Button>
           </Link>
         }
       />
       <Notice message={notice} tone="rose" />
-      <Card className="p-5">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <h2 className="font-bold">
-            {isLanguageCenter ? "Informations du groupe" : "Informations de la classe"}
-          </h2>
+
+      <Card className="p-5 shadow-sm sm:p-6">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <Sparkles size={20} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">
+                {isLanguageCenter ? "Informations du groupe" : "Informations de la classe"}
+              </h2>
+              <p className="text-sm text-slate-500">
+                {isLanguageCenter
+                  ? "Niveau CECRL, créneau et effectif du groupe."
+                  : isPrimarySchool
+                    ? "Section, niveau et effectif de la classe."
+                    : "Classification MINESEC puis nom affiché de la classe."}
+              </p>
+            </div>
+          </div>
+
           {!isLanguageCenter && !isPrimarySchool && (
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-              <input
-                type="checkbox"
-                checked={special}
-                onChange={(e) => setSpecial(e.target.checked)}
-              />
+            <button
+              type="button"
+              onClick={() => setSpecial((v) => !v)}
+              className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                special
+                  ? "border-amber-200 bg-amber-50 text-amber-700"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
               Classe spéciale (hors MINESEC)
-            </label>
+              <span
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                  special ? "bg-amber-500" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                    special ? "translate-x-[18px]" : "translate-x-1"
+                  }`}
+                />
+              </span>
+            </button>
           )}
         </div>
-        {!isLanguageCenter && !isPrimarySchool && !special && (
-          <div className="mb-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
-            <p className="font-bold">Comment créer une classe (collège ou lycée) ?</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sky-900">
-              <li>
-                <strong>Sous-système</strong> = Francophone ou Anglophone.
-              </li>
-              <li>
-                <strong>Type</strong> = Général ou Technique.
-              </li>
-              <li>
-                <strong>Cycle</strong> = seulement deux choix : <em>Premier cycle</em> ou{" "}
-                <em>Second cycle</em> (valable collège comme lycée).
-              </li>
-              <li>
-                <strong>Niveau</strong> = la classe exacte (6ème, 3ème, 2nde, Terminale…).
-              </li>
-              <li>
-                <strong>Série</strong> = surtout au second cycle (C, D, A4…) ; souvent pas au premier cycle.
-              </li>
-            </ul>
-            <p className="mt-2 text-xs text-sky-800">
-              Remplissez les listes <strong>dans l&apos;ordre</strong>. Le bouton reste grisé tant que
-              tout n&apos;est pas choisi. Ensuite donnez un nom local (ex. « Tle D1 »).
-            </p>
-          </div>
-        )}
+
         <form
           id="class-form"
           className="grid gap-4 md:grid-cols-2"
@@ -440,6 +465,7 @@ export function ClasseCreatePage() {
           ) : (
             <CascadeFields cascade={cascade} />
           )}
+
           {!isLanguageCenter && !isPrimarySchool && (
             <>
               <label className="flex flex-col gap-1.5 text-sm md:col-span-2">
@@ -454,40 +480,52 @@ export function ClasseCreatePage() {
                   onChange={(e) => setForm({ ...form, nom: e.target.value })}
                 />
               </label>
-              <Input
-                type="number"
-                min="1"
-                placeholder="Effectif maximum"
-                value={form.effectif_max}
-                onChange={(e) => setForm({ ...form, effectif_max: e.target.value })}
-              />
-              <Select
-                value={form.prof_principal_id}
-                onChange={(e) =>
-                  setForm({ ...form, prof_principal_id: e.target.value })
-                }
-              >
-                <option value="">Professeur principal (optionnel)</option>
-                {teacherRows.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </Select>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="font-semibold text-slate-800">Effectif maximum</span>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Effectif maximum"
+                  value={form.effectif_max}
+                  onChange={(e) => setForm({ ...form, effectif_max: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="font-semibold text-slate-800">Professeur principal</span>
+                <Select
+                  value={form.prof_principal_id}
+                  onChange={(e) =>
+                    setForm({ ...form, prof_principal_id: e.target.value })
+                  }
+                >
+                  <option value="">Optionnel</option>
+                  {teacherRows.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </Select>
+              </label>
             </>
           )}
+
           {special && !isLanguageCenter && (
-            <p className="md:col-span-2 text-xs text-amber-600">
-              Classe hors référentiel : aucune matière n&apos;est pré-remplie.
-              Étiquette « Spéciale » appliquée partout.
+            <p className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 md:col-span-2">
+              Classe hors référentiel : aucune matière n&apos;est pré-remplie. Étiquette « Spéciale » appliquée partout.
             </p>
           )}
           {!special && !isLanguageCenter && !isPrimarySchool && !cascade.isComplete && (
-            <p className="md:col-span-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+            <p className="md:col-span-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
               {cascade.missingStepMessage?.() || "Complétez les listes ci-dessus avant de créer."}
             </p>
           )}
-          <div className="md:col-span-2 flex justify-end gap-2">
+          {!special && !isLanguageCenter && !isPrimarySchool && cascade.isComplete && (
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 md:col-span-2">
+              <CheckCircle2 size={14} /> Classification complète — vous pouvez nommer et créer la classe.
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 md:col-span-2">
             <Link to="/app/classes">
               <Button type="button" variant="secondary">
                 Annuler
@@ -504,6 +542,7 @@ export function ClasseCreatePage() {
                   && !cascade.isComplete
                 )
               }
+              className="shadow-sm"
             >
               <Plus size={16} />{" "}
               {saving
@@ -515,6 +554,6 @@ export function ClasseCreatePage() {
           </div>
         </form>
       </Card>
-    </>
+    </div>
   );
 }

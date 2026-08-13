@@ -43,8 +43,7 @@ function languageCenterAdminNav(ui) {
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
         { to: '/app/bulletins/modeles', label: 'Modèles de bulletin', icon: 'Receipt' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
-        { to: '/app/progression/policies', label: 'Politiques de progression', icon: 'Settings' },
-        { to: '/app/progression/proposals', label: 'Validation décisions', icon: 'CheckCircle2' },
+       
       ],
     },
     {
@@ -52,7 +51,6 @@ function languageCenterAdminNav(ui) {
       icon: 'Users',
       items: [
         { to: '/app/students', label: ui.studentsList, icon: 'Users' },
-        { to: '/app/students/nouveau', label: ui.enrollment, icon: 'ClipboardList' },
         { to: '/app/schedules', label: 'Planning', icon: 'CalendarDays' },
       ],
     },
@@ -68,7 +66,6 @@ function languageCenterAdminNav(ui) {
       icon: 'WalletCards',
       items: [
         { to: '/app/payments', label: 'Paiements', icon: 'WalletCards' },
-        { to: '/app/expenses', label: 'Dépenses', icon: 'WalletCards' },
       ],
     },
     {
@@ -76,7 +73,6 @@ function languageCenterAdminNav(ui) {
       icon: 'Bell',
       items: [
         { to: '/app/announcements', label: 'Annonces', icon: 'Megaphone' },
-        { to: '/app/notifications', label: 'Notifications', icon: 'Bell' },
       ],
     },
     {
@@ -103,8 +99,7 @@ function primarySchoolAdminNav(ui) {
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
         { to: '/app/bulletins/modeles', label: 'Modèles de bulletin', icon: 'Receipt' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
-        { to: '/app/progression/policies', label: 'Politiques de progression', icon: 'Settings' },
-        { to: '/app/progression/proposals', label: 'Validation décisions', icon: 'CheckCircle2' },
+       
       ],
     },
     {
@@ -112,7 +107,6 @@ function primarySchoolAdminNav(ui) {
       icon: 'Users',
       items: [
         { to: '/app/students', label: ui.studentsList, icon: 'Users' },
-        { to: '/app/students/nouveau', label: ui.enrollment, icon: 'ClipboardList' },
       ],
     },
     {
@@ -127,7 +121,6 @@ function primarySchoolAdminNav(ui) {
       icon: 'WalletCards',
       items: [
         { to: '/app/payments', label: 'Paiements Mobile Money', icon: 'WalletCards' },
-        { to: '/app/expenses', label: 'Retraits & dépenses', icon: 'WalletCards' },
       ],
     },
     {
@@ -164,10 +157,8 @@ function schoolAdminNav(ui) {
       icon: 'Users',
       items: [
         { to: '/app/students', label: ui.studentsList, icon: 'Users' },
-        { to: '/app/students/nouveau', label: ui.enrollment, icon: 'ClipboardList' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
-        { to: '/app/progression/policies', label: 'Politiques de progression', icon: 'Settings' },
-        { to: '/app/progression/proposals', label: 'Validation décisions', icon: 'CheckCircle2' },
+       
       ],
     },
     {
@@ -184,7 +175,6 @@ function schoolAdminNav(ui) {
       icon: 'Bell',
       items: [
         { to: '/app/announcements', label: 'Annonces', icon: 'Megaphone' },
-        { to: '/app/notifications', label: 'Notifications', icon: 'Bell' },
       ],
     },
     {
@@ -198,11 +188,9 @@ function schoolAdminNav(ui) {
       group: 'Extra',
       icon: 'Sparkles',
       items: [
-        { to: '/app/parents', label: 'Parents', icon: 'UserCog' },
         { to: '/app/schedules', label: 'Emplois du temps', icon: 'CalendarDays' },
         { to: '/app/attendance', label: 'Présences', icon: 'ClipboardList' },
         { to: '/app/payments', label: 'Paiements', icon: 'WalletCards' },
-        { to: '/app/expenses', label: 'Dépenses', icon: 'WalletCards' },
         { to: '/app/reports', label: 'Rapports', icon: 'BarChart3' },
       ],
     },

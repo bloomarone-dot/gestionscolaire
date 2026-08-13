@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  ArrowDownCircle, Copy, Download, Link2, ListChecks, Plus, Wallet, WalletCards,
+  ArrowDownCircle, Copy, Download, Link2, ListChecks, Plus, UserPlus, Wallet, WalletCards,
 } from 'lucide-react';
 import * as api from '../../api/api';
 import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
@@ -48,6 +49,7 @@ const emptyRetrait = () => ({ label: '', amount: '', category: RETRAIT_CATEGORIE
 export default function PaymentsPage() {
   const { labels: ui, profile } = useEstablishmentProfile();
   const establishmentName = profile?.nom || profile?.name || 'Établissement';
+  const navigate = useNavigate();
 
   const [tab, setTab] = useState('paiement');
   const [eleves, setEleves] = useState([]);
@@ -96,15 +98,34 @@ export default function PaymentsPage() {
   const fail = (msg) => { setError(msg); setNotice(''); };
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Paiements & caisse"
-        description="Encaissements de scolarité (inscription + 3 tranches), suivi des élèves et contrôle de la caisse."
-      />
+    <div className="space-y-6">
+      {/* En-tête : titre + description + action rapide "Inscription" */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <PageHeader
+          title="Paiements & caisse"
+          description="Encaissements de scolarité (inscription + 3 tranches), suivi des élèves et contrôle de la caisse."
+        />
+        <Button
+          type="button"
+          onClick={() => navigate('/app/students/nouveau')}
+          className="shrink-0 shadow-sm"
+        >
+          <UserPlus size={16} /> Inscription
+        </Button>
+      </div>
 
-      {notice && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</div>}
-      {error && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {notice && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {notice}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
+      {/* Indicateurs globaux — visibles quel que soit l'onglet, donc jamais dupliqués plus bas */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Encaissé ce mois" value={loading ? '…' : (stats?.paid_month_count ?? 0)} trend={formatXaf(stats?.paid_month_amount)} icon={WalletCards} tone="emerald" />
         <StatCard label="En ligne (Mobile Money)" value={loading ? '…' : (stats?.online_month_count ?? 0)} trend={formatXaf(stats?.online_month_amount)} icon={WalletCards} tone="blue" />
@@ -112,16 +133,17 @@ export default function PaymentsPage() {
         <StatCard label="Solde caisse" value={loading ? '…' : formatXaf(stats?.caisse_solde)} trend="Encaissements − retraits" icon={Wallet} tone="slate" />
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-slate-200">
+      {/* Onglets — style "segmented control" plus moderne que le soulignement */}
+      <div className="inline-flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
         {TABS.map(([key, label, Icon]) => (
           <button
             key={key}
             type="button"
             onClick={() => { setTab(key); setNotice(''); setError(''); }}
-            className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-semibold transition ${
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
               tab === key
-                ? 'border-[#101F3C] text-[#101F3C]'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'bg-white text-[#101F3C] shadow-sm ring-1 ring-slate-200'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             <Icon size={16} /> {label}
@@ -298,7 +320,7 @@ function PaiementTab({ ui, eleves, classesById, establishmentName, onFlash, onFa
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="mb-3 text-sm font-bold text-slate-800">Versement de scolarité (affectation automatique)</h3>
         <div className="grid gap-3 md:grid-cols-2">
           <div>
@@ -409,7 +431,7 @@ function PaiementTab({ ui, eleves, classesById, establishmentName, onFlash, onFa
               )}
             </div>
 
-            <form onSubmit={handlePay} className="flex flex-wrap items-end gap-3 rounded-lg bg-slate-50 p-3">
+            <form onSubmit={handlePay} className="flex flex-wrap items-end gap-3 rounded-xl bg-slate-50 p-3">
               <div className="w-40">
                 <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Montant versé *</label>
                 <Input type="number" min="1" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
@@ -572,7 +594,10 @@ function PaiementTab({ ui, eleves, classesById, establishmentName, onFlash, onFa
   );
 }
 
-/* ───────────────────────── Onglet Caisse ───────────────────────── */
+/* ───────────────────────── Onglet Caisse ─────────────────────────
+   Les 3 cartes (Encaissé ce mois / Retraits ce mois / Solde caisse) sont déjà
+   affichées en permanence tout en haut de la page — on ne les répète plus ici.
+   On garde seulement un bandeau "Solde caisse" mis en avant, propre à cet onglet. */
 function CaisseTab({ stats, onFlash, onFail, onChanged }) {
   const [retraits, setRetraits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -619,10 +644,15 @@ function CaisseTab({ stats, onFlash, onFail, onChanged }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Solde caisse" value={formatXaf(stats?.caisse_solde)} trend="Encaissements − retraits" icon={Wallet} tone="slate" />
-        <StatCard label="Encaissé ce mois" value={formatXaf(stats?.paid_month_amount)} icon={WalletCards} tone="emerald" />
-        <StatCard label="Retraits ce mois" value={formatXaf(stats?.withdrawal_month_amount)} icon={ArrowDownCircle} tone="rose" />
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#101F3C] to-[#1c3766] px-5 py-4 text-white shadow-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/70">Solde actuel de la caisse</p>
+          <p className="mt-1 text-3xl font-bold">{formatXaf(stats?.caisse_solde)}</p>
+          <p className="mt-0.5 text-xs text-white/60">Encaissements − retraits</p>
+        </div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+          <Wallet size={22} className="text-white" />
+        </div>
       </div>
 
       <DataTable

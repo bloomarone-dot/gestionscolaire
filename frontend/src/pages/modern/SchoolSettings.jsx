@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
+import {
+  Building2, FileText, GraduationCap, LayoutTemplate, Palette, Plus, RotateCcw,
+  Save, Star, Trash2, TrendingUp, Upload, UserCog, Wallet,
+} from 'lucide-react';
 import * as api from '../../api/api';
 import { useAuth } from '../../context/useAuth';
 import { Button, Card, Input, PageHeader, Select } from '../../components/ui';
@@ -36,6 +39,83 @@ const SUBSYSTEM_OPTS = [['FRANCOPHONE', 'Francophone'], ['ANGLOPHONE', 'Anglopho
 const TYPE_OPTS = [['GENERAL', 'Général'], ['TECHNIQUE', 'Technique']];
 const CHANNEL_OPTS = [['SMS', 'SMS'], ['WHATSAPP', 'WhatsApp'], ['EMAIL', 'Email'], ['INTERNAL', 'Notification interne']];
 
+/* Sections affichées dans la navigation latérale — ancre + icône + couleur */
+const SECTIONS = [
+  ['etablissement', 'Établissement', Building2, 'blue'],
+  ['entete', 'En-tête du bulletin', FileText, 'amber'],
+  ['modeles', 'Modèles de bulletin', LayoutTemplate, 'violet'],
+  ['apparence', 'Apparence par section', Palette, 'rose'],
+  ['bareme', 'Barème des appréciations', Star, 'emerald'],
+  ['personnel', 'Personnel & rôles', UserCog, 'slate'],
+  ['frais', 'Frais de scolarité', Wallet, 'blue'],
+  ['pedagogique', 'Profil pédagogique', GraduationCap, 'violet'],
+];
+
+const TONE_STYLES = {
+  blue: 'bg-blue-50 text-blue-600',
+  emerald: 'bg-emerald-50 text-emerald-600',
+  amber: 'bg-amber-50 text-amber-600',
+  violet: 'bg-violet-50 text-violet-600',
+  rose: 'bg-rose-50 text-rose-600',
+  slate: 'bg-slate-100 text-slate-600',
+};
+
+/* Carte de section uniforme : badge icône + titre + description + zone d'actions */
+function SectionCard({ id, icon: Icon, tone = 'blue', title, description, actions, children }) {
+  return (
+    <Card id={id} className="scroll-mt-6 p-5 shadow-sm sm:p-6">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="flex items-start gap-3">
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${TONE_STYLES[tone]}`}>
+            <Icon size={20} />
+          </span>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 sm:text-lg">{title}</h2>
+            {description && <p className="mt-0.5 max-w-2xl text-sm text-slate-500">{description}</p>}
+          </div>
+        </div>
+        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+function SideNav({ activeHint }) {
+  return (
+    <nav className="sticky top-6 hidden max-h-[calc(100vh-3rem)] space-y-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:block">
+      <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Sections</p>
+      {SECTIONS.map(([id, label, Icon]) => (
+        <a
+          key={id}
+          href={`#${id}`}
+          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+        >
+          <Icon size={16} className="text-slate-400" />
+          {label}
+        </a>
+      ))}
+      {activeHint}
+    </nav>
+  );
+}
+
+function MobileSectionTabs() {
+  return (
+    <div className="-mx-1 mb-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:hidden">
+      {SECTIONS.map(([id, label, Icon]) => (
+        <a
+          key={id}
+          href={`#${id}`}
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm"
+        >
+          <Icon size={14} /> {label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function CheckGroup({ options, selected, onToggle }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -47,7 +127,7 @@ function CheckGroup({ options, selected, onToggle }) {
             key={code}
             onClick={() => onToggle(code)}
             className={`rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition ${
-              on ? 'bg-blue-50 text-blue-700 ring-blue-200' : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
+              on ? 'bg-blue-600 text-white ring-blue-600 shadow-sm' : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
             }`}
           >
             {label}
@@ -78,7 +158,7 @@ function AppreciationScaleEditor({ title, bands, onChange }) {
   const removeBand = (index) => onChange(bands.filter((_, i) => i !== index));
 
   return (
-    <div className="rounded-xl border border-slate-200 p-4">
+    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-slate-900">{title}</h3>
         <Button type="button" variant="secondary" className="px-2 py-1 text-xs" onClick={addBand}>
@@ -209,13 +289,13 @@ function FeesScheduleCard() {
   const total = num(fee.inscription) + num(fee.tranche1) + num(fee.tranche2) + num(fee.tranche3);
 
   return (
-    <Card className="p-5">
-      <h2 className="mb-1 text-lg font-bold text-slate-900">Frais de scolarité par classe</h2>
-      <p className="mb-4 text-sm text-slate-500">
-        Définissez, pour chaque classe, le montant de l'inscription (à part) et des 3 tranches de pension,
-        ainsi que la période couverte par chaque tranche. Ces montants alimentent l'inscription et le suivi des paiements.
-      </p>
-
+    <SectionCard
+      id="frais"
+      icon={Wallet}
+      tone="blue"
+      title="Frais de scolarité par classe"
+      description="Montant de l'inscription (à part) et des 3 tranches de pension, ainsi que la période couverte par chaque tranche. Ces montants alimentent l'inscription et le suivi des paiements."
+    >
       {msg && <div className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{msg}</div>}
       {err && <div className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{err}</div>}
 
@@ -233,7 +313,7 @@ function FeesScheduleCard() {
       </div>
 
       {classeId && (
-        <div className="space-y-4">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="block">
               <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">Inscription (XAF)</span>
@@ -271,9 +351,9 @@ function FeesScheduleCard() {
             />
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
             <p className="text-sm text-slate-600">
-              Total annuel : <b>{total.toLocaleString('fr-FR')} XAF</b>
+              Total annuel : <b className="text-slate-900">{total.toLocaleString('fr-FR')} XAF</b>
             </p>
             <Button type="button" onClick={save} disabled={saving}>
               <Save size={16} /> {saving ? 'Enregistrement…' : 'Enregistrer cette classe'}
@@ -281,7 +361,7 @@ function FeesScheduleCard() {
           </div>
         </div>
       )}
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -412,185 +492,225 @@ export function SettingsPage() {
     }
   }
 
-  if (loading) return <><PageHeader title="Paramètres établissement" /><p className="text-sm text-slate-500">Chargement...</p></>;
-  if (!school) return (
-    <>
-      <PageHeader title="Paramètres établissement" />
-      <div className="rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-        {error || (user?.role === 'superadmin'
-          ? 'Sélectionnez un établissement en haut de page pour configurer le bulletin.'
-          : 'Établissement introuvable.')}
-      </div>
-    </>
-  );
+  if (loading) {
+    return (
+      <>
+        <PageHeader title="Paramètres établissement" />
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+          Chargement des paramètres…
+        </div>
+      </>
+    );
+  }
+  if (!school) {
+    return (
+      <>
+        <PageHeader title="Paramètres établissement" />
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 shadow-sm">
+          {error || (user?.role === 'superadmin'
+            ? 'Sélectionnez un établissement en haut de page pour configurer le bulletin.'
+            : 'Établissement introuvable.')}
+        </div>
+      </>
+    );
+  }
 
   return (
-    <>
-      <PageHeader
-        title="Paramètres établissement"
-        description="Profil, logo, couleurs du bulletin par section, barème des appréciations — chaque établissement a son modèle."
-        breadcrumb="Établissement / Paramètres"
-      />
-
-      {notice && <div className="mb-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
-      {error && <div className="mb-5 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="p-5">
-          <h2 className="mb-4 text-lg font-bold text-slate-900">Etablissement</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Nom de l'etablissement"><Input required value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
-            <Field label="Ville"><Input value={form.city} onChange={(e) => set('city', e.target.value)} /></Field>
-            <Field label="Telephone"><Input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+237 6XX XXX XXX" /></Field>
-            <Field label="Adresse"><Input value={form.address} onChange={(e) => set('address', e.target.value)} /></Field>
-          </div>
-        </Card>
-
-        <Card className="p-5">
-          <h2 className="mb-1 text-lg font-bold text-slate-900">En-tete du bulletin</h2>
-          <p className="mb-4 text-sm text-slate-500">Ces informations apparaissent en haut de chaque bulletin officiel (en-tete bilingue MINESEC).</p>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Devise de l'etablissement" hint="Ex : a chosen generation"><Input value={form.bulletin_motto} onChange={(e) => set('bulletin_motto', e.target.value)} /></Field>
-            <Field label="Boite postale" hint="Ex : BP 20142 Yaounde - 6XX XXX XXX"><Input value={form.bulletin_po_box} onChange={(e) => set('bulletin_po_box', e.target.value)} /></Field>
-            <Field label="Delegation regionale" hint="Ex : REGIONAL DELEGATION FOR CENTER"><Input value={form.bulletin_delegation_regional} onChange={(e) => set('bulletin_delegation_regional', e.target.value)} /></Field>
-            <Field label="Delegation departementale" hint="Ex : DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA"><Input value={form.bulletin_delegation_departementale} onChange={(e) => set('bulletin_delegation_departementale', e.target.value)} /></Field>
-            <Field label="Note de rentree" hint="Ex : Next term re-opens: April 20th, 2026"><Input value={form.bulletin_next_term_note} onChange={(e) => set('bulletin_next_term_note', e.target.value)} /></Field>
-            <Field label="Logo du bulletin" hint="Image affichee au centre de l en-tete (PNG/JPG)">
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                  <Upload size={16} /> Telecharger le logo
-                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                </label>
-                {form.logo_url && (
-                  <img src={form.logo_url} alt="Apercu logo" className="h-20 w-auto rounded border border-slate-200 bg-white p-1" />
-                )}
-              </div>
-            </Field>
-            <Field label="Logo (URL alternative)" hint="Ou coller un lien https://..."><Input value={form.logo_url} onChange={(e) => set('logo_url', e.target.value)} placeholder="https://..." /></Field>
-          </div>
-        </Card>
-
-        <div data-testid="school-settings-bulletin-modeles">
-          <Card className="p-5">
-            <h2 className="mb-1 text-lg font-bold text-slate-900">Modèle de bulletin</h2>
-            <p className="mb-4 text-sm text-slate-500">
-              Créez et personnalisez le bulletin de votre établissement avec notre éditeur visuel.
-            </p>
-            <Button
-              type="button"
-              variant="secondary"
-              data-testid="manage-bulletin-modeles"
-              onClick={() => navigate('/app/bulletins/modeles')}
-            >
-              Gérer mes modèles de bulletin
-            </Button>
-          </Card>
-        </div>
-
-        <Card className="p-5">
-          <h2 className="mb-1 text-lg font-bold text-slate-900">Apparence du bulletin par section</h2>
-          <p className="mb-4 text-sm text-slate-500">
-            Couleurs distinctes pour la section francophone et anglophone. Le bulletin d&apos;une classe
-            Form utilise le modèle anglophone ; une classe 6ème, 2nde, etc. utilise le modèle francophone.
-          </p>
-          <div className="mb-4 flex flex-wrap gap-2">
-            {[
-              ['francophone', 'Francophone (BULLETIN, PREMIER GROUPE…)'],
-              ['anglophone', 'Anglophone (REPORT CARD, FIRST GROUP…)'],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setThemeSection(key)}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition ${
-                  themeSection === key
-                    ? 'bg-blue-50 text-blue-700 ring-blue-200'
-                    : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <BulletinThemeEditor
-            theme={themeSection === 'anglophone' ? themeAnglophone : themeFrancophone}
-            onChange={themeSection === 'anglophone' ? setThemeAnglophone : setThemeFrancophone}
-          />
-        </Card>
-
-        <Card className="p-5">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Barème des appréciations</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Colonne « Appr. » du bulletin (MVP §14). Personnalisez les seuils par sous-système.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setAppreciationScales(DEFAULT_APPRECIATION_SCALES)}
-            >
-              <RotateCcw size={16} /> Restaurer les valeurs par defaut
-            </Button>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <AppreciationScaleEditor
-              title="Francophone"
-              bands={appreciationScales.fr || []}
-              onChange={(fr) => setAppreciationScales((current) => ({ ...current, fr }))}
-            />
-            <AppreciationScaleEditor
-              title="Anglophone"
-              bands={appreciationScales.en || []}
-              onChange={(en) => setAppreciationScales((current) => ({ ...current, en }))}
-            />
-          </div>
-        </Card>
-
-        <Card className="p-5">
-          <h2 className="mb-1 text-lg font-bold text-slate-900">Personnel & rôles</h2>
-          <p className="mb-4 text-sm text-slate-500">
-            Attribution automatique du rôle de connexion selon la fonction (instituteur → enseignant,
-            directeur → direction, agent de sécurité → direction, etc.).
-          </p>
-          <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-            <input
-              type="checkbox"
-              checked={personnelAutoRoles}
-              onChange={(e) => setPersonnelAutoRoles(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300"
-            />
-            Activer l'attribution automatique des rôles à la création / modification du personnel
-          </label>
-        </Card>
-
-        <div className="flex gap-2">
-          <Button disabled={saving}><Save size={16} /> {saving ? 'Enregistrement...' : 'Enregistrer'}</Button>
-        </div>
-      </form>
-
-      <div className="mt-6">
-        <FeesScheduleCard />
+    <div className="space-y-6 pb-6">
+      {/* En-tête */}
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm">
+        <PageHeader
+          title="Paramètres établissement"
+          description="Profil, logo, couleurs du bulletin par section, barème des appréciations — chaque établissement a son modèle."
+          breadcrumb="Établissement / Paramètres"
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          className="shrink-0 shadow-sm"
+          onClick={() => navigate('/app/progression/policies')}
+        >
+          <TrendingUp size={16} /> Politiques de progression
+        </Button>
       </div>
 
-      <form onSubmit={handleProfileSubmit} className="mt-6">
-        <Card className="p-5">
-          <h2 className="mb-1 text-lg font-bold text-slate-900">Profil pédagogique & communication</h2>
-          <p className="mb-4 text-sm text-slate-500">
-            Sous-systèmes et types d'enseignement activés (§14) : la cascade de création ne proposera
-            que ces options. Laissez vide pour tout autoriser. Canaux de notification activés (§12.2).
-          </p>
-          <div className="space-y-4">
-            <Field label="Sous-systèmes actifs"><CheckGroup options={SUBSYSTEM_OPTS} selected={profile.subsystems} onToggle={(c) => toggleProfile('subsystems', c)} /></Field>
-            <Field label="Types d'enseignement actifs"><CheckGroup options={TYPE_OPTS} selected={profile.teaching_types} onToggle={(c) => toggleProfile('teaching_types', c)} /></Field>
-            <Field label="Canaux de notification"><CheckGroup options={CHANNEL_OPTS} selected={profile.channels} onToggle={(c) => toggleProfile('channels', c)} /></Field>
-          </div>
-          <div className="mt-5 flex gap-2">
-            <Button disabled={savingProfile}><Save size={16} /> {savingProfile ? 'Enregistrement...' : 'Enregistrer le profil'}</Button>
-          </div>
-        </Card>
-      </form>
-    </>
+      {notice && <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm">{notice}</div>}
+      {error && <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 shadow-sm">{error}</div>}
+
+      <MobileSectionTabs />
+
+      <div className="grid gap-6 lg:grid-cols-[220px_1fr] lg:items-start">
+        <SideNav />
+
+        <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <SectionCard id="etablissement" icon={Building2} tone="blue" title="Établissement" description="Coordonnées générales de l'établissement.">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Nom de l'etablissement"><Input required value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
+                <Field label="Ville"><Input value={form.city} onChange={(e) => set('city', e.target.value)} /></Field>
+                <Field label="Telephone"><Input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+237 6XX XXX XXX" /></Field>
+                <Field label="Adresse"><Input value={form.address} onChange={(e) => set('address', e.target.value)} /></Field>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              id="entete"
+              icon={FileText}
+              tone="amber"
+              title="En-tête du bulletin"
+              description="Ces informations apparaissent en haut de chaque bulletin officiel (en-tête bilingue MINESEC)."
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Devise de l'etablissement" hint="Ex : a chosen generation"><Input value={form.bulletin_motto} onChange={(e) => set('bulletin_motto', e.target.value)} /></Field>
+                <Field label="Boite postale" hint="Ex : BP 20142 Yaounde - 6XX XXX XXX"><Input value={form.bulletin_po_box} onChange={(e) => set('bulletin_po_box', e.target.value)} /></Field>
+                <Field label="Delegation regionale" hint="Ex : REGIONAL DELEGATION FOR CENTER"><Input value={form.bulletin_delegation_regional} onChange={(e) => set('bulletin_delegation_regional', e.target.value)} /></Field>
+                <Field label="Delegation departementale" hint="Ex : DIVISIONAL DELEGATION FOR MEFOU AND AFAMBA"><Input value={form.bulletin_delegation_departementale} onChange={(e) => set('bulletin_delegation_departementale', e.target.value)} /></Field>
+                <Field label="Note de rentree" hint="Ex : Next term re-opens: April 20th, 2026"><Input value={form.bulletin_next_term_note} onChange={(e) => set('bulletin_next_term_note', e.target.value)} /></Field>
+                <Field label="Logo du bulletin" hint="Image affichee au centre de l en-tete (PNG/JPG)">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+                      <Upload size={16} /> Telecharger le logo
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    </label>
+                    {form.logo_url && (
+                      <img src={form.logo_url} alt="Apercu logo" className="h-20 w-auto rounded-lg border border-slate-200 bg-white p-1 shadow-sm" />
+                    )}
+                  </div>
+                </Field>
+                <Field label="Logo (URL alternative)" hint="Ou coller un lien https://..."><Input value={form.logo_url} onChange={(e) => set('logo_url', e.target.value)} placeholder="https://..." /></Field>
+              </div>
+            </SectionCard>
+
+            <div data-testid="school-settings-bulletin-modeles">
+              <SectionCard
+                id="modeles"
+                icon={LayoutTemplate}
+                tone="violet"
+                title="Modèle de bulletin"
+                description="Créez et personnalisez le bulletin de votre établissement avec notre éditeur visuel."
+                actions={(
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    data-testid="manage-bulletin-modeles"
+                    onClick={() => navigate('/app/bulletins/modeles')}
+                  >
+                    Gérer mes modèles
+                  </Button>
+                )}
+              >
+                <p className="text-sm text-slate-500">
+                  Choisissez une mise en page, ajustez les blocs et prévisualisez le rendu final avant application.
+                </p>
+              </SectionCard>
+            </div>
+
+            <SectionCard
+              id="apparence"
+              icon={Palette}
+              tone="rose"
+              title="Apparence du bulletin par section"
+              description={"Couleurs distinctes pour la section francophone et anglophone. Le bulletin d'une classe Form utilise le modèle anglophone ; une classe 6ème, 2nde, etc. utilise le modèle francophone."}
+            >
+              <div className="mb-4 inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+                {[
+                  ['francophone', 'Francophone (BULLETIN, PREMIER GROUPE…)'],
+                  ['anglophone', 'Anglophone (REPORT CARD, FIRST GROUP…)'],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setThemeSection(key)}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      themeSection === key
+                        ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-200'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <BulletinThemeEditor
+                theme={themeSection === 'anglophone' ? themeAnglophone : themeFrancophone}
+                onChange={themeSection === 'anglophone' ? setThemeAnglophone : setThemeFrancophone}
+              />
+            </SectionCard>
+
+            <SectionCard
+              id="bareme"
+              icon={Star}
+              tone="emerald"
+              title="Barème des appréciations"
+              description="Colonne « Appr. » du bulletin (MVP §14). Personnalisez les seuils par sous-système."
+              actions={(
+                <Button type="button" variant="secondary" onClick={() => setAppreciationScales(DEFAULT_APPRECIATION_SCALES)}>
+                  <RotateCcw size={16} /> Valeurs par défaut
+                </Button>
+              )}
+            >
+              <div className="grid gap-4 lg:grid-cols-2">
+                <AppreciationScaleEditor
+                  title="Francophone"
+                  bands={appreciationScales.fr || []}
+                  onChange={(fr) => setAppreciationScales((current) => ({ ...current, fr }))}
+                />
+                <AppreciationScaleEditor
+                  title="Anglophone"
+                  bands={appreciationScales.en || []}
+                  onChange={(en) => setAppreciationScales((current) => ({ ...current, en }))}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              id="personnel"
+              icon={UserCog}
+              tone="slate"
+              title="Personnel & rôles"
+              description="Attribution automatique du rôle de connexion selon la fonction (instituteur → enseignant, directeur → direction, agent de sécurité → direction, etc.)."
+            >
+              <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={personnelAutoRoles}
+                  onChange={(e) => setPersonnelAutoRoles(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                Activer l'attribution automatique des rôles à la création / modification du personnel
+              </label>
+            </SectionCard>
+
+            {/* Barre d'enregistrement toujours visible */}
+            <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
+              <p className="text-sm text-slate-500">Les modifications s'appliquent aux prochains bulletins générés.</p>
+              <Button disabled={saving}><Save size={16} /> {saving ? 'Enregistrement...' : 'Enregistrer les paramètres'}</Button>
+            </div>
+          </form>
+
+          <FeesScheduleCard />
+
+          <form onSubmit={handleProfileSubmit}>
+            <SectionCard
+              id="pedagogique"
+              icon={GraduationCap}
+              tone="violet"
+              title="Profil pédagogique & communication"
+              description="Sous-systèmes et types d'enseignement activés (§14) : la cascade de création ne proposera que ces options. Laissez vide pour tout autoriser. Canaux de notification activés (§12.2)."
+            >
+              <div className="space-y-4">
+                <Field label="Sous-systèmes actifs"><CheckGroup options={SUBSYSTEM_OPTS} selected={profile.subsystems} onToggle={(c) => toggleProfile('subsystems', c)} /></Field>
+                <Field label="Types d'enseignement actifs"><CheckGroup options={TYPE_OPTS} selected={profile.teaching_types} onToggle={(c) => toggleProfile('teaching_types', c)} /></Field>
+                <Field label="Canaux de notification"><CheckGroup options={CHANNEL_OPTS} selected={profile.channels} onToggle={(c) => toggleProfile('channels', c)} /></Field>
+              </div>
+              <div className="mt-5 flex gap-2 border-t border-slate-100 pt-4">
+                <Button disabled={savingProfile}><Save size={16} /> {savingProfile ? 'Enregistrement...' : 'Enregistrer le profil'}</Button>
+              </div>
+            </SectionCard>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
