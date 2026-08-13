@@ -51,7 +51,7 @@ LEVELS = [
     ("P3", "Class 3", "ANGLOPHONE", "GENERAL", "PRIMAIRE", None, 3),
     ("P4", "Class 4", "ANGLOPHONE", "GENERAL", "PRIMAIRE", None, 4),
     ("P5", "Class 5", "ANGLOPHONE", "GENERAL", "PRIMAIRE", None, 5),
-    ("P6", "Class 6", "ANGLOPHONE", "GENERAL", "PRIMAIRE", "Primary Leaving Certificate", 6),
+    ("P6", "Class 6", "ANGLOPHONE", "GENERAL", "PRIMAIRE", "FSLC", 6),
     # Tableau A — Francophone Général
     ("6E", "6ème", "FRANCOPHONE", "GENERAL", "PREMIER", None, 1),
     ("5E", "5ème", "FRANCOPHONE", "GENERAL", "PREMIER", None, 2),

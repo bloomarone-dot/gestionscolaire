@@ -32,7 +32,8 @@ export default function PrimarySchoolGroupFields({
     <>
       <div className="md:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
         Création simplifiée pour l&apos;école primaire : maternelle (PS, MS, GS)
-        ou élémentaire (SIL→CM2), section francophone ou anglophone (Class 1→6).
+        ou élémentaire (SIL→CM2, examen CEP), section francophone ou anglophone
+        (Class 1→6, examen FSLC en Class 6).
       </div>
 
       <label className="block">

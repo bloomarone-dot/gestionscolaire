@@ -572,42 +572,80 @@ export async function testDbServerBeforeCreate(dbConfig) {
   return { success: true, detail: 'La configuration multi-base est gérée par les services.' };
 }
 
+const SCHOOL_PROFILE_CACHE_KEY = 'schoolProfile';
+
+export function readCachedSchoolProfile() {
+  try {
+    const raw = localStorage.getItem(SCHOOL_PROFILE_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheSchoolProfile(school) {
+  try {
+    if (school?.id) {
+      localStorage.setItem(SCHOOL_PROFILE_CACHE_KEY, JSON.stringify(school));
+      window.dispatchEvent(new CustomEvent('school-profile-updated', { detail: school }));
+    }
+  } catch {
+    /* quota / navigation privée */
+  }
+}
+
+function isNetworkError(err) {
+  const msg = String(err?.message || '');
+  return /injoignable|Failed to fetch|Serveur indisponible|Délai dépassé|connexion|NetworkError|Load failed/i.test(msg);
+}
+
 export async function getSchool(schoolId) {
-  const res = await fetch(`/tenants/schools/${schoolId}`, { headers: getHeaders() });
-  return handleResponse(res);
+  const school = await apiRequest(`/tenants/schools/${schoolId}`);
+  cacheSchoolProfile(school);
+  return school;
 }
 
 // Profil de l'établissement de l'utilisateur connecté (admin) — pour la page Paramètres.
 export async function fetchMySchool() {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
   const selectedSchool = JSON.parse(localStorage.getItem('selectedSchool') || 'null');
-  if (user?.role === 'superadmin') {
-    if (!selectedSchool?.id) {
-      throw new Error('Sélectionnez un établissement pour charger son profil.');
+  try {
+    if (user?.role === 'superadmin') {
+      if (!selectedSchool?.id) {
+        throw new Error('Sélectionnez un établissement pour charger son profil.');
+      }
+      return getSchool(selectedSchool.id);
     }
-    return getSchool(selectedSchool.id);
+    const school = await apiRequest('/tenants/me');
+    cacheSchoolProfile(school);
+    return school;
+  } catch (err) {
+    const cached = readCachedSchoolProfile();
+    const cacheOk = cached && (
+      user?.role !== 'superadmin' || Number(cached.id) === Number(selectedSchool?.id)
+    );
+    if (cacheOk && isNetworkError(err)) return cached;
+    throw err;
   }
-  const res = await fetch('/tenants/me', { headers: getHeaders() });
-  return handleResponse(res);
 }
 
 export async function updateSchool(schoolId, schoolData) {
-  const res = await fetch(`/tenants/schools/${schoolId}`, {
+  const school = await apiRequest(`/tenants/schools/${schoolId}`, {
     method: 'PUT',
-    headers: getHeaders(),
-    body: JSON.stringify(schoolData),
+    body: schoolData,
   });
-  return handleResponse(res);
+  cacheSchoolProfile(school);
+  return school;
 }
 
 // Profil pédagogique actif (sous-systèmes/types) + canaux de notif (§14 / §12.2).
 export async function updateSchoolProfile(schoolId, profile) {
-  const res = await fetch(`/tenants/schools/${schoolId}/profile`, {
+  const school = await apiRequest(`/tenants/schools/${schoolId}/profile`, {
     method: 'PUT',
-    headers: getHeaders(),
-    body: JSON.stringify(profile),
+    body: profile,
   });
-  return handleResponse(res);
+  cacheSchoolProfile(school);
+  return school;
 }
 
 // Crée le compte administrateur de l'établissement (login téléphone + mot de passe).
@@ -1006,34 +1044,29 @@ export async function createClasse(classeData) {
 
 // ── Référentiel MINESEC : cascade (§4.1) ──────────────────
 export async function fetchSubsystems() {
-  const res = await fetch('/referentiel/subsystems', { headers: getHeaders() });
-  return handleResponse(res);
+  return apiRequest('/referentiel/subsystems');
 }
 
 export async function fetchTeachingTypes(subsystem) {
   const q = subsystem ? `?subsystem=${encodeURIComponent(subsystem)}` : '';
-  const res = await fetch(`/referentiel/teaching-types${q}`, { headers: getHeaders() });
-  return handleResponse(res);
+  return apiRequest(`/referentiel/teaching-types${q}`);
 }
 
 export async function fetchCycles(subsystem, type) {
   const params = new URLSearchParams({ subsystem });
   if (type) params.set('type', type);
-  const res = await fetch(`/referentiel/cycles?${params}`, { headers: getHeaders() });
-  return handleResponse(res);
+  return apiRequest(`/referentiel/cycles?${params}`);
 }
 
 export async function fetchLevels(subsystem, type, cycle) {
   const params = new URLSearchParams({ subsystem });
   if (type) params.set('type', type);
   if (cycle) params.set('cycle', cycle);
-  const res = await fetch(`/referentiel/levels?${params}`, { headers: getHeaders() });
-  return handleResponse(res);
+  return apiRequest(`/referentiel/levels?${params}`);
 }
 
 export async function fetchLevelSeries(levelCode) {
-  const res = await fetch(`/referentiel/levels/${encodeURIComponent(levelCode)}/series`, { headers: getHeaders() });
-  return handleResponse(res);
+  return apiRequest(`/referentiel/levels/${encodeURIComponent(levelCode)}/series`);
 }
 
 export async function deleteClasse(classeId) {

@@ -266,10 +266,25 @@ def seed_language_referential(session: Session) -> None:
     session.commit()
 
 
+def _sync_primary_exam_codes(session: Session) -> bool:
+    """Aligne CEP (CM2) et FSLC (Class 6) sur les niveaux déjà présents."""
+    wanted = {"CM2": "CEP", "P6": "FSLC"}
+    changed = False
+    for code, exam in wanted.items():
+        level = session.query(Level).filter(Level.code == code).first()
+        if level is not None and level.exam != exam:
+            level.exam = exam
+            changed = True
+    return changed
+
+
 def seed_primary_referential(session: Session) -> None:
     """Ajoute cycle PRIMAIRE, maternelle PS→GS et niveaux SIL→CM2 sur une base existante."""
     seed_maternelle_levels(session)
+    exams_changed = _sync_primary_exam_codes(session)
     if session.query(Level).filter(Level.code == "SIL").first() is not None:
+        if exams_changed:
+            session.commit()
         return
 
     subsystems = {s.code: s for s in session.query(Subsystem).all()}

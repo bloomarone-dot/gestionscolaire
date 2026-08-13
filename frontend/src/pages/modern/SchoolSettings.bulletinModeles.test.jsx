@@ -74,7 +74,7 @@ describe('SchoolSettings — modèles de bulletin (UX V2)', () => {
   it('affiche le CTA vers les modèles V2', async () => {
     renderSettings();
     const btn = await screen.findByTestId('manage-bulletin-modeles');
-    expect(btn).toHaveTextContent(/Gérer mes modèles de bulletin/i);
+    expect(btn).toHaveTextContent(/Gérer mes modèles/i);
     expect(screen.getByText(/éditeur visuel/i)).toBeInTheDocument();
   });
 
@@ -87,7 +87,7 @@ describe('SchoolSettings — modèles de bulletin (UX V2)', () => {
   it('conserve les paramètres établissement (logo / en-tête)', async () => {
     renderSettings();
     await screen.findByDisplayValue('Collège Test');
-    expect(screen.getByText(/En-tete du bulletin/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/En-tête du bulletin/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Telecharger le logo/i)).toBeInTheDocument();
     expect(screen.getByText(/Apparence du bulletin par section/i)).toBeInTheDocument();
   });
@@ -95,7 +95,7 @@ describe('SchoolSettings — modèles de bulletin (UX V2)', () => {
   it('préserve bulletin_layout_profile à l’enregistrement', async () => {
     renderSettings();
     await screen.findByDisplayValue('Collège Test');
-    fireEvent.click(screen.getByRole('button', { name: /^Enregistrer$/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer les paramètres/i }));
     await waitFor(() => expect(api.updateSchool).toHaveBeenCalled());
     const payload = api.updateSchool.mock.calls[0][1];
     expect(payload.bulletin_layout_profile).toEqual(schoolFixture.bulletin_layout_profile);

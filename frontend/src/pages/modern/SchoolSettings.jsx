@@ -9,6 +9,7 @@ import { useAuth } from '../../context/useAuth';
 import { Button, Card, Input, PageHeader, Select } from '../../components/ui';
 import BulletinThemeEditor from '../../components/BulletinThemeEditor';
 import { DEFAULT_BULLETIN_THEME, normalizeBulletinTheme } from '../../utils/bulletinTheme';
+import { ESTABLISHMENT_KINDS } from '../../utils/establishmentKind';
 import { compressImageFile } from '../../utils/imageCompress';
 
 const DEFAULT_APPRECIATION_SCALES = {
@@ -30,6 +31,7 @@ const DEFAULT_APPRECIATION_SCALES = {
 
 const EMPTY = {
   name: '', city: '', address: '', phone: '', logo_url: '',
+  establishment_kind: 'SCHOOL',
   bulletin_motto: '', bulletin_po_box: '',
   bulletin_delegation_regional: '', bulletin_delegation_departementale: '',
   bulletin_next_term_note: '',
@@ -398,7 +400,7 @@ export function SettingsPage() {
         }
         if (!active) return;
         setSchool(s);
-        setForm({ ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, s[k] ?? ''])) });
+        setForm({ ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, s[k] ?? EMPTY[k] ?? ''])) });
         setAppreciationScales(
           s.bulletin_appreciation_scales?.fr?.length
             ? s.bulletin_appreciation_scales
@@ -548,6 +550,16 @@ export function SettingsPage() {
             <SectionCard id="etablissement" icon={Building2} tone="blue" title="Établissement" description="Coordonnées générales de l'établissement.">
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Nom de l'etablissement"><Input required value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
+                <Field
+                  label="Type d'établissement"
+                  hint="École primaire = SIL→CM2 / Class 1→6 (CEP et FSLC). Collège-lycée = cascade MINESEC."
+                >
+                  <Select value={form.establishment_kind} onChange={(e) => set('establishment_kind', e.target.value)}>
+                    {ESTABLISHMENT_KINDS.map((kind) => (
+                      <option key={kind.value} value={kind.value}>{kind.label}</option>
+                    ))}
+                  </Select>
+                </Field>
                 <Field label="Ville"><Input value={form.city} onChange={(e) => set('city', e.target.value)} /></Field>
                 <Field label="Telephone"><Input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+237 6XX XXX XXX" /></Field>
                 <Field label="Adresse"><Input value={form.address} onChange={(e) => set('address', e.target.value)} /></Field>

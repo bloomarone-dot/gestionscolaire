@@ -17,13 +17,17 @@ export const CONSEIL_DECISIONS = [
   ['A_DELIBERER', 'À délibérer'],
 ];
 
-export const EXAM_CODES = [
-  'BEPC',
-  'Probatoire',
-  'BAC',
-  'GCE O Level',
-  'GCE A Level',
+export const EXAM_OPTIONS = [
+  { code: 'CEP', label: 'CEP (CM2 francophone)' },
+  { code: 'FSLC', label: 'FSLC (Class 6 anglophone)' },
+  { code: 'BEPC', label: 'BEPC' },
+  { code: 'Probatoire', label: 'Probatoire' },
+  { code: 'BAC', label: 'BAC' },
+  { code: 'GCE O Level', label: 'GCE O Level' },
+  { code: 'GCE A Level', label: 'GCE A Level' },
 ];
+
+export const EXAM_CODES = EXAM_OPTIONS.map((item) => item.code);
 
 export const EXAM_RESULTS = [
   ['INSCRIT', 'Inscrit'],

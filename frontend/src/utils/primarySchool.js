@@ -13,7 +13,7 @@ export const PRIMAIRE_FR_LEVELS = [
   { code: 'CE1', name: 'CE1' },
   { code: 'CE2', name: 'CE2' },
   { code: 'CM1', name: 'CM1' },
-  { code: 'CM2', name: 'CM2' },
+  { code: 'CM2', name: 'CM2 (CEP)' },
 ];
 
 export const PRIMAIRE_EN_LEVELS = [
@@ -22,7 +22,7 @@ export const PRIMAIRE_EN_LEVELS = [
   { code: 'P3', name: 'Class 3' },
   { code: 'P4', name: 'Class 4' },
   { code: 'P5', name: 'Class 5' },
-  { code: 'P6', name: 'Class 6' },
+  { code: 'P6', name: 'Class 6 (FSLC)' },
 ];
 
 export const PRIMAIRE_SECTIONS = [

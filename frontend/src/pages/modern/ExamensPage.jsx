@@ -3,11 +3,11 @@ import { Download, Plus, Trash2 } from 'lucide-react';
 import * as api from '../../api/api';
 import { Badge, Button, DataTable, Input, PageHeader, Select } from '../../components/ui';
 import { useEstablishmentProfile } from '../../hooks/useEstablishmentProfile';
-import { EXAM_CODES, EXAM_RESULTS } from '../../utils/vieScolaire';
+import { EXAM_OPTIONS, EXAM_RESULTS } from '../../utils/vieScolaire';
 
 export default function ExamensPage() {
-  const { schoolName } = useEstablishmentProfile();
-  const [examCode, setExamCode] = useState('BEPC');
+  const { schoolName, isPrimarySchool } = useEstablishmentProfile();
+  const [examCode, setExamCode] = useState(isPrimarySchool ? 'CEP' : 'BEPC');
   const [sessionLabel, setSessionLabel] = useState(String(new Date().getFullYear()));
   const [eligible, setEligible] = useState([]);
   const [candidats, setCandidats] = useState([]);
@@ -33,6 +33,12 @@ export default function ExamensPage() {
   }, [examCode, sessionLabel]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (isPrimarySchool) {
+      setExamCode((current) => (current === 'BEPC' ? 'CEP' : current));
+    }
+  }, [isPrimarySchool]);
 
   const registeredIds = new Set(candidats.map((c) => c.eleve_id));
 
@@ -94,14 +100,14 @@ export default function ExamensPage() {
     <div className="space-y-4">
       <PageHeader
         title="Examens officiels"
-        description="Listes BEPC, Probatoire, Bac, GCE — n° de table, centre et résultats."
+        description="Listes CEP, FSLC, BEPC, Probatoire, Bac, GCE — n° de table, centre et résultats."
       />
       {notice && <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">{notice}</p>}
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[180px]">
           <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">Examen</label>
           <Select value={examCode} onChange={(e) => setExamCode(e.target.value)}>
-            {EXAM_CODES.map((c) => <option key={c} value={c}>{c}</option>)}
+            {EXAM_OPTIONS.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </Select>
         </div>
         <div>

@@ -51,7 +51,7 @@ def test_seed_language_referential_on_existing_db(db):
 def test_cascade_francophone_general(db):
     assert {s.code for s in crud.list_subsystems(db)} == {"FRANCOPHONE", "ANGLOPHONE"}
     cycles = crud.list_cycles(db, "FRANCOPHONE", "GENERAL")
-    assert {c.code for c in cycles} == {"PREMIER", "SECOND"}
+    assert {c.code for c in cycles} == {"PRIMAIRE", "PREMIER", "SECOND"}
     levels = crud.list_levels(db, "FRANCOPHONE", "GENERAL", "SECOND")
     assert [l.code for l in levels] == ["2ND", "1ERE", "TLE"]
 
@@ -149,3 +149,26 @@ def test_idempotent_seed(db):
     seed_all(db)  # second appel : ne doit rien dupliquer
     assert db.query(Subsystem).count() == 2
     assert db.query(Subject).count() == subjects_before
+
+
+def test_primary_official_exams(db):
+    from app.models import Level
+    from app.seed import seed_primary_referential
+
+    seed_primary_referential(db)
+    cm2 = db.query(Level).filter(Level.code == "CM2").one()
+    p6 = db.query(Level).filter(Level.code == "P6").one()
+    assert cm2.exam == "CEP"
+    assert p6.exam == "FSLC"
+
+
+def test_sync_fslc_on_existing_primary(db):
+    from app.models import Level
+    from app.seed import seed_primary_referential
+
+    p6 = db.query(Level).filter(Level.code == "P6").one()
+    p6.exam = "Primary Leaving Certificate"
+    db.commit()
+    seed_primary_referential(db)
+    db.refresh(p6)
+    assert p6.exam == "FSLC"

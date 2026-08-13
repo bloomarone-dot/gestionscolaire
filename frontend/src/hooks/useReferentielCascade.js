@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as api from '../api/api';
+import {
+  fallbackCycles,
+  fallbackLevels,
+  fallbackSeries,
+  fallbackSubsystems,
+  fallbackTeachingTypes,
+} from '../utils/referentielFallback';
 
 /**
  * §4.1 — cascade officielle Sous-système → Type → Cycle → Niveau → Série.
@@ -25,13 +32,14 @@ export function useReferentielCascade({
   const [loading, setLoading] = useState(true);
   const [seriesLoading, setSeriesLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [usingFallback, setUsingFallback] = useState(false);
 
   const [value, setValue] = useState({
     subsystem_code: '', type_code: '', cycle_code: '', level_code: '', series_code: '',
   });
 
   useEffect(() => {
-    api.fetchMySchool().then(setProfile).catch(() => setProfile(null));
+    api.fetchMySchool().then(setProfile).catch(() => setProfile(api.readCachedSchoolProfile()));
   }, []);
 
   useEffect(() => {
@@ -40,17 +48,22 @@ export function useReferentielCascade({
     api.fetchSubsystems()
       .then((data) => {
         const list = Array.isArray(data) ? data : [];
-        setRawSubsystems(list);
-        if (!list.length) {
-          setLoadError(
-            "Le référentiel MINESEC est vide ou inaccessible. Vérifiez que le service référentiel tourne, puis réessayez.",
-          );
+        if (list.length) {
+          setRawSubsystems(list);
+          setUsingFallback(false);
+          return;
         }
-      })
-      .catch(() => {
-        setRawSubsystems([]);
+        setRawSubsystems(fallbackSubsystems());
+        setUsingFallback(true);
         setLoadError(
-          "Impossible de charger le référentiel (sous-systèmes). Vérifiez votre connexion / le gateway.",
+          'Référentiel vide : listes officielles de secours. Vous pouvez créer la classe.',
+        );
+      })
+      .catch((err) => {
+        setRawSubsystems(fallbackSubsystems());
+        setUsingFallback(true);
+        setLoadError(
+          `${err.message || 'Référentiel injoignable.'} Listes officielles de secours — vous pouvez quand même créer la classe.`,
         );
       })
       .finally(() => setLoading(false));
@@ -82,22 +95,31 @@ export function useReferentielCascade({
   useEffect(() => {
     if (!value.subsystem_code) { setRawTypes([]); return; }
     api.fetchTeachingTypes(value.subsystem_code)
-      .then((data) => setRawTypes(Array.isArray(data) ? data : []))
-      .catch(() => setRawTypes([]));
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        setRawTypes(list.length ? list : fallbackTeachingTypes(value.subsystem_code));
+      })
+      .catch(() => setRawTypes(fallbackTeachingTypes(value.subsystem_code)));
   }, [value.subsystem_code]);
 
   useEffect(() => {
     if (!value.subsystem_code || !value.type_code) { setRawCycles([]); return; }
     api.fetchCycles(value.subsystem_code, value.type_code)
-      .then((data) => setRawCycles(Array.isArray(data) ? data : []))
-      .catch(() => setRawCycles([]));
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        setRawCycles(list.length ? list : fallbackCycles(value.subsystem_code, value.type_code));
+      })
+      .catch(() => setRawCycles(fallbackCycles(value.subsystem_code, value.type_code)));
   }, [value.subsystem_code, value.type_code]);
 
   useEffect(() => {
     if (!value.subsystem_code || !value.type_code || !value.cycle_code) { setLevels([]); return; }
     api.fetchLevels(value.subsystem_code, value.type_code, value.cycle_code)
-      .then((data) => setLevels(Array.isArray(data) ? data : []))
-      .catch(() => setLevels([]));
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        setLevels(list.length ? list : fallbackLevels(value.subsystem_code, value.type_code, value.cycle_code));
+      })
+      .catch(() => setLevels(fallbackLevels(value.subsystem_code, value.type_code, value.cycle_code)));
   }, [value.subsystem_code, value.type_code, value.cycle_code]);
 
   useEffect(() => {
@@ -110,10 +132,11 @@ export function useReferentielCascade({
     setSeriesLoading(true);
     api.fetchLevelSeries(value.level_code)
       .then((data) => {
-        if (!cancelled) setSeries(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        if (!cancelled) setSeries(list.length ? list : fallbackSeries(value.level_code));
       })
       .catch(() => {
-        if (!cancelled) setSeries([]);
+        if (!cancelled) setSeries(fallbackSeries(value.level_code));
       })
       .finally(() => {
         if (!cancelled) setSeriesLoading(false);
@@ -166,6 +189,7 @@ export function useReferentielCascade({
     loading,
     seriesLoading,
     loadError,
+    usingFallback,
     missingStepMessage,
   };
 }

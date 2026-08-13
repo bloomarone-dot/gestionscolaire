@@ -19,7 +19,7 @@ class GatewaySettings(BaseServiceSettings):
     planning_service_url: str = "http://planning-service:8000"
     progression_service_url: str = "http://progression-service:8000"
 
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5180,http://127.0.0.1:5180"
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5180,http://127.0.0.1:5180,https://bloomaroneschool.bloomarone.com,https://scolaire.bloomarone.com"
 
     def routes(self) -> dict[str, str]:
         """Préfixe d'URL publique -> URL du service cible."""

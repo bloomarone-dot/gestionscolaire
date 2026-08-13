@@ -46,12 +46,17 @@ export function CascadeFields({ cascade }) {
     seriesLoading,
     loadError,
     loading,
+    usingFallback,
   } = cascade;
 
   return (
     <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
       {loadError ? (
-        <p className="md:col-span-2 rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+        <p className={`md:col-span-2 rounded-lg px-3 py-2 text-sm font-semibold ${
+          usingFallback
+            ? 'bg-amber-50 text-amber-800'
+            : 'bg-rose-50 text-rose-700'
+        }`}>
           {loadError}
         </p>
       ) : null}

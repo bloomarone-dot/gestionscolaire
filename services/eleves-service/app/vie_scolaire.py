@@ -36,6 +36,8 @@ CONSEIL_DECISIONS = {
 }
 
 EXAM_CODES = (
+    "CEP",
+    "FSLC",
     "BEPC",
     "Probatoire",
     "BAC",
@@ -52,6 +54,8 @@ EXAM_RESULTS = {
 
 # Mapping niveau référentiel → examen (fallback si pas d'appel référentiel)
 LEVEL_EXAM_FALLBACK = {
+    "CM2": "CEP",
+    "P6": "FSLC",
     "3E": "BEPC",
     "1ERE": "Probatoire",
     "TLE": "BAC",

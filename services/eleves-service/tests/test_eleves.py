@@ -251,6 +251,15 @@ def test_sanction_and_conseil(db):
     ).startswith(b"%PDF")
 
 
+def test_primary_exam_codes():
+    from app.vie_scolaire import EXAM_CODES, LEVEL_EXAM_FALLBACK
+
+    assert LEVEL_EXAM_FALLBACK["CM2"] == "CEP"
+    assert LEVEL_EXAM_FALLBACK["P6"] == "FSLC"
+    assert "CEP" in EXAM_CODES
+    assert "FSLC" in EXAM_CODES
+
+
 def test_exam_candidat(db):
     from app.schemas import ExamCandidatIn, EleveUpdate
     from app.pdf_documents import render_exam_list_pdf
