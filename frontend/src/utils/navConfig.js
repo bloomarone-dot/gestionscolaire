@@ -1,7 +1,7 @@
 import {
   ArrowRightLeft, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList,
   GraduationCap, LayoutDashboard, Megaphone, Receipt, School, Settings,
-  UserCog, Users, WalletCards, Sparkles,
+  ShieldAlert, UserCog, Users, WalletCards, Sparkles, Gavel,
 } from 'lucide-react';
 import { isLanguageCenter, isPrimarySchool } from './establishmentKind';
 
@@ -23,6 +23,8 @@ export const NAV_ICONS = {
   CalendarDays,
   WalletCards,
   CheckCircle2,
+  ShieldAlert,
+  Gavel,
 };
 
 function flat(items) {
@@ -99,7 +101,14 @@ function primarySchoolAdminNav(ui) {
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
         { to: '/app/bulletins/modeles', label: 'Modèles de bulletin', icon: 'Receipt' },
         { to: '/app/promotions', label: ui.promotions, icon: 'ArrowRightLeft' },
-       
+        { to: '/app/conseil-classe', label: 'Conseil de classe', icon: 'Gavel' },
+      ],
+    },
+    {
+      group: 'Vie scolaire',
+      icon: 'ShieldAlert',
+      items: [
+        { to: '/app/discipline', label: 'Discipline', icon: 'ShieldAlert' },
       ],
     },
     {
@@ -168,6 +177,16 @@ function schoolAdminNav(ui) {
         { to: '/app/grades', label: ui.grades, icon: 'BarChart3' },
         { to: '/app/bulletins', label: ui.bulletin, icon: 'Receipt' },
         { to: '/app/bulletins/modeles', label: 'Modèles de bulletin', icon: 'Receipt' },
+        { to: '/app/conseil-classe', label: 'Conseil de classe', icon: 'Gavel' },
+        { to: '/app/examens', label: 'Examens officiels', icon: 'GraduationCap' },
+      ],
+    },
+    {
+      group: 'Vie scolaire',
+      icon: 'ShieldAlert',
+      items: [
+        { to: '/app/attendance', label: 'Présences', icon: 'ClipboardList' },
+        { to: '/app/discipline', label: 'Discipline', icon: 'ShieldAlert' },
       ],
     },
     {
@@ -189,7 +208,6 @@ function schoolAdminNav(ui) {
       icon: 'Sparkles',
       items: [
         { to: '/app/schedules', label: 'Emplois du temps', icon: 'CalendarDays' },
-        { to: '/app/attendance', label: 'Présences', icon: 'ClipboardList' },
         { to: '/app/payments', label: 'Paiements', icon: 'WalletCards' },
         { to: '/app/reports', label: 'Rapports', icon: 'BarChart3' },
       ],

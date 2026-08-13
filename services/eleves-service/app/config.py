@@ -7,6 +7,7 @@ class Settings(BaseServiceSettings):
     # Matières héritées (§6.2) lues sur pedagogie-service (dérivation, sans duplication).
     pedagogie_service_url: str = "http://pedagogie-service:8000"
     tresorerie_service_url: str = "http://tresorerie-service:8000"
+    bulletins_service_url: str = "http://bulletins-service:8000"
 
 
 settings = Settings()

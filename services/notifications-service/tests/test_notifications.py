@@ -79,6 +79,19 @@ def test_parent_pin_issued():
     assert _channels(items) == {"SMS", "WHATSAPP"}
 
 
+def test_sanction_and_convocation_events():
+    s = build_notifications("StudentSanctioned", {
+        "tenant_id": TENANT, "parent_phone": "690", "nom": "Ngo", "prenom": "Ana",
+        "kind": "BLAME", "kind_label": "Blâme", "motif": "Indiscipline",
+    })
+    assert _channels(s) == {"SMS", "WHATSAPP"}
+    c = build_notifications("ParentConvocation", {
+        "tenant_id": TENANT, "parent_phone": "690", "nom": "Ngo", "prenom": "Ana",
+        "when_label": "demain 10h", "motif": "Entretien",
+    })
+    assert "Convocation" in c[0]["content"]
+
+
 def test_handle_event_persists_history(db):
     saved = delivery.handle_event(db, "StudentEnrolled", {
         "tenant_id": TENANT, "parent_phone": "690", "nom": "Ngo", "classe_id": 7,

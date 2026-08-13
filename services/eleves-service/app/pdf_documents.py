@@ -178,3 +178,155 @@ def render_carte_eleve(
     ]))
     doc.build([table])
     return buffer.getvalue()
+
+
+def render_convocation_pdf(
+    eleve: Eleve,
+    *,
+    establishment_name: str = "Établissement",
+    motif: str,
+    when_label: str | None = None,
+    parent_nom: str | None = None,
+) -> bytes:
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=2.2 * cm, rightMargin=2.2 * cm, topMargin=2 * cm)
+    story, body, center = _letterhead(establishment_name, "CONVOCATION DES PARENTS")
+    dest = parent_nom or "Madame, Monsieur"
+    story.extend([
+        Paragraph(f"À l'attention de {dest},", body),
+        Spacer(1, 0.4 * cm),
+        Paragraph(
+            f"Vous êtes cordialement convoqué(e) concernant l'élève <b>{_full_name(eleve)}</b> "
+            f"(matricule {eleve.matricule}).",
+            body,
+        ),
+        Spacer(1, 0.4 * cm),
+        Paragraph(f"Motif : <b>{motif}</b>.", body),
+    ])
+    if when_label:
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(Paragraph(f"Date / heure : <b>{when_label}</b>.", body))
+    story.extend([
+        Spacer(1, 0.8 * cm),
+        Paragraph("Merci de vous présenter au secrétariat de l'établissement.", body),
+        Spacer(1, 2 * cm),
+        Paragraph("Le chef d'établissement / Surveillant général", center),
+        Spacer(1, 1.2 * cm),
+        Paragraph("Document généré par BloomSchool.", center),
+    ])
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def render_conseil_pv_pdf(
+    *,
+    establishment_name: str,
+    classe_nom: str,
+    trimestre: int,
+    held_on: str | None,
+    notes: str | None,
+    rows: list[dict],
+) -> bytes:
+    """rows: [{nom, matricule, rang, moyenne, mention, decision, observation}]"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=1.5 * cm, rightMargin=1.5 * cm, topMargin=1.5 * cm)
+    styles = getSampleStyleSheet()
+    title = ParagraphStyle(
+        "pv_title", parent=styles["Heading1"], alignment=TA_CENTER,
+        textColor=colors.HexColor("#101F3C"), fontSize=14,
+    )
+    center = ParagraphStyle("pv_center", parent=styles["Normal"], alignment=TA_CENTER, fontSize=9, textColor=colors.HexColor("#64748b"))
+    body = styles["Normal"]
+    story = [
+        Paragraph(establishment_name, title),
+        Spacer(1, 0.2 * cm),
+        Paragraph("PROCÈS-VERBAL — CONSEIL DE CLASSE", title),
+        Spacer(1, 0.3 * cm),
+        Paragraph(f"Classe : <b>{classe_nom}</b> — Trimestre {trimestre}" + (f" — {held_on}" if held_on else ""), body),
+        Spacer(1, 0.4 * cm),
+    ]
+    if notes:
+        story.append(Paragraph(f"Notes de séance : {notes}", body))
+        story.append(Spacer(1, 0.3 * cm))
+
+    table_data = [["N°", "Élève", "Matricule", "Rang", "Moy.", "Mention", "Décision", "Observation"]]
+    for i, r in enumerate(rows, start=1):
+        table_data.append([
+            str(i),
+            r.get("nom") or "—",
+            r.get("matricule") or "—",
+            str(r.get("rang") or "—"),
+            str(r.get("moyenne") or "—"),
+            r.get("mention") or "—",
+            r.get("decision") or "—",
+            (r.get("observation") or "—")[:40],
+        ])
+    table = Table(table_data, colWidths=[1 * cm, 4 * cm, 2.4 * cm, 1.2 * cm, 1.4 * cm, 2.2 * cm, 2.6 * cm, 3.2 * cm])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#101F3C")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 7),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#cbd5e1")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.extend([
+        table,
+        Spacer(1, 1.2 * cm),
+        Paragraph("Signatures : Professeur principal _____________  Proviseur _____________", center),
+        Spacer(1, 0.6 * cm),
+        Paragraph("Document généré par BloomSchool.", center),
+    ])
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def render_exam_list_pdf(
+    *,
+    establishment_name: str,
+    exam_code: str,
+    session_label: str,
+    rows: list[dict],
+) -> bytes:
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=1.5 * cm, rightMargin=1.5 * cm, topMargin=1.5 * cm)
+    styles = getSampleStyleSheet()
+    title = ParagraphStyle(
+        "ex_title", parent=styles["Heading1"], alignment=TA_CENTER,
+        textColor=colors.HexColor("#101F3C"), fontSize=14,
+    )
+    center = ParagraphStyle("ex_center", parent=styles["Normal"], alignment=TA_CENTER, fontSize=9, textColor=colors.HexColor("#64748b"))
+    story = [
+        Paragraph(establishment_name, title),
+        Spacer(1, 0.2 * cm),
+        Paragraph(f"LISTE DES CANDIDATS — {exam_code}", title),
+        Spacer(1, 0.2 * cm),
+        Paragraph(f"Session {session_label}", center),
+        Spacer(1, 0.5 * cm),
+    ]
+    table_data = [["N°", "Nom", "Matricule", "N° table", "Centre", "Résultat"]]
+    for i, r in enumerate(rows, start=1):
+        table_data.append([
+            str(i),
+            r.get("nom") or "—",
+            r.get("matricule") or "—",
+            r.get("numero_table") or "—",
+            r.get("centre") or "—",
+            r.get("resultat") or "—",
+        ])
+    table = Table(table_data, colWidths=[1.2 * cm, 5.5 * cm, 3 * cm, 2.5 * cm, 4 * cm, 2.3 * cm])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#101F3C")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#cbd5e1")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.extend([table, Spacer(1, 1 * cm), Paragraph("Document généré par BloomSchool.", center)])
+    doc.build(story)
+    return buffer.getvalue()

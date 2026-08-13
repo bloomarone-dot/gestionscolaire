@@ -41,6 +41,29 @@ PRESENCE_PRESENT = "PRESENT"
 PRESENCE_ABSENT = "ABSENT"
 PRESENCE_RETARD = "RETARD"
 
+# Discipline / vie scolaire
+SANCTION_AVERTISSEMENT = "AVERTISSEMENT"
+SANCTION_BLAME = "BLAME"
+SANCTION_EXCLUSION_TEMP = "EXCLUSION_TEMPORAIRE"
+SANCTION_CONVOCATION = "CONVOCATION"
+SANCTION_OBSERVATION = "OBSERVATION"
+
+# Conseil de classe
+CONSEIL_BROUILLON = "BROUILLON"
+CONSEIL_VALIDE = "VALIDE"
+DECISION_ADMIS = "ADMIS"
+DECISION_ADMIS_CONDITIONNEL = "ADMIS_CONDITIONNEL"
+DECISION_REDOUBLE = "REDOUBLE"
+DECISION_EXCLU = "EXCLU"
+DECISION_SORTANT = "SORTANT"
+DECISION_A_DELIBERER = "A_DELIBERER"
+
+# Examens officiels
+EXAM_RESULT_INSCRIT = "INSCRIT"
+EXAM_RESULT_ADMIS = "ADMIS"
+EXAM_RESULT_ECHOUE = "ECHOUE"
+EXAM_RESULT_ABSENT = "ABSENT"
+
 
 class Eleve(Base):
     __tablename__ = "eleves"
@@ -133,4 +156,80 @@ class Presence(Base):
     jour = Column(Date, nullable=False, index=True)
     statut = Column(String(12), nullable=False, default=PRESENCE_PRESENT)
     motif = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Sanction(Base):
+    """Fiches de discipline / vie scolaire."""
+    __tablename__ = "sanctions"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    eleve_id = Column(Integer, ForeignKey("eleves.id"), nullable=False, index=True)
+    classe_id = Column(Integer, nullable=True, index=True)
+    kind = Column(String(30), nullable=False)
+    jour = Column(Date, nullable=False, index=True)
+    motif = Column(String(500), nullable=False)
+    duree_jours = Column(Integer, nullable=True)
+    convocation_at = Column(DateTime, nullable=True)
+    recorded_by = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class ConseilSession(Base):
+    """Séance de conseil de classe (trimestre)."""
+    __tablename__ = "conseil_sessions"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    classe_id = Column(Integer, nullable=False, index=True)
+    trimestre = Column(Integer, nullable=False, default=1)
+    titre = Column(String(200), nullable=True)
+    held_on = Column(Date, nullable=True)
+    statut = Column(String(20), nullable=False, default=CONSEIL_BROUILLON)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    decisions = relationship(
+        "ConseilDecision", cascade="all, delete-orphan", back_populates="session",
+    )
+
+
+class ConseilDecision(Base):
+    """Décision individuelle au conseil de classe."""
+    __tablename__ = "conseil_decisions"
+    __table_args__ = (
+        UniqueConstraint("session_id", "eleve_id", name="uq_conseil_eleve"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    session_id = Column(Integer, ForeignKey("conseil_sessions.id"), nullable=False, index=True)
+    eleve_id = Column(Integer, ForeignKey("eleves.id"), nullable=False, index=True)
+    rang = Column(Integer, nullable=True)
+    moyenne = Column(String(20), nullable=True)
+    mention = Column(String(40), nullable=True)
+    decision = Column(String(30), nullable=False, default=DECISION_A_DELIBERER)
+    observation = Column(String(500), nullable=True)
+
+    session = relationship("ConseilSession", back_populates="decisions")
+
+
+class ExamCandidat(Base):
+    """Candidature / résultat d'examen officiel (BEPC, Bac, GCE…)."""
+    __tablename__ = "exam_candidats"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "eleve_id", "exam_code", "session_label", name="uq_exam_candidat"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    eleve_id = Column(Integer, ForeignKey("eleves.id"), nullable=False, index=True)
+    classe_id = Column(Integer, nullable=True, index=True)
+    exam_code = Column(String(40), nullable=False, index=True)
+    session_label = Column(String(40), nullable=False, default="2026")
+    centre = Column(String(120), nullable=True)
+    numero_table = Column(String(40), nullable=True)
+    matieres = Column(String(500), nullable=True)
+    resultat = Column(String(20), nullable=False, default=EXAM_RESULT_INSCRIT)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

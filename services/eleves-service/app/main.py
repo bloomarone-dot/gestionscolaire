@@ -20,10 +20,19 @@ from app.pdf_documents import (
     render_attestation_reussite,
     render_attestation_scolarite,
     render_carte_eleve,
+    render_conseil_pv_pdf,
+    render_convocation_pdf,
+    render_exam_list_pdf,
 )
 from app.pieces import parse_pieces, pieces_complete
 from app.schemas import (
     AppelIn,
+    ConseilCreate,
+    ConseilDecisionsBulk,
+    ConseilSessionOut,
+    ConseilDecisionOut,
+    ExamCandidatIn,
+    ExamCandidatOut,
     EleveCreate,
     EleveDetail,
     EleveImportResult,
@@ -39,8 +48,11 @@ from app.schemas import (
     PresenceOut,
     PromotionApply,
     RadiationIn,
+    SanctionIn,
+    SanctionOut,
     TransferIn,
 )
+from app.vie_scolaire import CONSEIL_DECISIONS, EXAM_CODES, LEVEL_EXAM_FALLBACK, SANCTION_KINDS
 
 app = FastAPI(title="eleves-service — SaaS Scolaire", version="0.1.0")
 
@@ -48,6 +60,7 @@ logger = logging.getLogger(__name__)
 _SessionLocal = None
 _publisher: EventPublisher | None = None
 _tresorerie = InternalClient(settings.tresorerie_service_url, settings.internal_shared_secret)
+_bulletins = InternalClient(settings.bulletins_service_url, settings.internal_shared_secret, timeout=15.0)
 
 
 @app.on_event("startup")
@@ -399,6 +412,381 @@ def save_appel(
             "parent_phone": crud.primary_parent_phone(eleve),
         })
     return saved
+
+def _eleve_label(e) -> str:
+    return " ".join(filter(None, [e.prenom, e.nom])).strip() or f"Élève #{e.id}"
+
+
+def _sanction_out(row, eleves_by_id: dict | None = None) -> SanctionOut:
+    eleves_by_id = eleves_by_id or {}
+    e = eleves_by_id.get(row.eleve_id)
+    return SanctionOut(
+        id=row.id, eleve_id=row.eleve_id, classe_id=row.classe_id, kind=row.kind,
+        jour=row.jour, motif=row.motif, duree_jours=row.duree_jours,
+        convocation_at=row.convocation_at, recorded_by=row.recorded_by,
+        created_at=row.created_at,
+        eleve_nom=_eleve_label(e) if e else None,
+        matricule=e.matricule if e else None,
+    )
+
+
+def _bulletin_map(ctx: TenantContext, classe_id: int, trimestre: int) -> dict[int, dict]:
+    """Best-effort : rang / moyenne depuis bulletins-service."""
+    try:
+        staff = TenantContext(user_id=ctx.user_id, role="admin", tenant_id=ctx.tenant_id)
+        data = _bulletins.get(
+            f"/bulletins/classe/{classe_id}",
+            ctx=staff,
+            params={"trimestre": trimestre, "scope": "trimestre"},
+        )
+    except Exception as exc:
+        logger.warning("Bulletins classe %s indisponibles : %s", classe_id, exc)
+        return {}
+    out: dict[int, dict] = {}
+    items = data if isinstance(data, list) else (data.get("bulletins") or data.get("items") or [])
+    for item in items:
+        eleve_id = item.get("eleve_id") or (item.get("eleve") or {}).get("id")
+        if not eleve_id:
+            continue
+        summary = item.get("summary") or item.get("resultats") or item
+        moyenne = (
+            summary.get("moyenne_generale")
+            or summary.get("moyenne")
+            or item.get("moyenne_generale")
+            or item.get("moyenne")
+        )
+        rang = summary.get("rang_general") or summary.get("rang") or item.get("rang")
+        mention = summary.get("mention") or item.get("mention")
+        decision = summary.get("decision") or item.get("decision")
+        out[int(eleve_id)] = {
+            "moyenne": moyenne,
+            "rang": int(rang) if rang not in (None, "") else None,
+            "mention": mention,
+            "decision": decision if decision in CONSEIL_DECISIONS else None,
+        }
+    return out
+
+
+def _conseil_out(session, eleves_by_id: dict) -> ConseilSessionOut:
+    decisions = []
+    for d in sorted(session.decisions, key=lambda x: (x.rang is None, x.rang or 999, x.eleve_id)):
+        e = eleves_by_id.get(d.eleve_id)
+        decisions.append(ConseilDecisionOut(
+            id=d.id, eleve_id=d.eleve_id, rang=d.rang, moyenne=d.moyenne,
+            mention=d.mention, decision=d.decision, observation=d.observation,
+            eleve_nom=_eleve_label(e) if e else None,
+            matricule=e.matricule if e else None,
+        ))
+    return ConseilSessionOut(
+        id=session.id, classe_id=session.classe_id, trimestre=session.trimestre,
+        titre=session.titre, held_on=session.held_on, statut=session.statut,
+        notes=session.notes, created_at=session.created_at, decisions=decisions,
+    )
+
+
+# ═══════════════════════ DISCIPLINE / VIE SCOLAIRE ════════════════════════════
+@app.get("/eleves/sanctions", response_model=list[SanctionOut], tags=["discipline"])
+def list_sanctions(
+    eleve_id: int | None = None,
+    classe_id: int | None = None,
+    kind: str | None = None,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    rows = crud.list_sanctions(db, ctx.tenant_id, eleve_id=eleve_id, classe_id=classe_id, kind=kind)
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id)}
+    return [_sanction_out(r, eleves) for r in rows]
+
+
+@app.post("/eleves/sanctions", response_model=SanctionOut, status_code=status.HTTP_201_CREATED, tags=["discipline"])
+def create_sanction(
+    payload: SanctionIn,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        row = crud.create_sanction(db, ctx.tenant_id, payload, recorded_by=ctx.user_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+    eleve = crud.get_eleve(db, ctx.tenant_id, row.eleve_id)
+    event = EventNames.PARENT_CONVOCATION if row.kind == "CONVOCATION" else EventNames.STUDENT_SANCTIONED
+    when_label = None
+    if row.convocation_at:
+        when_label = row.convocation_at.strftime("%d/%m/%Y %H:%M")
+    _emit(event, {
+        "tenant_id": ctx.tenant_id,
+        "eleve_id": eleve.id,
+        "nom": eleve.nom,
+        "prenom": eleve.prenom,
+        "parent_phone": crud.primary_parent_phone(eleve),
+        "kind": row.kind,
+        "kind_label": SANCTION_KINDS.get(row.kind, row.kind),
+        "motif": row.motif,
+        "when_label": when_label,
+    })
+    return _sanction_out(row, {eleve.id: eleve})
+
+
+@app.delete("/eleves/sanctions/{sanction_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["discipline"])
+def delete_sanction(
+    sanction_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        crud.delete_sanction(db, ctx.tenant_id, sanction_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+
+@app.get("/eleves/sanctions/{sanction_id}/convocation.pdf", tags=["discipline"])
+def sanction_convocation_pdf(
+    sanction_id: int,
+    establishment_name: str = "Établissement",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        row = crud.get_sanction(db, ctx.tenant_id, sanction_id)
+        eleve = crud.get_eleve(db, ctx.tenant_id, row.eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    parent_nom = eleve.parents[0].nom if eleve.parents else None
+    when = row.convocation_at.strftime("%d/%m/%Y à %H:%M") if row.convocation_at else None
+    pdf = render_convocation_pdf(
+        eleve, establishment_name=establishment_name, motif=row.motif,
+        when_label=when, parent_nom=parent_nom,
+    )
+    return _pdf_response(pdf, f"convocation_{eleve.matricule}.pdf")
+
+
+# ═══════════════════════ CONSEIL DE CLASSE ════════════════════════════════════
+@app.get("/eleves/conseils", response_model=list[ConseilSessionOut], tags=["conseil"])
+def list_conseils(
+    classe_id: int | None = None,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id)}
+    return [_conseil_out(s, eleves) for s in crud.list_conseils(db, ctx.tenant_id, classe_id)]
+
+
+@app.post("/eleves/conseils", response_model=ConseilSessionOut, status_code=status.HTTP_201_CREATED, tags=["conseil"])
+def create_conseil(
+    payload: ConseilCreate,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    bulletins = _bulletin_map(ctx, payload.classe_id, payload.trimestre or 1)
+    try:
+        session = crud.create_conseil(db, ctx.tenant_id, payload, bulletin_by_eleve=bulletins)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id, payload.classe_id)}
+    return _conseil_out(session, eleves)
+
+
+@app.get("/eleves/conseils/{session_id}", response_model=ConseilSessionOut, tags=["conseil"])
+def get_conseil(
+    session_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        session = crud.get_conseil(db, ctx.tenant_id, session_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id, session.classe_id)}
+    return _conseil_out(session, eleves)
+
+
+@app.put("/eleves/conseils/{session_id}/decisions", response_model=ConseilSessionOut, tags=["conseil"])
+def update_conseil_decisions(
+    session_id: int,
+    payload: ConseilDecisionsBulk,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        session = crud.update_conseil_decisions(db, ctx.tenant_id, session_id, payload)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id, session.classe_id)}
+    return _conseil_out(session, eleves)
+
+
+@app.post("/eleves/conseils/{session_id}/valider", response_model=ConseilSessionOut, tags=["conseil"])
+def valider_conseil(
+    session_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        session = crud.validate_conseil(db, ctx.tenant_id, session_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id, session.classe_id)}
+    return _conseil_out(session, eleves)
+
+
+@app.get("/eleves/conseils/{session_id}/pv.pdf", tags=["conseil"])
+def conseil_pv_pdf(
+    session_id: int,
+    establishment_name: str = "Établissement",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        session = crud.get_conseil(db, ctx.tenant_id, session_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id, session.classe_id)}
+    names = _classe_names(ctx)
+    rows = []
+    for d in sorted(session.decisions, key=lambda x: (x.rang is None, x.rang or 999, x.eleve_id)):
+        e = eleves.get(d.eleve_id)
+        rows.append({
+            "nom": _eleve_label(e) if e else f"#{d.eleve_id}",
+            "matricule": e.matricule if e else "—",
+            "rang": d.rang,
+            "moyenne": d.moyenne,
+            "mention": d.mention,
+            "decision": CONSEIL_DECISIONS.get(d.decision, d.decision),
+            "observation": d.observation,
+        })
+    pdf = render_conseil_pv_pdf(
+        establishment_name=establishment_name,
+        classe_nom=names.get(session.classe_id) or f"Classe {session.classe_id}",
+        trimestre=session.trimestre,
+        held_on=session.held_on.isoformat() if session.held_on else None,
+        notes=session.notes,
+        rows=rows,
+    )
+    return _pdf_response(pdf, f"pv_conseil_{session.classe_id}_T{session.trimestre}.pdf")
+
+
+# ═══════════════════════ EXAMENS OFFICIELS ════════════════════════════════════
+@app.get("/eleves/examens/eligible", tags=["examens"])
+def examens_eligible(
+    exam_code: str | None = None,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    """Élèves inscrits dont le niveau correspond à un examen officiel."""
+    level_to_exam = dict(LEVEL_EXAM_FALLBACK)
+    if exam_code:
+        level_codes = {lvl for lvl, ex in level_to_exam.items() if ex == exam_code}
+    else:
+        level_codes = set(level_to_exam.keys())
+    eleves = crud.eleves_for_exam_levels(db, ctx.tenant_id, level_codes)
+    names = _classe_names(ctx)
+    return [
+        {
+            "eleve_id": e.id,
+            "matricule": e.matricule,
+            "nom": e.nom,
+            "prenom": e.prenom,
+            "classe_id": e.classe_id,
+            "classe_nom": names.get(e.classe_id) if e.classe_id else None,
+            "level_code": e.level_code,
+            "exam_code": level_to_exam.get(e.level_code or ""),
+        }
+        for e in eleves
+        if not exam_code or level_to_exam.get(e.level_code or "") == exam_code
+    ]
+
+
+@app.get("/eleves/examens/candidats", response_model=list[ExamCandidatOut], tags=["examens"])
+def list_exam_candidats(
+    exam_code: str | None = None,
+    session_label: str | None = None,
+    classe_id: int | None = None,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    rows = crud.list_exam_candidats(
+        db, ctx.tenant_id, exam_code=exam_code, session_label=session_label, classe_id=classe_id,
+    )
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id)}
+    out = []
+    for r in rows:
+        e = eleves.get(r.eleve_id)
+        out.append(ExamCandidatOut(
+            id=r.id, eleve_id=r.eleve_id, classe_id=r.classe_id, exam_code=r.exam_code,
+            session_label=r.session_label, centre=r.centre, numero_table=r.numero_table,
+            matieres=r.matieres, resultat=r.resultat, created_at=r.created_at,
+            eleve_nom=_eleve_label(e) if e else None,
+            matricule=e.matricule if e else None,
+        ))
+    return out
+
+
+@app.post("/eleves/examens/candidats", response_model=ExamCandidatOut, tags=["examens"])
+def upsert_exam_candidat(
+    payload: ExamCandidatIn,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    if payload.exam_code not in EXAM_CODES and payload.exam_code not in LEVEL_EXAM_FALLBACK.values():
+        # Autoriser aussi les libellés seedés
+        pass
+    try:
+        row = crud.upsert_exam_candidat(db, ctx.tenant_id, payload)
+        eleve = crud.get_eleve(db, ctx.tenant_id, row.eleve_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    return ExamCandidatOut(
+        id=row.id, eleve_id=row.eleve_id, classe_id=row.classe_id, exam_code=row.exam_code,
+        session_label=row.session_label, centre=row.centre, numero_table=row.numero_table,
+        matieres=row.matieres, resultat=row.resultat, created_at=row.created_at,
+        eleve_nom=_eleve_label(eleve), matricule=eleve.matricule,
+    )
+
+
+@app.delete("/eleves/examens/candidats/{candidat_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["examens"])
+def delete_exam_candidat(
+    candidat_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    try:
+        crud.delete_exam_candidat(db, ctx.tenant_id, candidat_id)
+    except crud.NotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+
+@app.get("/eleves/examens/candidats.pdf", tags=["examens"])
+def exam_list_pdf(
+    exam_code: str,
+    session_label: str = "2026",
+    establishment_name: str = "Établissement",
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(require_tenant),
+):
+    rows = crud.list_exam_candidats(db, ctx.tenant_id, exam_code=exam_code, session_label=session_label)
+    eleves = {e.id: e for e in crud.list_eleves(db, ctx.tenant_id)}
+    pdf_rows = [
+        {
+            "nom": _eleve_label(eleves[r.eleve_id]) if r.eleve_id in eleves else f"#{r.eleve_id}",
+            "matricule": eleves[r.eleve_id].matricule if r.eleve_id in eleves else "—",
+            "numero_table": r.numero_table,
+            "centre": r.centre,
+            "resultat": r.resultat,
+        }
+        for r in rows
+    ]
+    pdf = render_exam_list_pdf(
+        establishment_name=establishment_name,
+        exam_code=exam_code,
+        session_label=session_label,
+        rows=pdf_rows,
+    )
+    safe = exam_code.replace(" ", "_")
+    return _pdf_response(pdf, f"candidats_{safe}_{session_label}.pdf")
 
 
 @app.get("/eleves/{eleve_id}", response_model=EleveDetail, tags=["eleves"])

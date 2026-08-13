@@ -122,6 +122,7 @@ services:
       <<: *common_env
       DATABASE_URL: postgresql+psycopg2://gs:gs@postgres:5432/eleves_db
       TRESORERIE_SERVICE_URL: http://tresorerie-service:8000
+      BULLETINS_SERVICE_URL: http://bulletins-service:8000
     depends_on: *depends_postgres
     restart: unless-stopped
 

@@ -1421,6 +1421,92 @@ export async function fetchParentDashboard() {
   return res.json();
 }
 
+// ── Discipline / conseil / examens ───────────────────────────────────────────
+export async function fetchSanctions({ eleveId, classeId, kind } = {}) {
+  const params = new URLSearchParams();
+  if (eleveId) params.set('eleve_id', String(eleveId));
+  if (classeId) params.set('classe_id', String(classeId));
+  if (kind) params.set('kind', kind);
+  const qs = params.toString();
+  return apiRequest(`/eleves/sanctions${qs ? `?${qs}` : ''}`);
+}
+
+export async function createSanction(payload) {
+  return apiRequest('/eleves/sanctions', { method: 'POST', body: payload });
+}
+
+export async function deleteSanction(sanctionId) {
+  return deleteRequest(`/eleves/sanctions/${sanctionId}`);
+}
+
+export async function downloadConvocationPdf(sanctionId, establishmentName = 'Établissement') {
+  const params = new URLSearchParams({ establishment_name: establishmentName });
+  const res = await fetch(`/eleves/sanctions/${sanctionId}/convocation.pdf?${params}`, { headers: getHeaders() });
+  return downloadFileResponse(res, `convocation_${sanctionId}.pdf`);
+}
+
+export async function fetchConseils(classeId = null) {
+  const qs = classeId != null ? `?classe_id=${classeId}` : '';
+  return apiRequest(`/eleves/conseils${qs}`);
+}
+
+export async function createConseil(payload) {
+  return apiRequest('/eleves/conseils', { method: 'POST', body: payload });
+}
+
+export async function fetchConseil(sessionId) {
+  return apiRequest(`/eleves/conseils/${sessionId}`);
+}
+
+export async function updateConseilDecisions(sessionId, decisions) {
+  return apiRequest(`/eleves/conseils/${sessionId}/decisions`, {
+    method: 'PUT',
+    body: { decisions },
+  });
+}
+
+export async function validerConseil(sessionId) {
+  return apiRequest(`/eleves/conseils/${sessionId}/valider`, { method: 'POST' });
+}
+
+export async function downloadConseilPv(sessionId, establishmentName = 'Établissement') {
+  const params = new URLSearchParams({ establishment_name: establishmentName });
+  const res = await fetch(`/eleves/conseils/${sessionId}/pv.pdf?${params}`, { headers: getHeaders() });
+  return downloadFileResponse(res, `pv_conseil_${sessionId}.pdf`);
+}
+
+export async function fetchExamensEligible(examCode = null) {
+  const qs = examCode ? `?exam_code=${encodeURIComponent(examCode)}` : '';
+  return apiRequest(`/eleves/examens/eligible${qs}`);
+}
+
+export async function fetchExamCandidats({ examCode, sessionLabel, classeId } = {}) {
+  const params = new URLSearchParams();
+  if (examCode) params.set('exam_code', examCode);
+  if (sessionLabel) params.set('session_label', sessionLabel);
+  if (classeId) params.set('classe_id', String(classeId));
+  const qs = params.toString();
+  return apiRequest(`/eleves/examens/candidats${qs ? `?${qs}` : ''}`);
+}
+
+export async function upsertExamCandidat(payload) {
+  return apiRequest('/eleves/examens/candidats', { method: 'POST', body: payload });
+}
+
+export async function deleteExamCandidat(candidatId) {
+  return deleteRequest(`/eleves/examens/candidats/${candidatId}`);
+}
+
+export async function downloadExamListPdf(examCode, sessionLabel = '2026', establishmentName = 'Établissement') {
+  const params = new URLSearchParams({
+    exam_code: examCode,
+    session_label: sessionLabel,
+    establishment_name: establishmentName,
+  });
+  const res = await fetch(`/eleves/examens/candidats.pdf?${params}`, { headers: getHeaders() });
+  return downloadFileResponse(res, `candidats_${examCode}.pdf`);
+}
+
 // ── Référentiel MINESEC (lecture seule, §8) ───────────────
 export async function fetchReferentielTree() {
   const res = await fetch('/referentiel/tree', { headers: getHeaders() });

@@ -27,6 +27,8 @@ class EventNames:
     STUDENT_PROMOTED = "StudentPromoted"
     STUDENT_ABSENT = "StudentAbsent"
     PARENT_PIN_ISSUED = "ParentPinIssued"
+    STUDENT_SANCTIONED = "StudentSanctioned"
+    PARENT_CONVOCATION = "ParentConvocation"
 
 
 class EventPublisher:

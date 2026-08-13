@@ -491,3 +491,264 @@ def list_absences_eleve(db: Session, tenant_id: int, eleve_id: int, limit: int =
         .limit(limit)
         .all()
     )
+
+
+# ── Discipline ────────────────────────────────────────────────────────────────
+
+from app.models import (  # noqa: E402
+    CONSEIL_BROUILLON,
+    CONSEIL_VALIDE,
+    DECISION_A_DELIBERER,
+    EXAM_RESULT_INSCRIT,
+    ConseilDecision,
+    ConseilSession,
+    ExamCandidat,
+    Sanction,
+)
+from app.schemas import (  # noqa: E402
+    ConseilCreate,
+    ConseilDecisionsBulk,
+    ExamCandidatIn,
+    SanctionIn,
+)
+from app.vie_scolaire import SANCTION_KINDS, suggest_decision, mention_from_moyenne  # noqa: E402
+
+
+def create_sanction(db: Session, tenant_id: int, payload: SanctionIn, recorded_by: int | None) -> Sanction:
+    kind = (payload.kind or "").upper()
+    if kind not in SANCTION_KINDS:
+        raise ValueError(f"Type de sanction inconnu : {payload.kind}")
+    eleve = get_eleve(db, tenant_id, payload.eleve_id)
+    row = Sanction(
+        tenant_id=tenant_id,
+        eleve_id=payload.eleve_id,
+        classe_id=payload.classe_id or eleve.classe_id,
+        kind=kind,
+        jour=payload.jour,
+        motif=payload.motif,
+        duree_jours=payload.duree_jours,
+        convocation_at=payload.convocation_at,
+        recorded_by=recorded_by,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def list_sanctions(
+    db: Session,
+    tenant_id: int,
+    *,
+    eleve_id: int | None = None,
+    classe_id: int | None = None,
+    kind: str | None = None,
+) -> list[Sanction]:
+    q = db.query(Sanction).filter(Sanction.tenant_id == tenant_id)
+    if eleve_id is not None:
+        q = q.filter(Sanction.eleve_id == eleve_id)
+    if classe_id is not None:
+        q = q.filter(Sanction.classe_id == classe_id)
+    if kind:
+        q = q.filter(Sanction.kind == kind.upper())
+    return q.order_by(Sanction.jour.desc(), Sanction.id.desc()).all()
+
+
+def get_sanction(db: Session, tenant_id: int, sanction_id: int) -> Sanction:
+    row = db.query(Sanction).filter(Sanction.tenant_id == tenant_id, Sanction.id == sanction_id).first()
+    if not row:
+        raise NotFound("Sanction introuvable")
+    return row
+
+
+def delete_sanction(db: Session, tenant_id: int, sanction_id: int) -> None:
+    row = get_sanction(db, tenant_id, sanction_id)
+    db.delete(row)
+    db.commit()
+
+
+def count_sanctions_eleve(db: Session, tenant_id: int, eleve_id: int) -> int:
+    return (
+        db.query(Sanction)
+        .filter(Sanction.tenant_id == tenant_id, Sanction.eleve_id == eleve_id)
+        .count()
+    )
+
+
+# ── Conseil de classe ─────────────────────────────────────────────────────────
+
+def create_conseil(
+    db: Session,
+    tenant_id: int,
+    payload: ConseilCreate,
+    bulletin_by_eleve: dict[int, dict] | None = None,
+) -> ConseilSession:
+    eleves = list_eleves(db, tenant_id, payload.classe_id)
+    if not eleves:
+        raise ValueError("Aucun élève dans cette classe.")
+    session = ConseilSession(
+        tenant_id=tenant_id,
+        classe_id=payload.classe_id,
+        trimestre=payload.trimestre or 1,
+        titre=payload.titre or f"Conseil T{payload.trimestre or 1}",
+        held_on=payload.held_on,
+        notes=payload.notes,
+        statut=CONSEIL_BROUILLON,
+    )
+    db.add(session)
+    db.flush()
+    bulletin_by_eleve = bulletin_by_eleve or {}
+    for e in eleves:
+        info = bulletin_by_eleve.get(e.id) or {}
+        moyenne_raw = info.get("moyenne")
+        try:
+            moyenne_f = float(moyenne_raw) if moyenne_raw is not None else None
+        except (TypeError, ValueError):
+            moyenne_f = None
+        db.add(ConseilDecision(
+            tenant_id=tenant_id,
+            session_id=session.id,
+            eleve_id=e.id,
+            rang=info.get("rang"),
+            moyenne=str(moyenne_raw) if moyenne_raw is not None else None,
+            mention=info.get("mention") or mention_from_moyenne(moyenne_f),
+            decision=info.get("decision") or suggest_decision(moyenne_f),
+            observation=None,
+        ))
+    db.commit()
+    db.refresh(session)
+    return get_conseil(db, tenant_id, session.id)
+
+
+def list_conseils(db: Session, tenant_id: int, classe_id: int | None = None) -> list[ConseilSession]:
+    q = db.query(ConseilSession).filter(ConseilSession.tenant_id == tenant_id)
+    if classe_id is not None:
+        q = q.filter(ConseilSession.classe_id == classe_id)
+    return q.order_by(ConseilSession.created_at.desc()).all()
+
+
+def get_conseil(db: Session, tenant_id: int, session_id: int) -> ConseilSession:
+    row = (
+        db.query(ConseilSession)
+        .options(joinedload(ConseilSession.decisions))
+        .filter(ConseilSession.tenant_id == tenant_id, ConseilSession.id == session_id)
+        .first()
+    )
+    if not row:
+        raise NotFound("Conseil de classe introuvable")
+    return row
+
+
+def update_conseil_decisions(
+    db: Session, tenant_id: int, session_id: int, payload: ConseilDecisionsBulk,
+) -> ConseilSession:
+    session = get_conseil(db, tenant_id, session_id)
+    if session.statut == CONSEIL_VALIDE:
+        raise ValueError("Conseil déjà validé — décisions verrouillées.")
+    by_eleve = {d.eleve_id: d for d in session.decisions}
+    for item in payload.decisions:
+        row = by_eleve.get(item.eleve_id)
+        if row is None:
+            row = ConseilDecision(
+                tenant_id=tenant_id, session_id=session.id, eleve_id=item.eleve_id,
+                decision=DECISION_A_DELIBERER,
+            )
+            db.add(row)
+            by_eleve[item.eleve_id] = row
+        if item.rang is not None:
+            row.rang = item.rang
+        if item.moyenne is not None:
+            row.moyenne = item.moyenne
+        if item.mention is not None:
+            row.mention = item.mention
+        if item.decision:
+            row.decision = item.decision
+        if item.observation is not None:
+            row.observation = item.observation
+    db.commit()
+    return get_conseil(db, tenant_id, session_id)
+
+
+def validate_conseil(db: Session, tenant_id: int, session_id: int) -> ConseilSession:
+    session = get_conseil(db, tenant_id, session_id)
+    session.statut = CONSEIL_VALIDE
+    db.commit()
+    return get_conseil(db, tenant_id, session_id)
+
+
+# ── Examens officiels ─────────────────────────────────────────────────────────
+
+def upsert_exam_candidat(db: Session, tenant_id: int, payload: ExamCandidatIn) -> ExamCandidat:
+    eleve = get_eleve(db, tenant_id, payload.eleve_id)
+    row = (
+        db.query(ExamCandidat)
+        .filter(
+            ExamCandidat.tenant_id == tenant_id,
+            ExamCandidat.eleve_id == payload.eleve_id,
+            ExamCandidat.exam_code == payload.exam_code,
+            ExamCandidat.session_label == payload.session_label,
+        )
+        .first()
+    )
+    if row is None:
+        row = ExamCandidat(
+            tenant_id=tenant_id,
+            eleve_id=payload.eleve_id,
+            exam_code=payload.exam_code,
+            session_label=payload.session_label,
+        )
+        db.add(row)
+    row.classe_id = payload.classe_id or eleve.classe_id
+    row.centre = payload.centre
+    row.numero_table = payload.numero_table
+    row.matieres = payload.matieres
+    row.resultat = payload.resultat or EXAM_RESULT_INSCRIT
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def list_exam_candidats(
+    db: Session,
+    tenant_id: int,
+    *,
+    exam_code: str | None = None,
+    session_label: str | None = None,
+    classe_id: int | None = None,
+) -> list[ExamCandidat]:
+    q = db.query(ExamCandidat).filter(ExamCandidat.tenant_id == tenant_id)
+    if exam_code:
+        q = q.filter(ExamCandidat.exam_code == exam_code)
+    if session_label:
+        q = q.filter(ExamCandidat.session_label == session_label)
+    if classe_id is not None:
+        q = q.filter(ExamCandidat.classe_id == classe_id)
+    return q.order_by(ExamCandidat.exam_code, ExamCandidat.numero_table, ExamCandidat.id).all()
+
+
+def delete_exam_candidat(db: Session, tenant_id: int, candidat_id: int) -> None:
+    row = (
+        db.query(ExamCandidat)
+        .filter(ExamCandidat.tenant_id == tenant_id, ExamCandidat.id == candidat_id)
+        .first()
+    )
+    if not row:
+        raise NotFound("Candidat introuvable")
+    db.delete(row)
+    db.commit()
+
+
+def eleves_for_exam_levels(db: Session, tenant_id: int, level_codes: set[str]) -> list[Eleve]:
+    if not level_codes:
+        return []
+    return (
+        db.query(Eleve)
+        .options(joinedload(Eleve.parents))
+        .filter(
+            Eleve.tenant_id == tenant_id,
+            Eleve.statut == STATUT_INSCRIT,
+            Eleve.level_code.in_(list(level_codes)),
+        )
+        .order_by(Eleve.nom, Eleve.prenom)
+        .all()
+    )

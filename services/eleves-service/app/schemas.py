@@ -228,3 +228,112 @@ class ParentChildOut(BaseModel):
 class ParentDashboardOut(BaseModel):
     phone: str
     enfants: List[ParentChildOut]
+
+
+# ── Discipline / conseil / examens ────────────────────────────────────────────
+
+class SanctionIn(BaseModel):
+    eleve_id: int
+    kind: str
+    jour: date
+    motif: str
+    classe_id: Optional[int] = None
+    duree_jours: Optional[int] = None
+    convocation_at: Optional[datetime] = None
+
+    @field_validator("motif")
+    @classmethod
+    def _motif(cls, v):
+        if not v or not str(v).strip():
+            raise ValueError("Le motif est obligatoire.")
+        return str(v).strip()
+
+
+class SanctionOut(BaseModel):
+    id: int
+    eleve_id: int
+    classe_id: Optional[int] = None
+    kind: str
+    jour: date
+    motif: str
+    duree_jours: Optional[int] = None
+    convocation_at: Optional[datetime] = None
+    recorded_by: Optional[int] = None
+    created_at: datetime
+    eleve_nom: Optional[str] = None
+    matricule: Optional[str] = None
+    model_config = {"from_attributes": True}
+
+
+class ConseilCreate(BaseModel):
+    classe_id: int
+    trimestre: int = 1
+    titre: Optional[str] = None
+    held_on: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class ConseilDecisionIn(BaseModel):
+    eleve_id: int
+    rang: Optional[int] = None
+    moyenne: Optional[str] = None
+    mention: Optional[str] = None
+    decision: str = "A_DELIBERER"
+    observation: Optional[str] = None
+
+
+class ConseilDecisionsBulk(BaseModel):
+    decisions: List[ConseilDecisionIn]
+
+
+class ConseilDecisionOut(BaseModel):
+    id: int
+    eleve_id: int
+    rang: Optional[int] = None
+    moyenne: Optional[str] = None
+    mention: Optional[str] = None
+    decision: str
+    observation: Optional[str] = None
+    eleve_nom: Optional[str] = None
+    matricule: Optional[str] = None
+    model_config = {"from_attributes": True}
+
+
+class ConseilSessionOut(BaseModel):
+    id: int
+    classe_id: int
+    trimestre: int
+    titre: Optional[str] = None
+    held_on: Optional[date] = None
+    statut: str
+    notes: Optional[str] = None
+    created_at: datetime
+    decisions: List[ConseilDecisionOut] = []
+    model_config = {"from_attributes": True}
+
+
+class ExamCandidatIn(BaseModel):
+    eleve_id: int
+    exam_code: str
+    session_label: str = "2026"
+    classe_id: Optional[int] = None
+    centre: Optional[str] = None
+    numero_table: Optional[str] = None
+    matieres: Optional[str] = None
+    resultat: str = "INSCRIT"
+
+
+class ExamCandidatOut(BaseModel):
+    id: int
+    eleve_id: int
+    classe_id: Optional[int] = None
+    exam_code: str
+    session_label: str
+    centre: Optional[str] = None
+    numero_table: Optional[str] = None
+    matieres: Optional[str] = None
+    resultat: str
+    created_at: datetime
+    eleve_nom: Optional[str] = None
+    matricule: Optional[str] = None
+    model_config = {"from_attributes": True}

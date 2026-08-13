@@ -219,3 +219,52 @@ def test_attestation_pdf_bytes(db):
     e = _make(db)
     assert render_attestation_scolarite(e, establishment_name="Test School").startswith(b"%PDF")
     assert render_carte_eleve(e, establishment_name="Test School").startswith(b"%PDF")
+
+
+def test_sanction_and_conseil(db):
+    from datetime import date
+    from app.pdf_documents import render_conseil_pv_pdf, render_convocation_pdf
+    from app.schemas import ConseilCreate, ConseilDecisionsBulk, ConseilDecisionIn, SanctionIn
+
+    e = _make(db, classe_id=10)
+    s = crud.create_sanction(db, TENANT, SanctionIn(
+        eleve_id=e.id, kind="AVERTISSEMENT", jour=date(2026, 8, 12), motif="Retard répété",
+    ), recorded_by=1)
+    assert s.kind == "AVERTISSEMENT"
+    assert crud.count_sanctions_eleve(db, TENANT, e.id) == 1
+    assert render_convocation_pdf(e, motif=s.motif).startswith(b"%PDF")
+
+    session = crud.create_conseil(db, TENANT, ConseilCreate(classe_id=10, trimestre=1), bulletin_by_eleve={
+        e.id: {"moyenne": 11.5, "rang": 1, "mention": "Assez Bien"},
+    })
+    assert len(session.decisions) == 1
+    assert session.decisions[0].decision in ("ADMIS", "ADMIS_CONDITIONNEL", "A_DELIBERER")
+    updated = crud.update_conseil_decisions(db, TENANT, session.id, ConseilDecisionsBulk(decisions=[
+        ConseilDecisionIn(eleve_id=e.id, decision="REDOUBLE", observation="Travail insuffisant"),
+    ]))
+    assert updated.decisions[0].decision == "REDOUBLE"
+    validated = crud.validate_conseil(db, TENANT, session.id)
+    assert validated.statut == "VALIDE"
+    assert render_conseil_pv_pdf(
+        establishment_name="Test", classe_nom="3ème A", trimestre=1, held_on="2026-08-12",
+        notes=None, rows=[{"nom": "Marie", "matricule": "X", "rang": 1, "moyenne": "11", "mention": "AB", "decision": "Redouble", "observation": ""}],
+    ).startswith(b"%PDF")
+
+
+def test_exam_candidat(db):
+    from app.schemas import ExamCandidatIn, EleveUpdate
+    from app.pdf_documents import render_exam_list_pdf
+
+    e = _make(db, classe_id=10)
+    e = crud.update_eleve(db, TENANT, e.id, EleveUpdate(level_code="3E"))
+    row = crud.upsert_exam_candidat(db, TENANT, ExamCandidatIn(
+        eleve_id=e.id, exam_code="BEPC", session_label="2026",
+        centre="Lycée Test", numero_table="001",
+    ))
+    assert row.exam_code == "BEPC"
+    listed = crud.list_exam_candidats(db, TENANT, exam_code="BEPC")
+    assert len(listed) == 1
+    assert render_exam_list_pdf(
+        establishment_name="Test", exam_code="BEPC", session_label="2026",
+        rows=[{"nom": "Marie", "matricule": "X", "numero_table": "001", "centre": "C", "resultat": "INSCRIT"}],
+    ).startswith(b"%PDF")

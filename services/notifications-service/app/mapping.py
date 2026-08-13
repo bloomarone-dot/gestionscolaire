@@ -65,6 +65,19 @@ def _messages_for(event: str, data: dict) -> list[tuple[Optional[str], list[str]
             f"Votre code espace parent BloomSchool pour {name} est {pin}. "
             "Connectez-vous sur /espace-parent (téléphone + code).",
         )]
+    if event == "StudentSanctioned":
+        kind = data.get("kind_label") or data.get("kind") or "mesure disciplinaire"
+        return [(
+            data.get("parent_phone"), [SMS, WHATSAPP],
+            f"Vie scolaire : {kind} pour {name}. Motif : {data.get('motif') or 'non précisé'}.",
+        )]
+    if event == "ParentConvocation":
+        when = data.get("when_label") or "prochainement"
+        return [(
+            data.get("parent_phone"), [SMS, WHATSAPP],
+            f"Convocation : vous êtes attendu(e) {when} concernant {name}. "
+            f"Motif : {data.get('motif') or 'entretien'}.",
+        )]
     return []
 
 
